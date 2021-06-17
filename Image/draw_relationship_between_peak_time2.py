@@ -102,4 +102,5 @@ ax3.set_xlabel(r"$\lambda_1$")
 ax3.set_ylabel(r"$\lambda_2$")
 ax3.set_zlabel(r"$\Delta_{i 1}^{*} + \Delta_{i 2}^{*}$")
 # ax3.contour(X, Y, Z, offset=-2, cmap='rainbow')  # 绘制等高线
-plt.show()
+# plt.show()
+plt.savefig('example.jpg', dpi=300)
