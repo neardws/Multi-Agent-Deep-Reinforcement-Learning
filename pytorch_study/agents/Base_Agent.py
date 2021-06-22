@@ -324,7 +324,7 @@ class Base_Agent(object):
         for key in default_hyperparameter_choices:
             if key not in hyperparameters.keys():
                 hyperparameters[key] = default_hyperparameter_choices[key]
-
+        print("NN")
         return NN(input_dim=input_dim, layers_info=hyperparameters["linear_hidden_units"] + [output_dim],
                   output_activation=hyperparameters["final_layer_activation"],
                   batch_norm=hyperparameters["batch_norm"], dropout=hyperparameters["dropout"],

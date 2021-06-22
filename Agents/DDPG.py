@@ -17,25 +17,30 @@ from exploration_strategies.OU_Noise_Exploration import OU_Noise_Exploration
 
 class DDPG(Base_Agent):
     """A DDPG Agent"""
-    agent_name = "DDPG"
+    # agent_name = "DDPG"
 
     def __init__(self, config):
         Base_Agent.__init__(self, config)
+        self.agent_name = "DDPG"
         self.hyperparameters = config.hyperparameters
+
+        """Replay Buffer"""
+        self.memory = Replay_Buffer(self.hyperparameters["Critic"]["buffer_size"], self.hyperparameters["batch_size"],
+                                    self.config.seed)
+        """Critic Network"""
         self.critic_local = self.create_NN(input_dim=self.state_size + self.action_size, output_dim=1, key_to_use="Critic")
         self.critic_target = self.create_NN(input_dim=self.state_size + self.action_size, output_dim=1, key_to_use="Critic")
         Base_Agent.copy_model_over(self.critic_local, self.critic_target)
-
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(),
-                                           lr=self.hyperparameters["Critic"]["learning_rate"], eps=1e-4)
-        self.memory = Replay_Buffer(self.hyperparameters["Critic"]["buffer_size"], self.hyperparameters["batch_size"],
-                                    self.config.seed)
+                                           lr=self.hyperparameters["Critic"]["learning_rate"],
+                                           eps=1e-4)
+        """Actor Network"""
         self.actor_local = self.create_NN(input_dim=self.state_size, output_dim=self.action_size, key_to_use="Actor")
         self.actor_target = self.create_NN(input_dim=self.state_size, output_dim=self.action_size, key_to_use="Actor")
         Base_Agent.copy_model_over(self.actor_local, self.actor_target)
-
         self.actor_optimizer = optim.Adam(self.actor_local.parameters(),
-                                          lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4)
+                                          lr=self.hyperparameters["Actor"]["learning_rate"],
+                                          eps=1e-4)
         self.exploration_strategy = OU_Noise_Exploration(self.config)
 
     def step(self):
