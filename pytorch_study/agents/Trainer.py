@@ -111,8 +111,10 @@ class Trainer(object):
             agent_config.hyperparameters = agent_config.hyperparameters[agent_group]
             print("AGENT NAME: {}".format(agent_name))
             print("\033[1m" + "{}.{}: {}".format(agent_number, agent_round, agent_name) + "\033[0m", flush=True)
+            print("*"* 32)
             agent = agent_class(agent_config)
             self.environment_name = agent.environment_title
+            print("*"*64)
             print(agent.hyperparameters)
             print("RANDOM SEED " , agent_config.seed)
             game_scores, rolling_scores, time_taken = agent.run_n_episodes()

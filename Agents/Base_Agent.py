@@ -24,6 +24,8 @@ class Base_Agent(object):
         Init the base agent
         :param config:
         """
+        self.agent_name = "Base_Agent"
+        self.memory = None
         self.logger = self.setup_logger()
         self.debug_mode = config.debug_mode
         # if self.debug_mode: self.tensorboard = SummaryWriter()
@@ -101,7 +103,10 @@ class Base_Agent(object):
             return random_state.size
 
     def get_score_required_to_win(self):
-        """Gets average score required to win game"""
+        """
+        Gets average score required to win game
+        :return: 
+        """
         print("TITLE ", self.environment_title)
         if self.environment_title == "FetchReach": return -5
         if self.environment_title in ["AntMaze", "Hopper", "Walker2d"]:
@@ -183,7 +188,11 @@ class Base_Agent(object):
         self.logger.info("Reseting game -- New start state {}".format(self.state))
 
     def track_episodes_data(self):
-        """Saves the data from the recent episodes"""
+        """
+        Saves the data from the recent episodes
+        including state, action, reward, next_state, done
+        :return:
+        """
         self.episode_states.append(self.state)
         self.episode_actions.append(self.action)
         self.episode_rewards.append(self.reward)
@@ -258,7 +267,15 @@ class Base_Agent(object):
         return -1
 
     def update_learning_rate(self, starting_lr,  optimizer):
-        """Lowers the learning rate according to how close we are to the solution"""
+        """
+        Lowers the learning rate according to how close we are to the solution
+        The learning rate is smaller when closer the solution
+        However, we must determine the average score required to win
+        :param starting_lr:  learning rate of starting
+        :param optimizer:
+        :return:
+        """
+        new_lr = starting_lr
         if len(self.rolling_results) > 0:
             last_rolling_score = self.rolling_results[-1]
             if last_rolling_score > 0.75 * self.average_score_required_to_win:
@@ -276,12 +293,23 @@ class Base_Agent(object):
         if random.random() < 0.001: self.logger.info("Learning rate {}".format(new_lr))
 
     def enough_experiences_to_learn_from(self):
-        """Boolean indicated whether there are enough experiences in the memory buffer to learn from"""
+        """
+        Boolean indicated whether there are enough experiences in the memory buffer to learn from
+        :return: Boolean , True or False 
+        The memory must be overridden
+        """
         return len(self.memory) > self.hyperparameters["batch_size"]
 
     def save_experience(self, memory=None, experience=None):
-        """Saves the recent experience to the memory buffer"""
-        if memory is None: memory = self.memory
+        """
+        Saves the recent experience to the memory buffer
+        :param memory: Buffer
+        :param experience: self.state, self.action, self.reward, self.next_state, self.done
+        :return: None
+        """
+        if memory is None: 
+            # memory = self.memory
+            raise Exception("Memory is None, function save_experience at Base_Agent.py")
         if experience is None: experience = self.state, self.action, self.reward, self.next_state, self.done
         memory.add_experience(*experience)
 
@@ -314,10 +342,17 @@ class Base_Agent(object):
 
 
     def soft_update_of_target_network(self, local_model, target_model, tau):
-        """Updates the target network in the direction of the local network but by taking a step size
-        less than one so the target network's parameter values trail the local networks. This helps stabilise training"""
+        """
+        Updates the target network in the direction of the local network but by taking a step size
+        less than one so the target network's parameter values trail the local networks. This helps stabilise training
+        :param local_model:
+        :param target_model:
+        :param tau:
+        :return:
+        """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+
 
     def create_NN(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
         """
@@ -347,6 +382,28 @@ class Base_Agent(object):
             if key not in hyperparameters.keys():
                 hyperparameters[key] = default_hyperparameter_choices[key]
 
+        """Creates a PyTorch neural network
+           Args:
+               - input_dim: Integer to indicate the dimension of the input into the network
+               - layers_info: List of integers to indicate the width and number of linear layers you want in your network,
+                             e.g. [5, 8, 1] would produce a network with 3 linear layers of width 5, 8 and then 1
+               - hidden_activations: String or list of string to indicate the activations you want used on the output of hidden layers
+                                     (not including the output layer). Default is ReLU.
+               - output_activation: String to indicate the activation function you want the output to go through. Provide a list of
+                                    strings if you want multiple output heads
+               - dropout: Float to indicate what dropout probability you want applied after each hidden layer
+               - initialiser: String to indicate which initialiser you want used to initialise all the parameters. All PyTorch
+                              initialisers are supported. PyTorch's default initialisation is the default.
+               - batch_norm: Boolean to indicate whether you want batch norm applied to the output of every hidden layer. Default is False
+               - columns_of_data_to_be_embedded: List to indicate the columns numbers of the data that you want to be put through an embedding layer
+                                                 before being fed through the other layers of the network. Default option is no embeddings
+               - embedding_dimensions: If you have categorical variables you want embedded before flowing through the network then
+                                       you specify the embedding dimensions here with a list like so: [ [embedding_input_dim_1, embedding_output_dim_1],
+                                       [embedding_input_dim_2, embedding_output_dim_2] ...]. Default is no embeddings
+               - y_range: Tuple of float or integers of the form (y_lower, y_upper) indicating the range you want to restrict the
+                          output values to in regression tasks. Default is no range restriction
+               - random_seed: Integer to indicate the random seed you want to use
+        """
         return NN(input_dim=input_dim,
                   layers_info=hyperparameters["linear_hidden_units"] + [output_dim],
                   output_activation=hyperparameters["final_layer_activation"],
@@ -360,7 +417,7 @@ class Base_Agent(object):
                   random_seed=seed).to(self.device)
 
     def turn_on_any_epsilon_greedy_exploration(self):
-        """Turns off all exploration with respect to the epsilon greedy exploration strategy"""
+        """Turns on all exploration with respect to the epsilon greedy exploration strategy"""
         print("Turning on epsilon greedy exploration")
         self.turn_off_exploration = False
 
@@ -384,12 +441,23 @@ class Base_Agent(object):
         for param in network.parameters():
             param.requires_grad = True
 
+    """
+    static method, can be recalled without init objective of Class 
+    """
     @staticmethod
     def move_gradients_one_model_to_another(from_model, to_model, set_from_gradients_to_zero=False):
-        """Copies gradients from from_model to to_model"""
+        """
+        Copies gradients from from_model to to_model
+        :param from_model:
+        :param to_model:
+        :param set_from_gradients_to_zero:
+        :return:
+        TODO： The model structure
+        """
         for from_model, to_model in zip(from_model.parameters(), to_model.parameters()):
             to_model._grad = from_model.grad.clone()
             if set_from_gradients_to_zero: from_model._grad = None
+
 
     @staticmethod
     def copy_model_over(from_model, to_model):
