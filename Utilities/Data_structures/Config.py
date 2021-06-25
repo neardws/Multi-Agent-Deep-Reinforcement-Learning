@@ -25,16 +25,22 @@ class Experiment_Config(object):
         view_required_data： view required data at each time-slot， which is randomly generated
     """
     def __init__(self):
+        """Some constant number"""
         self.vehicle_number = None
         self.data_types_number = None
         self.time_slots_number = None
         self.edge_views_number = None
+        """The parameters related wireless transmission"""
         self.communication_range = None
         self.transmission_power = None
         self.bandwidth = None
         self.additive_white_gaussian_noise = None
         self.channel_fading_gain = None
         self.path_loss_exponent = None
+        """Some parameters of sensor node"""
+        self.arrival_rate_low_bound = None
+        self.arrival_rate_high_bound = None
+        """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         self.seed_data_types_in_vehicles = None
         self.seed_edge_views_in_edge_node = None
         self.seed_view_required_data = None

@@ -71,7 +71,7 @@ class Replay_Buffer(object):
         """
         Puts the sampled experience into the correct format for a PyTorch neural network
         :param experiences: Input
-        :return:
+        :return:/
         """
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(self.device)
