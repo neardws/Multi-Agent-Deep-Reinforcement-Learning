@@ -25,6 +25,9 @@ class Experiment_Config(object):
         view_required_data： view required data at each time-slot， which is randomly generated
     """
     def __init__(self):
+        """Experiment Config"""
+        self.episode_number = None
+        self.max_episode_length = None
         """Some constant number"""
         self.vehicle_number = None
         self.data_types_number = None
@@ -40,6 +43,7 @@ class Experiment_Config(object):
         """Some parameters of sensor node"""
         self.arrival_rate_low_bound = None
         self.arrival_rate_high_bound = None
+        self.action_time_of_sensor_nodes = None
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         self.seed_data_types_in_vehicles = None
         self.seed_edge_views_in_edge_node = None
@@ -76,6 +80,9 @@ class Experiment_Config(object):
         self.additive_white_gaussian_noise = additive_white_gaussian_noise
         self.channel_fading_gain = channel_fading_gain
         self.path_loss_exponent = path_loss_exponent
+        """Init the action time of sensor nodes"""
+        self.action_time_of_sensor_nodes = np.zeros((vehicle_number, time_slots_number))
+        self.action_time_of_sensor_nodes[:,0] = 1
         """Random generated of data types in all vehicles"""
         self.seed_data_types_in_vehicles = np.random.randint(0, 2**32 - 2)
         np.random.seed(self.seed_data_types_in_vehicles)
@@ -185,9 +192,16 @@ class Agent_Config(object):
 
 
 if __name__ == '__main__':
-    np.random.seed(1)
-    print(np.random.rand(10))
-    np.random.seed(1)
-    print(np.random.rand(10))
-    print(np.random.randint(0,2,10))
-    print(np.random.randint(0,2,10))
+    # np.random.seed(1)
+    # print(np.random.rand(10))
+    # np.random.seed(1)
+    # print(np.random.rand(10))
+    # print(np.random.randint(0,2,10))
+    # print(np.random.randint(0,2,10))
+
+    # TODO test this code
+    action_time_of_sensor_nodes = np.zeros((2, 3))
+    print(action_time_of_sensor_nodes.shape)
+    print(action_time_of_sensor_nodes)
+    action_time_of_sensor_nodes[:, 0] = 1
+    print(action_time_of_sensor_nodes)
