@@ -33,17 +33,28 @@ class Experiment_Config(object):
         self.data_types_number = None
         self.time_slots_number = None
         self.edge_views_number = None
-        """The parameters related wireless transmission"""
+        """The parameters related with transmission queue"""
+        self.seed_data_size_of_types = None
+        self.data_size_low_bound = None
+        self.data_size_up_bound = None
+        self.data_size_of_types = None
+        self.mean_service_time_of_types = None
+        self.second_moment_service_time_of_types = None
+        """The parameters related with wireless transmission"""
         self.communication_range = None
         self.transmission_power = None
         self.bandwidth = None
-        self.additive_white_gaussian_noise = None
-        self.channel_fading_gain = None
+
+        self.mean_additive_white_gaussian_noise = None  # white gaussian noise according to Gauss Distribution
+        self.second_moment_additive_white_gaussian_noise = None
+        self.mean_channel_fading_gain = None  # channel fading gain according to Gauss Distribution
+        self.second_moment_channel_fading_gain = None
+
         self.path_loss_exponent = None
+
         """Some parameters of sensor node"""
         self.arrival_rate_low_bound = None
-        self.arrival_rate_high_bound = None
-        self.action_time_of_sensor_nodes = None
+        self.arrival_rate_up_bound = None
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         self.seed_data_types_in_vehicles = None
         self.seed_edge_views_in_edge_node = None
@@ -54,18 +65,31 @@ class Experiment_Config(object):
         self.data_types_in_vehicles = None
         self.edge_views_in_edge_node = None
         self.view_required_data = None
+        """State varying with time"""
+        self.trajectories = None
+        self.data_in_edge_node = None
 
     def config(self,
                vehicle_number,
                data_types_number,
                time_slots_number,
                edge_views_number,
+
+               seed_data_size_of_types,
+               data_size_low_bound,
+               data_size_up_bound,
+
                communication_range,
                transmission_power,
                bandwidth,
-               additive_white_gaussian_noise,
+               mean_additive_white_gaussian_noise,
+               second_moment_additive_white_gaussian_noise,
+               mean_channel_fading_gain,
+               second_moment_channel_fading_gain,
+
                channel_fading_gain,
                path_loss_exponent,
+
                threshold_data_types_in_vehicles,
                threshold_edge_views_in_edge_node,
                threshold_view_required_data):
@@ -74,15 +98,28 @@ class Experiment_Config(object):
         self.data_types_number = data_types_number
         self.time_slots_number = time_slots_number
         self.edge_views_number = edge_views_number
+
+        self.data_size_low_bound = data_size_low_bound
+        self.data_size_up_bound = data_size_up_bound
+
+        self.seed_data_size_of_types = seed_data_size_of_types
+        np.random.seed(self.seed_data_size_of_types)
+        self.data_size_of_types = np.random.uniform(low=self.data_size_low_bound,
+                                                    high=self.data_size_up_bound,
+                                                    size=self.data_types_number)
+
         self.communication_range = communication_range
         self.transmission_power = transmission_power
         self.bandwidth = bandwidth
-        self.additive_white_gaussian_noise = additive_white_gaussian_noise
-        self.channel_fading_gain = channel_fading_gain
+
+        self.mean_additive_white_gaussian_noise = mean_additive_white_gaussian_noise
+        self.second_moment_additive_white_gaussian_noise = second_moment_additive_white_gaussian_noise
+        self.mean_channel_fading_gain = mean_channel_fading_gain
+        self.second_moment_channel_fading_gain = second_moment_channel_fading_gain
+
         self.path_loss_exponent = path_loss_exponent
-        """Init the action time of sensor nodes"""
-        self.action_time_of_sensor_nodes = np.zeros((vehicle_number, time_slots_number))
-        self.action_time_of_sensor_nodes[:,0] = 1
+
+
         """Random generated of data types in all vehicles"""
         self.seed_data_types_in_vehicles = np.random.randint(0, 2**32 - 2)
         np.random.seed(self.seed_data_types_in_vehicles)
@@ -104,13 +141,16 @@ class Experiment_Config(object):
         """Random generated of view required data"""
         self.seed_view_required_data = np.random.randint(0, 2**32 - 2)
         np.random.seed(self.seed_view_required_data)
-        self.view_required_data = np.random.rand(edge_views_number, data_types_number)
-        for value in np.nditer(self.view_required_data, op_flags=['readwrite']):
-            if value <= threshold_view_required_data:
+        self.view_required_data = np.random.rand(vehicle_number, data_types_number, edge_views_number)
+        for value in np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite']):
+            if self.data_types_in_vehicles[tuple(value.multi_index)[0]][tuple(value.multi_index)[1]] == 1 and\
+                    value[...] <= threshold_view_required_data:
                 value[...] = 1
             else:
                 value[...] = 0
-
+        """Trajectories and data in edge node"""
+        self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
+        self.data_in_edge_node = np.zeros(shape=(vehicle_number, data_types_number, time_slots_number))
 
 class Agent_Config(object):
     """
