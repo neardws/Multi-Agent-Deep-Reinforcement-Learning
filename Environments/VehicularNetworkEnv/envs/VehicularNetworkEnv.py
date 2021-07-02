@@ -55,8 +55,7 @@ class VehicularNetworkEnv(gym.Env):
         """Communication parameters"""
         self.communication_range = experiment_config.communication_range
 
-        self.mean_additive_white_gaussian_noise = experiment_config.mean_additive_white_gaussian_noise
-        self.second_moment_additive_white_gaussian_noise = experiment_config.second_moment_additive_white_gaussian_noise
+        self.white_gaussian_noise = experiment_config.additive_white_gaussian_noise
         self.mean_channel_fading_gain = experiment_config.mean_channel_fading_gain
         self.second_moment_channel_fading_gain = experiment_config.second_moment_channel_fading_gain
 
@@ -238,13 +237,26 @@ class VehicularNetworkEnv(gym.Env):
         pass
 
     def compute_SNR_by_distance(self, distance):
-        white_gaussian_noise = np.random.normal(loc=self.mean_additive_white_gaussian_noise,
-                                                scale=self.second_moment_additive_white_gaussian_noise)
+        white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(self.white_gaussian_noise)
         channel_fading_gain = np.random.normal(loc=self.mean_channel_fading_gain,
                                                scale=self.second_moment_channel_fading_gain)
         SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
               np.power(distance, -self.path_loss_exponent) * self.transmission_power
         return SNR
+
+    @staticmethod
+    def compute_transmission_rate(SNR, bandwidth):
+        return VehicularNetworkEnv.cover_MHz_to_Hz(bandwidth) * np.log2(1 + SNR) / (8 * 1024 * 1024)
+
+    @staticmethod
+    def cover_MHz_to_Hz(MHz):
+        return MHz * 10e6
+
+    @staticmethod
+    def computer_SNR_wall_by_noise_uncertainty(noise_uncertainty):
+        return (np.power(VehicularNetworkEnv.cover_dB_to_ratio(noise_uncertainty), 2) - 1) / \
+               VehicularNetworkEnv.cover_dB_to_ratio(noise_uncertainty)
+
 
     def render(self, mode='human', close=False):
         """
@@ -263,31 +275,61 @@ if __name__ == '__main__':
     # dB = 2
     # print(np.power(10, (dB / 10)))
 
-    mean_additive_white_gaussian_noise = 9.999999999999999e-11
-    second_moment_additive_white_gaussian_noise = 10e-12
+    # mean_additive_white_gaussian_noise = 1 / np.power(10,10)
+    # mean_additive_white_gaussian_noise = 10e-11
+    # second_moment_additive_white_gaussian_noise = 0
 
     mean_channel_fading_gain = 2
     second_moment_channel_fading_gain = 0.4
 
-    distance = 500
+    distance = 100
     path_loss_exponent = 3
-    transmission_power = 0.19
+    transmission_power = 0.001
 
-    white_gaussian_noise = np.random.normal(loc=mean_additive_white_gaussian_noise,
-                                            scale=second_moment_additive_white_gaussian_noise)
+    # white_gaussian_noise = np.random.normal(loc=mean_additive_white_gaussian_noise,
+    #                                         scale=second_moment_additive_white_gaussian_noise)
+
+    white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(-70)
     channel_fading_gain = np.random.normal(loc=mean_channel_fading_gain,
                                            scale=second_moment_channel_fading_gain)
     SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
           (1 / np.power(distance, path_loss_exponent)) * transmission_power
 
+    print(white_gaussian_noise)
+    # print(VehicularNetworkEnv.cover_W_to_dBm(mean_additive_white_gaussian_noise))
+
+    print("Transmission power")
+    print(VehicularNetworkEnv.cover_W_to_dBm(transmission_power))
+
+    print("SNR")
     print(SNR)
     print(str(10 * np.log10(SNR)) + "dB")
 
-    dBm = -90
-    print(np.power(10, (dBm / 10)) / 1000)
+    print(VehicularNetworkEnv.compute_transmission_rate(SNR, bandwidth=0.1))
 
-    W = 10e-11
-    print(10 * np.log10(W * 1000))
+    # print(VehicularNetworkEnv.cover_dB_to_ratio(2))
+    #
+    # noise_uncertainty = np.random.random() * (3 - 1) + 1
+    # # noise_uncertainty = 1
+    # print("noise_uncertainty:" + str(noise_uncertainty))
+    # SNR_wall = VehicularNetworkEnv.computer_SNR_wall_by_noise_uncertainty(noise_uncertainty)
+    # print(SNR_wall)
+    # print(VehicularNetworkEnv.cover_ratio_to_dB(SNR_wall))
 
-    mW = 10e-12
-    print(VehicularNetworkEnv.cover_mW_to_W(mW))
+    # dBm = 23
+    # print(np.power(10, (dBm / 10)) / 1000)
+    #
+    # W = 10e-11
+    # print(10 * np.log10(W * 1000))
+    #
+    # mW = 10e-12
+    # print(VehicularNetworkEnv.cover_mW_to_W(mW))
+    #
+    # print(VehicularNetworkEnv.cover_W_to_dBm(10e-11))
+    #
+    # print(VehicularNetworkEnv.cover_dBm_to_W(10))
+    #
+    # print(VehicularNetworkEnv.cover_dBm_to_W(-70))
+
+
+    # print(VehicularNetworkEnv.cover_dBm_to_W(-70) * 10e6)

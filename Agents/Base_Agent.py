@@ -24,7 +24,6 @@ class Base_Agent(object):
         Init the base agent
         :param config:
         """
-        self.agent_name = "Base_Agent"
         self.memory = None
         self.logger = self.setup_logger()
         self.debug_mode = config.debug_mode
@@ -32,17 +31,11 @@ class Base_Agent(object):
         self.config = config
         self.set_random_seeds(config.seed)
         self.environment = config.environment
-        self.environment_title = self.get_environment_title()
-        self.action_types = "DISCRETE" if self.environment.action_space.dtype == np.int64 else "CONTINUOUS"  # action space is Discrete or Continuous
         self.action_size = int(self.get_action_size())
         self.config.action_size = self.action_size
 
-        self.lowest_possible_episode_score = self.get_lowest_possible_episode_score()
-
         self.state_size =  int(self.get_state_size())
         self.hyperparameters = config.hyperparameters  # parameters of networks
-        self.average_score_required_to_win = self.get_score_required_to_win()
-        self.rolling_score_window = self.get_trials()
         # self.max_steps_per_episode = self.environment.spec.max_episode_steps
         self.total_episode_score_so_far = 0
         self.game_full_episode_scores = []
@@ -61,69 +54,14 @@ class Base_Agent(object):
         """Takes a step in the game. This method must be overridden by any agent"""
         raise ValueError("Step needs to be implemented by the agent")
 
-    def get_environment_title(self):
-        """Extracts name of environment from it"""
-        try:
-            name = self.environment.unwrapped.id
-        except AttributeError:
-            try:
-                if str(self.environment.unwrapped)[1:11] == "FetchReach": return "FetchReach"
-                elif str(self.environment.unwrapped)[1:8] == "AntMaze": return "AntMaze"
-                elif str(self.environment.unwrapped)[1:7] == "Hopper": return "Hopper"
-                elif str(self.environment.unwrapped)[1:9] == "Walker2d": return "Walker2d"
-                else:
-                    name = self.environment.spec.id.split("-")[0]
-            except AttributeError:
-                name = str(self.environment.env)
-                if name[0:10] == "TimeLimit<": name = name[10:]
-                name = name.split(" ")[0]
-                if name[0] == "<": name = name[1:]
-                if name[-3:] == "Env": name = name[:-3]
-        return name
-
-    def get_lowest_possible_episode_score(self):
-        """Returns the lowest possible episode score you can get in an environment"""
-        if self.environment_title == "Taxi": return -800
-        return None
-
     def get_action_size(self):
         """Gets the action_size for the gym env into the correct shape for a neural network"""
-        if "overwrite_action_size" in self.config.__dict__: return self.config.overwrite_action_size
-        if "action_size" in self.environment.__dict__: return self.environment.action_size
-        if self.action_types == "DISCRETE": return self.environment.action_space.n
-        else: return self.environment.action_space.shape[0]
+        raise ValueError("Get action size needs to be implemented by the agent")
 
     def get_state_size(self):
         """Gets the state_size for the gym env into the correct shape for a neural network"""
         random_state = self.environment.reset()
-        if isinstance(random_state, dict):
-            state_size = random_state["observation"].shape[0] + random_state["desired_goal"].shape[0]
-            return state_size
-        else:
-            return random_state.size
-
-    def get_score_required_to_win(self):
-        """
-        Gets average score required to win game
-        :return: 
-        """
-        print("TITLE ", self.environment_title)
-        if self.environment_title == "FetchReach": return -5
-        if self.environment_title in ["AntMaze", "Hopper", "Walker2d"]:
-            print("Score required to win set to infinity therefore no learning rate annealing will happen")
-            return float("inf")
-        try: return self.environment.unwrapped.reward_threshold
-        except AttributeError:
-            try:
-                return self.environment.spec.reward_threshold
-            except AttributeError:
-                return self.environment.unwrapped.spec.reward_threshold
-
-    def get_trials(self):
-        """Gets the number of trials to average a score over"""
-        if self.environment_title in ["AntMaze", "FetchReach", "Hopper", "Walker2d", "CartPole"]: return 100
-        try: return self.environment.unwrapped.trials
-        except AttributeError: return self.environment.spec.trials
+        return random_state.size
 
     def setup_logger(self):
         """Sets up the logger"""
@@ -147,7 +85,7 @@ class Base_Agent(object):
 
     def log_game_info(self):
         """Logs info relating to the game"""
-        for ix, param in enumerate([self.environment_title, self.action_types, self.action_size, self.lowest_possible_episode_score,
+        for ix, param in enumerate([self.action_size, self.lowest_possible_episode_score,
                       self.state_size, self.hyperparameters, self.average_score_required_to_win, self.rolling_score_window,
                       self.device]):
             self.logger.info("{} -- {}".format(ix, param))
@@ -246,25 +184,6 @@ class Base_Agent(object):
                                      self.game_full_episode_scores[-1], self.max_episode_score_seen))
         sys.stdout.flush()
 
-    def show_whether_achieved_goal(self):
-        """Prints out whether the agent achieved the environment target goal"""
-        index_achieved_goal = self.achieved_required_score_at_index()
-        print(" ")
-        if index_achieved_goal == -1: #this means agent never achieved goal
-            print("\033[91m" + "\033[1m" +
-                  "{} did not achieve required score \n".format(self.agent_name) +
-                  "\033[0m" + "\033[0m")
-        else:
-            print("\033[92m" + "\033[1m" +
-                  "{} achieved required score at episode {} \n".format(self.agent_name, index_achieved_goal) +
-                  "\033[0m" + "\033[0m")
-
-    def achieved_required_score_at_index(self):
-        """Returns the episode at which agent achieved goal or -1 if it never achieved it"""
-        for ix, score in enumerate(self.rolling_results):
-            if score > self.average_score_required_to_win:
-                return ix
-        return -1
 
     def update_learning_rate(self, starting_lr,  optimizer):
         """
