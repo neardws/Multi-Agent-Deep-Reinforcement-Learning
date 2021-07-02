@@ -31,7 +31,7 @@ class Experiment_Config(object):
         """Some constant number"""
         self.vehicle_number = None
         self.data_types_number = None
-        self.time_slots_number = None
+        self.time_slots_number = None   # equal to max_episode_length
         self.edge_views_number = None
         """The parameters related with transmission queue"""
         self.seed_data_size_of_types = None
@@ -45,8 +45,7 @@ class Experiment_Config(object):
         self.transmission_power = None
         self.bandwidth = None
 
-        self.mean_additive_white_gaussian_noise = None  # white gaussian noise according to Gauss Distribution
-        self.second_moment_additive_white_gaussian_noise = None
+        self.additive_white_gaussian_noise = None
         self.mean_channel_fading_gain = None  # channel fading gain according to Gauss Distribution
         self.second_moment_channel_fading_gain = None
 
@@ -70,9 +69,11 @@ class Experiment_Config(object):
         self.data_in_edge_node = None
 
     def config(self,
+               episode_number,
+               max_episode_length,
+
                vehicle_number,
                data_types_number,
-               time_slots_number,
                edge_views_number,
 
                seed_data_size_of_types,
@@ -82,8 +83,7 @@ class Experiment_Config(object):
                communication_range,
                transmission_power,
                bandwidth,
-               mean_additive_white_gaussian_noise,
-               second_moment_additive_white_gaussian_noise,
+               additive_white_gaussian_noise,
                mean_channel_fading_gain,
                second_moment_channel_fading_gain,
 
@@ -93,10 +93,14 @@ class Experiment_Config(object):
                threshold_data_types_in_vehicles,
                threshold_edge_views_in_edge_node,
                threshold_view_required_data):
+
         """The setup number"""
+        self.episode_number = episode_number
+        self.max_episode_length = max_episode_length
+
         self.vehicle_number = vehicle_number
         self.data_types_number = data_types_number
-        self.time_slots_number = time_slots_number
+        self.time_slots_number = max_episode_length
         self.edge_views_number = edge_views_number
 
         self.data_size_low_bound = data_size_low_bound
@@ -112,8 +116,7 @@ class Experiment_Config(object):
         self.transmission_power = transmission_power
         self.bandwidth = bandwidth
 
-        self.mean_additive_white_gaussian_noise = mean_additive_white_gaussian_noise
-        self.second_moment_additive_white_gaussian_noise = second_moment_additive_white_gaussian_noise
+        self.additive_white_gaussian_noise = additive_white_gaussian_noise
         self.mean_channel_fading_gain = mean_channel_fading_gain
         self.second_moment_channel_fading_gain = second_moment_channel_fading_gain
 
@@ -132,7 +135,7 @@ class Experiment_Config(object):
         """Random generated of edge views requirement at each time-slot in one edge node"""
         self.seed_edge_views_in_edge_node = np.random.randint(0, 2**32 - 2)
         np.random.seed(self.seed_edge_views_in_edge_node)
-        self.edge_views_in_edge_node = np.random.rand(edge_views_number, time_slots_number)
+        self.edge_views_in_edge_node = np.random.rand(edge_views_number, self.time_slots_number)
         for value in np.nditer(self.edge_views_in_edge_node, op_flags=['readwrite']):
             if value <= threshold_edge_views_in_edge_node:
                 value[...] = 1
@@ -150,7 +153,7 @@ class Experiment_Config(object):
                 value[...] = 0
         """Trajectories and data in edge node"""
         self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
-        self.data_in_edge_node = np.zeros(shape=(vehicle_number, data_types_number, time_slots_number))
+        self.data_in_edge_node = np.zeros(shape=(vehicle_number, data_types_number))
 
 class Agent_Config(object):
     """
