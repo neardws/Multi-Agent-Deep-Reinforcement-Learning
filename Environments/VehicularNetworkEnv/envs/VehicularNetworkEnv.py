@@ -29,7 +29,7 @@ class VehicularNetworkEnv(gym.Env):
 
         self.state = None  # global state
         self.action = None
-        self.observation_state = None  # individually observation state for sensor node
+        self.observation_states = None  # individually observation state for sensor node
         self.reward = None  # external reward
         self.next_state = None
         self.done = False
@@ -132,7 +132,7 @@ class VehicularNetworkEnv(gym.Env):
             'trajectories': self.trajectories,
             'data_in_edge': self.data_in_edge_node
         }
-        self.observation_state = None  # individually observation state for sensor node
+        self.observation_states = None  # individually observation state for sensor node
         self.action = None
         self.reward = None  # external reward
         self.next_state = None
@@ -149,6 +149,15 @@ class VehicularNetworkEnv(gym.Env):
                                          dtype=np.float32)
 
         return self.state
+
+    def state_to_individually_observation_state(self):
+
+        for vehicle_index in self.vehicle_number:
+            observation = np.zeros(shape=(1
+                                          + self.data_types_number
+                                          + self.time_slots_number
+                                          + int(self.edge_views_number * self.time_slots_number)
+                                          + int(self.vehicle_number * self.data_types_number * self.edge_views_number)))
 
 
     def step(self, action):
