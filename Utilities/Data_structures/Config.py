@@ -25,7 +25,7 @@ class Experiment_Config(object):
         view_required_data： view required data at each time-slot， which is randomly generated
     """
     def __init__(self):
-        """Experiment Config"""
+        """Experiment Setup"""
         self.episode_number = None
         self.max_episode_length = None
         """Some constant number"""
@@ -33,127 +33,147 @@ class Experiment_Config(object):
         self.data_types_number = None
         self.time_slots_number = None   # equal to max_episode_length
         self.edge_views_number = None
-        """The parameters related with transmission queue"""
+
+        self.seed_data_types_in_vehicles = None
+        self.threshold_data_types_in_vehicles = None
+
         self.seed_data_size_of_types = None
         self.data_size_low_bound = None
         self.data_size_up_bound = None
-        self.data_size_of_types = None
+
+        self.seed_edge_views_in_edge_node = None
+        self.threshold_edge_views_in_edge_node = None
+
+        self.seed_view_required_data = None
+        self.threshold_view_required_data = None
+
+        """The parameters related with transmission queue"""
+
+        self.arrival_rate_low_bound = None
+        self.arrival_rate_up_bound = None
         self.mean_service_time_of_types = None
         self.second_moment_service_time_of_types = None
+
         """The parameters related with wireless transmission"""
         self.communication_range = None
         self.transmission_power = None
         self.bandwidth = None
-
         self.additive_white_gaussian_noise = None
         self.mean_channel_fading_gain = None  # channel fading gain according to Gauss Distribution
         self.second_moment_channel_fading_gain = None
-
         self.path_loss_exponent = None
 
-        """Some parameters of sensor node"""
-        self.arrival_rate_low_bound = None
-        self.arrival_rate_up_bound = None
+
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
-        self.seed_data_types_in_vehicles = None
-        self.seed_edge_views_in_edge_node = None
-        self.seed_view_required_data = None
-        self.threshold_data_types_in_vehicles = None
-        self.threshold_edge_views_in_edge_node = None
-        self.threshold_view_required_data = None
-        self.data_types_in_vehicles = None
-        self.edge_views_in_edge_node = None
-        self.view_required_data = None
-        """State varying with time"""
-        self.trajectories = None
-        self.data_in_edge_node = None
+        # self.data_size_of_types = None
+        # self.data_types_in_vehicles = None
+        # self.edge_views_in_edge_node = None
+        # self.view_required_data = None
+        # self.trajectories = None
+        # self.data_in_edge_node = None
 
     def config(self,
-               episode_number,
-               max_episode_length,
+               episode_number = 5000,
+               max_episode_length = 300,
 
-               vehicle_number,
-               data_types_number,
-               edge_views_number,
+               vehicle_number = 10,
+               data_types_number = 5,
+               edge_views_number = 10,
 
-               seed_data_size_of_types,
-               data_size_low_bound,
-               data_size_up_bound,
+               threshold_data_types_in_vehicles = 0.3,
+               data_size_low_bound = 300,
+               data_size_up_bound = 5 * 1024 * 1024,
 
-               communication_range,
-               transmission_power,
-               bandwidth,
-               additive_white_gaussian_noise,
-               mean_channel_fading_gain,
-               second_moment_channel_fading_gain,
+               threshold_edge_views_in_edge_node = 0.3,
+               threshold_view_required_data = 0.3,
 
-               channel_fading_gain,
-               path_loss_exponent,
+               arrival_rate_low_bound = None,
+               arrival_rate_up_bound = None,
+               mean_service_time_of_types = None,
+               second_moment_service_time_of_types = None,
 
-               threshold_data_types_in_vehicles,
-               threshold_edge_views_in_edge_node,
-               threshold_view_required_data):
-
-        """The setup number"""
+               communication_range = 500,
+               transmission_power = 1,
+               bandwidth = 1 * 1000 * 1000,
+               additive_white_gaussian_noise = -70,
+               mean_channel_fading_gain = 2,
+               second_moment_channel_fading_gain = 0.4,
+               path_loss_exponent = 3
+               ):
+        """Experiment Setup"""
         self.episode_number = episode_number
         self.max_episode_length = max_episode_length
-
+        """Some constant number"""
         self.vehicle_number = vehicle_number
         self.data_types_number = data_types_number
-        self.time_slots_number = max_episode_length
+        self.time_slots_number = max_episode_length  # equal to max_episode_length
         self.edge_views_number = edge_views_number
 
+        self.seed_data_types_in_vehicles = np.random.randint(0, 2**32 - 2)
+        self.threshold_data_types_in_vehicles = threshold_data_types_in_vehicles
+
+        self.seed_data_size_of_types = np.random.randint(0, 2**32 - 2)
         self.data_size_low_bound = data_size_low_bound
         self.data_size_up_bound = data_size_up_bound
 
-        self.seed_data_size_of_types = seed_data_size_of_types
-        np.random.seed(self.seed_data_size_of_types)
-        self.data_size_of_types = np.random.uniform(low=self.data_size_low_bound,
-                                                    high=self.data_size_up_bound,
-                                                    size=self.data_types_number)
+        self.seed_edge_views_in_edge_node = np.random.randint(0, 2**32 - 2)
+        self.threshold_edge_views_in_edge_node = threshold_edge_views_in_edge_node
 
+        self.seed_view_required_data = np.random.randint(0, 2**32 - 2)
+        self.threshold_view_required_data = threshold_view_required_data
+
+        """The parameters related with transmission queue"""
+
+        self.arrival_rate_low_bound = arrival_rate_low_bound
+        self.arrival_rate_up_bound = arrival_rate_up_bound
+        self.mean_service_time_of_types = mean_service_time_of_types
+        self.second_moment_service_time_of_types = second_moment_service_time_of_types
+
+        """The parameters related with wireless transmission"""
         self.communication_range = communication_range
         self.transmission_power = transmission_power
         self.bandwidth = bandwidth
-
         self.additive_white_gaussian_noise = additive_white_gaussian_noise
-        self.mean_channel_fading_gain = mean_channel_fading_gain
+        self.mean_channel_fading_gain = mean_channel_fading_gain  # channel fading gain according to Gauss Distribution
         self.second_moment_channel_fading_gain = second_moment_channel_fading_gain
-
         self.path_loss_exponent = path_loss_exponent
 
 
-        """Random generated of data types in all vehicles"""
-        self.seed_data_types_in_vehicles = np.random.randint(0, 2**32 - 2)
-        np.random.seed(self.seed_data_types_in_vehicles)
-        self.data_types_in_vehicles = np.random.rand(vehicle_number, data_types_number)
-        for value in np.nditer(self.data_types_in_vehicles, op_flags=['readwrite']):
-            if value <= threshold_data_types_in_vehicles:
-                value[...] = 1
-            else:
-                value[...] = 0
-        """Random generated of edge views requirement at each time-slot in one edge node"""
-        self.seed_edge_views_in_edge_node = np.random.randint(0, 2**32 - 2)
-        np.random.seed(self.seed_edge_views_in_edge_node)
-        self.edge_views_in_edge_node = np.random.rand(edge_views_number, self.time_slots_number)
-        for value in np.nditer(self.edge_views_in_edge_node, op_flags=['readwrite']):
-            if value <= threshold_edge_views_in_edge_node:
-                value[...] = 1
-            else:
-                value[...] = 0
-        """Random generated of view required data"""
-        self.seed_view_required_data = np.random.randint(0, 2**32 - 2)
-        np.random.seed(self.seed_view_required_data)
-        self.view_required_data = np.random.rand(vehicle_number, data_types_number, edge_views_number)
-        for value in np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite']):
-            if self.data_types_in_vehicles[tuple(value.multi_index)[0]][tuple(value.multi_index)[1]] == 1 and\
-                    value[...] <= threshold_view_required_data:
-                value[...] = 1
-            else:
-                value[...] = 0
-        """Trajectories and data in edge node"""
-        self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
-        self.data_in_edge_node = np.zeros(shape=(vehicle_number, data_types_number))
+        #
+        #
+        # np.random.seed(self.seed_data_size_of_types)
+        # self.data_size_of_types = np.random.uniform(low=self.data_size_low_bound,
+        #                                             high=self.data_size_up_bound,
+        #                                             size=self.data_types_number)
+        #
+        # """Random generated of data types in all vehicles"""
+        # np.random.seed(self.seed_data_types_in_vehicles)
+        # self.data_types_in_vehicles = np.random.rand(vehicle_number, data_types_number)
+        # for value in np.nditer(self.data_types_in_vehicles, op_flags=['readwrite']):
+        #     if value <= threshold_data_types_in_vehicles:
+        #         value[...] = 1
+        #     else:
+        #         value[...] = 0
+        # """Random generated of edge views requirement at each time-slot in one edge node"""
+        # np.random.seed(self.seed_edge_views_in_edge_node)
+        # self.edge_views_in_edge_node = np.random.rand(edge_views_number, self.time_slots_number)
+        # for value in np.nditer(self.edge_views_in_edge_node, op_flags=['readwrite']):
+        #     if value <= threshold_edge_views_in_edge_node:
+        #         value[...] = 1
+        #     else:
+        #         value[...] = 0
+        # """Random generated of view required data"""
+        # np.random.seed(self.seed_view_required_data)
+        # self.view_required_data = np.random.rand(vehicle_number, data_types_number, edge_views_number)
+        # for value in np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite']):
+        #     if self.data_types_in_vehicles[tuple(value.multi_index)[0]][tuple(value.multi_index)[1]] == 1 and\
+        #             value[...] <= threshold_view_required_data:
+        #         value[...] = 1
+        #     else:
+        #         value[...] = 0
+        # """Trajectories and data in edge node"""
+        # self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
+        # self.data_in_edge_node = np.zeros(shape=(vehicle_number, data_types_number))
 
 class Agent_Config(object):
     """

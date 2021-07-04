@@ -52,6 +52,10 @@ class HMAIMD_Agent(object):
                 
         Output:
             [data_types_number, 2]
+            represents priority and arrival rate
+            sum of priority equal to 1
+            sum of arrival rate times expected service time equal to 1, due to one sensor node may not have each data type
+            thus, the actual sum of arrival rate times expected service time will not exceed 1
         """
         self.actor_networks_of_sensor_nodes = list()
         for i in range(self.config.vehicle_number):
@@ -60,6 +64,16 @@ class HMAIMD_Agent(object):
                     input_dim=
                 )
             )
+
+
+    def create_NN_for_actor_network(self):
+        pass
+
+    def create_NN_for_critic_network(self):
+        pass
+
+    def create_NN_for_vehicle_actor_network(self):   # the structure of network is different from other actor networks
+        pass
 
     def create_NN(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
         """
