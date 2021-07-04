@@ -22,11 +22,82 @@ class VehicularNetworkEnv(gym.Env):
         """
         super(VehicularNetworkEnv, self).__init__()
 
-        assert experiment_config is not None
+        self.config = experiment_config
+        assert self.config is not None
 
-        self.episode_number = experiment_config.episode_number
-        self.max_episode_length = experiment_config.max_episode_length
+        """Experiment Setup"""
+        self.episode_number = self.config.episode_number
+        self.max_episode_length = self.config.max_episode_length
+        """Some constant number"""
+        self.vehicle_number = self.config.vehicle_number
+        self.data_types_number = self.config.data_types_number
+        self.time_slots_number = self.config.max_episode_length  # equal to max_episode_length
+        self.edge_views_number = self.config.edge_views_number
 
+        self.seed_data_types_in_vehicles = self.config.seed_data_types_in_vehicles
+        self.threshold_data_types_in_vehicles = self.config.threshold_data_types_in_vehicles
+
+        self.seed_data_size_of_types = self.config.seed_data_size_of_types
+        self.data_size_low_bound = self.config.data_size_low_bound
+        self.data_size_up_bound = self.config.data_size_up_bound
+
+        self.seed_edge_views_in_edge_node = self.config.seed_edge_views_in_edge_node
+        self.threshold_edge_views_in_edge_node = self.config.threshold_edge_views_in_edge_node
+
+        self.seed_view_required_data = self.config.seed_view_required_data
+        self.threshold_view_required_data = self.config.threshold_view_required_data
+
+        """The parameters related with transmission queue"""
+
+        self.arrival_rate_low_bound = self.config.arrival_rate_low_bound
+        self.arrival_rate_up_bound = self.config.arrival_rate_up_bound
+        self.mean_service_time_of_types = self.config.mean_service_time_of_types
+        self.second_moment_service_time_of_types = self.config.second_moment_service_time_of_types
+
+        """The parameters related with wireless transmission"""
+        self.communication_range = self.config.communication_range
+        self.transmission_power = self.config.transmission_power
+        self.bandwidth = self.config.bandwidth
+        self.additive_white_gaussian_noise = self.config.additive_white_gaussian_noise
+        self.mean_channel_fading_gain = self.config.mean_channel_fading_gain  # channel fading gain according to Gauss Distribution
+        self.second_moment_channel_fading_gain = self.config.second_moment_channel_fading_gain
+        self.path_loss_exponent = self.config.path_loss_exponent
+
+        np.random.seed(self.seed_data_size_of_types)
+        self.data_size_of_types = np.random.uniform(low=self.data_size_low_bound,
+                                                    high=self.data_size_up_bound,
+                                                    size=self.data_types_number)
+
+        """Random generated of data types in all vehicles"""
+        np.random.seed(self.seed_data_types_in_vehicles)
+        self.data_types_in_vehicles = np.random.rand(self.vehicle_number, self.data_types_number)
+        for value in np.nditer(self.data_types_in_vehicles, op_flags=['readwrite']):
+            if value <= self.threshold_data_types_in_vehicles:
+                value[...] = 1
+            else:
+                value[...] = 0
+        """Random generated of edge views requirement at each time-slot in one edge node"""
+        np.random.seed(self.seed_edge_views_in_edge_node)
+        self.edge_views_in_edge_node = np.random.rand(self.edge_views_number, self.time_slots_number)
+        for value in np.nditer(self.edge_views_in_edge_node, op_flags=['readwrite']):
+            if value <= self.threshold_edge_views_in_edge_node:
+                value[...] = 1
+            else:
+                value[...] = 0
+        """Random generated of view required data"""
+        np.random.seed(self.seed_view_required_data)
+        self.view_required_data = np.random.rand(self.vehicle_number, self.data_types_number, self.edge_views_number)
+        for value in np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite']):
+            if self.data_types_in_vehicles[tuple(value.multi_index)[0]][tuple(value.multi_index)[1]] == 1 and \
+                    value[...] <= self.threshold_view_required_data:
+                value[...] = 1
+            else:
+                value[...] = 0
+        """Trajectories and data in edge node"""
+        self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
+        self.data_in_edge_node = np.zeros(shape=(self.vehicle_number, self.data_types_number))
+
+        """Parameters for Reinforcement Learning"""
         self.state = None  # global state
         self.action = None
         self.observation_states = None  # individually observation state for sensor node
@@ -34,37 +105,7 @@ class VehicularNetworkEnv(gym.Env):
         self.next_state = None
         self.done = False
         self.episode_steps = 0
-
-        self.vehicle_number = experiment_config.vehicle_number
-        self.data_types_number = experiment_config.data_types_number
-        self.time_slots_number = experiment_config.time_slots_number
-
-        self.arrival_rate_low_bound = experiment_config.arrival_rate_low_bound
-        self.arrival_rate_up_bound = experiment_config.arrival_rate_up_bound
-
-        self.mean_service_time_of_types = experiment_config.mean_service_time_of_types
-        self.second_moment_service_time_of_types = experiment_config.second_moment_service_time_of_types
-
-        self.data_types_in_vehicles = experiment_config.data_types_in_vehicles
-        self.edge_views_in_edge_node = experiment_config.edge_views_in_edge_node
-        self.view_required_data = experiment_config.view_required_data
-
-        self.trajectories = experiment_config.trajectories
-        self.data_in_edge_node = experiment_config.data_in_edge_node
-
-        """Communication parameters"""
-        self.communication_range = experiment_config.communication_range
-
-        self.white_gaussian_noise = experiment_config.additive_white_gaussian_noise
-        self.mean_channel_fading_gain = experiment_config.mean_channel_fading_gain
-        self.second_moment_channel_fading_gain = experiment_config.second_moment_channel_fading_gain
-
-        self.path_loss_exponent = experiment_config.path_loss_exponent
-        self.transmission_power = experiment_config.transmission_power
-
         self.action_experiences = None
-
-        self.action_time_of_sensor_nodes = None
         self.waiting_time_in_queue = None
 
         """
@@ -82,16 +123,18 @@ class VehicularNetworkEnv(gym.Env):
         #  Solution: use 'softmax' may work
         #  Fixed Data:  TBD
         self.action_space = spaces.Dict({
-            'priority': spaces.Box(low=0, high=1,
+            'priority': spaces.Box(low=0,
+                                   high=1,
                                    shape=(self.vehicle_number, self.data_types_number),
-                                   dtype=np.float32),
-            'arrival_rate': spaces.Box(low=self.arrival_rate_low_bound,
-                                       high=self.arrival_rate_up_bound,
+                                   dtype=np.float),
+            'arrival_rate': spaces.Box(low=0,  # the actual output is arrival rate times average service time
+                                       high=1,
                                        shape=(self.vehicle_number, self.data_types_number),
-                                       dtype=np.float32),
-            'edge_nodes_bandwidth': spaces.Box(low=0, high=1,
+                                       dtype=np.float),
+            'edge_nodes_bandwidth': spaces.Box(low=0,
+                                               high=1,
                                                shape=self.vehicle_number,
-                                               dtype=np.float32)
+                                               dtype=np.float)
         })
 
         """
@@ -103,61 +146,158 @@ class VehicularNetworkEnv(gym.Env):
             Location:
             Bandwidth:
         """
-        self.observation_space = spaces.Dict({
+        self.state_space = spaces.Dict({
+            """Changeable"""
             'time': spaces.Discrete(int(self.time_slots_number)),
-            'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
             'action_time': spaces.MultiBinary([self.vehicle_number, self.time_slots_number]),
-            'edge_view': spaces.MultiBinary(list(self.edge_views_in_edge_node.shape)),
-            'view': spaces.MultiBinary(list(self.view_required_data.shape)),
+            'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number]),
             'trajectories': spaces.Box(low=0, high=self.communication_range,
-                                       shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32),
-            'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number])
+                                       shape=(self.vehicle_number, self.time_slots_number), dtype=np.float),
+            """Unchangeable"""
+            'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
+
+            'edge_view': spaces.MultiBinary(list(self.edge_views_in_edge_node.shape)),
+            'view': spaces.MultiBinary(list(self.view_required_data.shape))
         })
 
 
     def reset(self):
 
         """
-        Reset the state of the environment to an initial state
+        Reset the environment to an initial state
         :return:
         """
 
+        """Parameters for Reinforcement Learning"""
         self.episode_steps = 0
-        self.state ={
-            'time': self.episode_steps,
-            'data_types': self.data_types_in_vehicles,
-            'action_time': self.action_time_of_sensor_nodes,
-            'edge_view': self.edge_views_in_edge_node,
-            'view': self.view_required_data,
-            'trajectories': self.trajectories,
-            'data_in_edge': self.data_in_edge_node
-        }
-        self.observation_states = None  # individually observation state for sensor node
-        self.action = None
-        self.reward = None  # external reward
-        self.next_state = None
-        self.done = False
-
-        """Save action of each time-slot into action experiences"""
-        self.action_experiences = list()
-
         """Init the action time of sensor nodes"""
         self.action_time_of_sensor_nodes = np.zeros((self.vehicle_number, self.time_slots_number))
         self.action_time_of_sensor_nodes[:,0] = 1
+        """Init data in edge node"""
+        self.data_in_edge_node = np.zeros(shape=(self.vehicle_number, self.data_types_number))
+        """Notice that time, action time, data in edge node, and trajectories varying with time"""
+        self.state = {  # global state
+            'time': self.episode_steps,
+            'action_time': self.action_time_of_sensor_nodes,
+            'data_in_edge': self.data_in_edge_node,
+            'trajectories': self.trajectories,
+            'data_types': self.data_types_in_vehicles,
+            'edge_view': self.edge_views_in_edge_node,
+            'view': self.view_required_data
+        }
+        self.action = None
+        self.observation_states = self.init_individually_observation_state()  # individually observation state for sensor node
+        self.reward = None  # external reward
+        self.next_state = None
+        self.done = False
+        """Save action of each time-slot into action experiences"""
+        self.action_experiences = list()
         """Init the waiting time of sensor nodes"""
         self.waiting_time_in_queue = np.zeros(shape=(self.vehicle_number, self.data_types_number),
-                                         dtype=np.float32)
-
+                                              dtype=np.float)
         return self.state
 
-    def state_to_individually_observation_state(self):
 
-        for vehicle_index in self.vehicle_number:
-            observation = np.zeros(shape=(1
-                                          + self.data_types_number
-                                          + self.time_slots_number
-                                          + int(self.edge_views_number * self.time_slots_number)
-                                          + int(self.vehicle_number * self.data_types_number * self.edge_views_number)))
+    def get_global_experiences_trajectory(self):
+        pass
+
+    def init_trajectory(self):
+        pass
+
+    def flatten_global_state(self):
+        pass
+
+    def init_individually_observation_state(self):
+        for vehicle_index in range(self.vehicle_number):
+
+            observation = np.zeros(shape=(self.get_individual_observations_size()),
+                                   dtype=np.float)
+            index_start = 0
+            observation[index_start] = self.state['time']
+
+            index_start = 1
+            for time_index in range(self.time_slots_number):
+                self.observation_states[vehicle_index][index_start] = self.state['action_time'][vehicle_index][
+                    time_index]
+                index_start += 1
+
+            for index in range(index_start, index_start + self.data_types_number):
+                observation[index] = self.state['data_in_edge'][vehicle_index][index]
+
+            index_start += self.data_types_number
+            for index in range(index_start, index_start + self.data_types_number):
+                observation[index] = self.state['data_types'][vehicle_index][index]
+
+            index_start += self.data_types_number
+            for edge_index in range(self.edge_views_number):
+                for time_index in range(self.time_slots_number):
+                    observation[index_start] = self.state['edge_view'][edge_index][time_index]
+                    index_start += 1
+
+            for data_type_index in range(self.data_types_number):
+                for edge_index in range(self.edge_views_number):
+                    observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index][edge_index]
+
+            self.observation_states.append(observation)
+
+
+    def update_individually_observations_state(self):
+        for vehicle_index in range(self.vehicle_number):
+            self.observation_states[vehicle_index][0] = self.state['time']
+            index_start = 1
+            for time_index in range(self.time_slots_number):
+                self.observation_states[vehicle_index][index_start] = self.state['action_time'][vehicle_index][time_index]
+                index_start += 1
+
+    """
+    NN Input and Output Dimensions
+
+        Actor network of sensor node 
+            Input: 
+                get_individual_observations_size()
+            Output:
+                get_sensor_node_action_size()
+
+        Critic network of sensor node
+            Input:
+                get_individual_observations_size() + get_sensor_node_action_size()
+            Output:
+                1
+
+        Actor network of edge node
+            Input:
+                get_global_state_size()
+            Output:
+                get_edge_node_action_size()
+
+        Critic network of edge node
+            Input:
+                get_global_state_size()
+            Output:
+
+
+    """
+
+
+    def get_individual_observations_size(self):
+        """
+        @TODO add service time of each data type
+            Observation state input to neural network
+                    [
+                        time
+                        action_time
+                        data_in_edge
+                        data_types_in_vehicle
+                        edge_view_in_edge_node
+                        view_required_data
+                    ]
+        """
+        return int(1  # time_slots_index, changeable with time
+                   + self.time_slots_number  # action_time_of_vehicle, changeable with action of vehicle
+                   + self.data_types_number  # data_in_edge, changeable with action of vehicle
+                   + self.data_types_number  # data_types_in_vehicle, unchangeable
+                   + int(self.edge_views_number * self.time_slots_number)  # edge_view_in_edge_node, unchangeable
+                   + int(self.data_types_number * self.edge_views_number))  # view_required_data, unchangeable
 
 
     def step(self, action):
