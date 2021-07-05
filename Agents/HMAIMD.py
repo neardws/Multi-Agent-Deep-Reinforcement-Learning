@@ -136,3 +136,6 @@ class HMAIMD_Agent(object):
                   embedding_dimensions=hyperparameters["embedding_dimensions"],
                   y_range=hyperparameters["y_range"],
                   random_seed=seed).to(self.device)
+
+    def step(self):
+        pass

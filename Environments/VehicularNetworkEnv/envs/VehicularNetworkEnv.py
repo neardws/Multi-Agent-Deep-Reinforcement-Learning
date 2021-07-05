@@ -11,6 +11,20 @@ from gym import spaces
 from Utilities.Data_structures.Config import Experiment_Config
 
 
+"""
+Workflow of VehicularNetworkEnv
+
+No.1 New objective of VehicularNetworkEnv at experiment start
+     call __init__(experiment_config) to initializations
+
+No.2 VehicularNetworkEnv reset at each episode start
+     call reset() to reset the environment
+     
+No.3 Do each step at each time slot
+     call step() to get state, action, reward, next_state, done
+
+"""
+
 class VehicularNetworkEnv(gym.Env):
     """Vehicular Network Environment that follows gym interface"""
     metadata = {'render.modes': []}
@@ -97,7 +111,12 @@ class VehicularNetworkEnv(gym.Env):
         self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float)
         self.data_in_edge_node = np.zeros(shape=(self.vehicle_number, self.data_types_number))
 
-        """Parameters for Reinforcement Learning"""
+        """
+        --------------------------------------------------------------------------------------------
+        -----------------------Parameters for Reinforcement Learning
+        --------------------------------------------------------------------------------------------
+        """
+
         self.state = None  # global state
         self.action = None # global action
         self.sensor_observations = None  # individually observation state for sensor nodes
@@ -187,7 +206,8 @@ class VehicularNetworkEnv(gym.Env):
             'view': self.view_required_data
         }
         self.action = None
-        self.observation_states = self.init_individually_observation_state()  # individually observation state for sensor node
+        self.sensor_observations = self.init_sensor_observations()  # individually observation state for sensor node
+        self.edge_observations = self.init_edge_observations()
         self.reward = None  # external reward
         self.next_state = None
         self.done = False
@@ -199,95 +219,51 @@ class VehicularNetworkEnv(gym.Env):
         return self.state
 
 
-    def get_global_experiences_trajectory(self):
+    def get_experiences_global_trajectory(self):
         pass
 
     def init_trajectory(self):
         pass
 
-    def flatten_global_state(self):
-        pass
-
-    def init_individually_observation_state(self):
-        for vehicle_index in range(self.vehicle_number):
-
-            observation = np.zeros(shape=(self.get_individual_observations_size()),
-                                   dtype=np.float)
-            index_start = 0
-            observation[index_start] = self.state['time']
-
-            index_start = 1
-            for time_index in range(self.time_slots_number):
-                self.observation_states[vehicle_index][index_start] = self.state['action_time'][vehicle_index][
-                    time_index]
-                index_start += 1
-
-            for index in range(index_start, index_start + self.data_types_number):
-                observation[index] = self.state['data_in_edge'][vehicle_index][index]
-
-            index_start += self.data_types_number
-            for index in range(index_start, index_start + self.data_types_number):
-                observation[index] = self.state['data_types'][vehicle_index][index]
-
-            index_start += self.data_types_number
-            for edge_index in range(self.edge_views_number):
-                for time_index in range(self.time_slots_number):
-                    observation[index_start] = self.state['edge_view'][edge_index][time_index]
-                    index_start += 1
-
-            for data_type_index in range(self.data_types_number):
-                for edge_index in range(self.edge_views_number):
-                    observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index][edge_index]
-
-            self.observation_states.append(observation)
-
-
-    def update_individually_observations_state(self):
-        for vehicle_index in range(self.vehicle_number):
-            self.observation_states[vehicle_index][0] = self.state['time']
-            index_start = 1
-            for time_index in range(self.time_slots_number):
-                self.observation_states[vehicle_index][index_start] = self.state['action_time'][vehicle_index][time_index]
-                index_start += 1
 
     """
-    NN Input and Output Dimensions
+       /*________________________________________________________________
+       NN Input and Output Dimensions
 
-        Actor network of sensor node 
-            Input: 
-                get_sensor_observations_size()
-            Output:
-                get_sensor_action_size()
-        Critic network of sensor node
-            Input:
-                get_critic_size_for_sensor() = get_sensor_observations_size() + get_sensor_node_action_size()
-            Output:
-                1
+           Actor network of sensor node 
+               Input: 
+                   get_sensor_observations_size()
+               Output:
+                   get_sensor_action_size()
+           Critic network of sensor node
+               Input:
+                   get_critic_size_for_sensor() = get_sensor_observations_size() + get_sensor_node_action_size()
+               Output:
+                   1
 
-        Actor network of edge node
-            Input:
-                get_actor_input_size_for_edge() = get_edge_observations_size() + get_sensor_action_size() * all sensor
-            Output:
-                get_edge_action_size()
-        Critic network of edge node
-            Input:
-                get_critic_size_for_edge() = get_actor_input_size_for_edge() + get_edge_action_size()
-            Output:
-                1
-                
-        Actor network of reward function
-            Input:
-                get_actor_input_size_for_reward() = get_global_state_size() + get_global_action_size()
-            Output:
-                get_reward_action_size()
-        Critic network of reward function
-            Input:
-                get_critic_size_for_reward() = get_actor_input_size_for_reward() + get_reward_action_size()
-            Output:
-                1
-        
-    """
+           Actor network of edge node
+               Input:
+                   get_actor_input_size_for_edge() = get_edge_observations_size() + get_sensor_action_size() * all sensor
+               Output:
+                   get_edge_action_size()
+           Critic network of edge node
+               Input:
+                   get_critic_size_for_edge() = get_actor_input_size_for_edge() + get_edge_action_size()
+               Output:
+                   1
 
+           Actor network of reward function
+               Input:
+                   get_actor_input_size_for_reward() = get_global_state_size() + get_global_action_size()
+               Output:
+                   get_reward_action_size()
+           Critic network of reward function
+               Input:
+                   get_critic_size_for_reward() = get_actor_input_size_for_reward() + get_reward_action_size()
+               Output:
+                   1
+           ________________________________________________________________*/
+       """
 
     def get_sensor_observations_size(self):
         """
@@ -312,7 +288,6 @@ class VehicularNetworkEnv(gym.Env):
             + int(self.edge_views_number * self.time_slots_number)  # edge_view_in_edge_node, unchangeable
             + int(self.data_types_number * self.edge_views_number)  # view_required_data, unchangeable
         )
-
 
     def get_sensor_action_size(self):
         """
@@ -402,7 +377,7 @@ class VehicularNetworkEnv(gym.Env):
             edge action
         """
         return int(
-            (self.data_types_number  + self.data_types_number) * self.vehicle_number
+            (self.data_types_number + self.data_types_number) * self.vehicle_number
             + self.vehicle_number
         )
 
@@ -418,6 +393,76 @@ class VehicularNetworkEnv(gym.Env):
 
     def get_critic_size_for_reward(self):
         return self.get_actor_input_size_for_reward() + self.get_reward_action_size()
+
+    """
+    /*________________________________________________________________
+    NN Input and Output Dimensions End 
+    ________________________________________________________________*/
+    """
+
+    """
+    /*——————————————————————————————————————————————————————————————
+        Init and update NN input and output
+    —————————————————————————————————————————————————————————————--*/
+    """
+
+    def init_sensor_observations(self):
+        """
+        Inputs of actor network of sensor nodes
+        :return:
+        """
+        for vehicle_index in range(self.vehicle_number):
+
+            observation = np.zeros(shape=(self.get_sensor_observations_size()),
+                                   dtype=np.float)
+            index_start = 0
+            observation[index_start] = self.state['time']
+
+            index_start = 1
+            for time_index in range(self.time_slots_number):
+                observation[index_start] = self.state['action_time'][vehicle_index][time_index]
+                index_start += 1
+
+            for index in range(index_start, index_start + self.data_types_number):
+                observation[index] = self.state['data_in_edge'][vehicle_index][index]
+
+            index_start += self.data_types_number
+            for index in range(index_start, index_start + self.data_types_number):
+                observation[index] = self.state['data_types'][vehicle_index][index]
+
+            index_start += self.data_types_number
+            for edge_index in range(self.edge_views_number):
+                for time_index in range(self.time_slots_number):
+                    observation[index_start] = self.state['edge_view'][edge_index][time_index]
+                    index_start += 1
+
+            for data_type_index in range(self.data_types_number):
+                for edge_index in range(self.edge_views_number):
+                    observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index][edge_index]
+
+            self.sensor_observations.append(observation)
+
+    def update_sensor_observations(self):
+        """
+        Update the input of actor network at each time slot
+        """
+        for vehicle_index in range(self.vehicle_number):
+            self.sensor_observations[vehicle_index][0] = self.state['time']
+            index_start = 1
+            for time_index in range(self.time_slots_number):
+                self.sensor_observations[vehicle_index][index_start] = self.state['action_time'][vehicle_index][time_index]
+                index_start += 1
+            for index in range(index_start, index_start + self.data_types_number):
+                self.sensor_observations[vehicle_index][index] = self.state['data_in_edge'][vehicle_index][index]
+
+    def init_edge_observations(self):
+        pass
+
+    def update_edge_observations(self):
+        pass
+
+    def get_actor_input__for_reward(self):
+        pass
 
     def step(self, action):
         """
