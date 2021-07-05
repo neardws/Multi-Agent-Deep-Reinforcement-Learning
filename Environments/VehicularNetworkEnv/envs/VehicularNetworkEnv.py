@@ -94,13 +94,14 @@ class VehicularNetworkEnv(gym.Env):
             else:
                 value[...] = 0
         """Trajectories and data in edge node"""
-        self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
+        self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float)
         self.data_in_edge_node = np.zeros(shape=(self.vehicle_number, self.data_types_number))
 
         """Parameters for Reinforcement Learning"""
         self.state = None  # global state
-        self.action = None
-        self.observation_states = None  # individually observation state for sensor node
+        self.action = None # global action
+        self.sensor_observations = None  # individually observation state for sensor nodes
+        self.edge_observations = None # individually observation state for edge node
         self.reward = None  # external reward
         self.next_state = None
         self.done = False
@@ -122,43 +123,43 @@ class VehicularNetworkEnv(gym.Env):
         #         and the constraint of arrival rate
         #  Solution: use 'softmax' may work
         #  Fixed Data:  TBD
-        self.action_space = spaces.Dict({
-            'priority': spaces.Box(low=0,
-                                   high=1,
-                                   shape=(self.vehicle_number, self.data_types_number),
-                                   dtype=np.float),
-            'arrival_rate': spaces.Box(low=0,  # the actual output is arrival rate times average service time
-                                       high=1,
-                                       shape=(self.vehicle_number, self.data_types_number),
-                                       dtype=np.float),
-            'edge_nodes_bandwidth': spaces.Box(low=0,
-                                               high=1,
-                                               shape=self.vehicle_number,
-                                               dtype=np.float)
-        })
-
-        """
-        State:
-            [Time-slot, Data_types_in_vehicles, Action_time_of_vehicles Edge_views_in_edge_node, 
-            View_required_data, Trajectories， Data_in_edge_node]
-            View:
-            Trajectories:
-            Location:
-            Bandwidth:
-        """
-        self.state_space = spaces.Dict({
-            """Changeable"""
-            'time': spaces.Discrete(int(self.time_slots_number)),
-            'action_time': spaces.MultiBinary([self.vehicle_number, self.time_slots_number]),
-            'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number]),
-            'trajectories': spaces.Box(low=0, high=self.communication_range,
-                                       shape=(self.vehicle_number, self.time_slots_number), dtype=np.float),
-            """Unchangeable"""
-            'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
-
-            'edge_view': spaces.MultiBinary(list(self.edge_views_in_edge_node.shape)),
-            'view': spaces.MultiBinary(list(self.view_required_data.shape))
-        })
+        # self.action_space = spaces.Dict({
+        #     'priority': spaces.Box(low=0,
+        #                            high=1,
+        #                            shape=(self.vehicle_number, self.data_types_number),
+        #                            dtype=np.float),
+        #     'arrival_rate': spaces.Box(low=0,  # the actual output is arrival rate times average service time
+        #                                high=1,
+        #                                shape=(self.vehicle_number, self.data_types_number),
+        #                                dtype=np.float),
+        #     'edge_nodes_bandwidth': spaces.Box(low=0,
+        #                                        high=1,
+        #                                        shape=self.vehicle_number,
+        #                                        dtype=np.float)
+        # })
+        #
+        # """
+        # State:
+        #     [Time-slot, Data_types_in_vehicles, Action_time_of_vehicles Edge_views_in_edge_node,
+        #     View_required_data, Trajectories， Data_in_edge_node]
+        #     View:
+        #     Trajectories:
+        #     Location:
+        #     Bandwidth:
+        # """
+        # self.state_space = spaces.Dict({
+        #     """Changeable"""
+        #     'time': spaces.Discrete(int(self.time_slots_number)),
+        #     'action_time': spaces.MultiBinary([self.vehicle_number, self.time_slots_number]),
+        #     'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number]),
+        #     'trajectories': spaces.Box(low=0, high=self.communication_range,
+        #                                shape=(self.vehicle_number, self.time_slots_number), dtype=np.float),
+        #     """Unchangeable"""
+        #     'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
+        #
+        #     'edge_view': spaces.MultiBinary(list(self.edge_views_in_edge_node.shape)),
+        #     'view': spaces.MultiBinary(list(self.view_required_data.shape))
+        # })
 
 
     def reset(self):
@@ -171,7 +172,7 @@ class VehicularNetworkEnv(gym.Env):
         """Parameters for Reinforcement Learning"""
         self.episode_steps = 0
         """Init the action time of sensor nodes"""
-        self.action_time_of_sensor_nodes = np.zeros((self.vehicle_number, self.time_slots_number))
+        self.action_time_of_sensor_nodes = np.zeros(shape=(self.vehicle_number, self.time_slots_number))
         self.action_time_of_sensor_nodes[:,0] = 1
         """Init data in edge node"""
         self.data_in_edge_node = np.zeros(shape=(self.vehicle_number, self.data_types_number))
@@ -254,34 +255,45 @@ class VehicularNetworkEnv(gym.Env):
 
         Actor network of sensor node 
             Input: 
-                get_individual_observations_size()
+                get_sensor_observations_size()
             Output:
-                get_sensor_node_action_size()
-
+                get_sensor_action_size()
         Critic network of sensor node
             Input:
-                get_individual_observations_size() + get_sensor_node_action_size()
+                get_critic_size_for_sensor() = get_sensor_observations_size() + get_sensor_node_action_size()
             Output:
                 1
 
         Actor network of edge node
             Input:
-                get_global_state_size()
+                get_actor_input_size_for_edge() = get_edge_observations_size() + get_sensor_action_size() * all sensor
             Output:
-                get_edge_node_action_size()
-
+                get_edge_action_size()
         Critic network of edge node
             Input:
-                get_global_state_size()
+                get_critic_size_for_edge() = get_actor_input_size_for_edge() + get_edge_action_size()
             Output:
-
-
+                1
+                
+        Actor network of reward function
+            Input:
+                get_actor_input_size_for_reward() = get_global_state_size() + get_global_action_size()
+            Output:
+                get_reward_action_size()
+        Critic network of reward function
+            Input:
+                get_critic_size_for_reward() = get_actor_input_size_for_reward() + get_reward_action_size()
+            Output:
+                1
+        
     """
 
 
-    def get_individual_observations_size(self):
+    def get_sensor_observations_size(self):
         """
         @TODO add service time of each data type
+        @May not need
+        :return
             Observation state input to neural network
                     [
                         time
@@ -292,13 +304,120 @@ class VehicularNetworkEnv(gym.Env):
                         view_required_data
                     ]
         """
-        return int(1  # time_slots_index, changeable with time
-                   + self.time_slots_number  # action_time_of_vehicle, changeable with action of vehicle
-                   + self.data_types_number  # data_in_edge, changeable with action of vehicle
-                   + self.data_types_number  # data_types_in_vehicle, unchangeable
-                   + int(self.edge_views_number * self.time_slots_number)  # edge_view_in_edge_node, unchangeable
-                   + int(self.data_types_number * self.edge_views_number))  # view_required_data, unchangeable
+        return int(
+            1  # time_slots_index, changeable with time
+            + self.time_slots_number  # action_time_of_vehicle, changeable with action of vehicle
+            + self.data_types_number  # data_in_edge, changeable with action of vehicle
+            + self.data_types_number  # data_types_in_vehicle, unchangeable
+            + int(self.edge_views_number * self.time_slots_number)  # edge_view_in_edge_node, unchangeable
+            + int(self.data_types_number * self.edge_views_number)  # view_required_data, unchangeable
+        )
 
+
+    def get_sensor_action_size(self):
+        """
+        :return
+            Action output from neural network
+                [
+                    priority
+                    arrival rate
+                ]
+        """
+        return int(
+            self.data_types_number  # priority of each data type
+            + self.data_types_number  # arrival rate * mean service time of each data type
+        )
+
+    def get_critic_size_for_sensor(self):
+        return self.get_sensor_observations_size() + self.get_sensor_action_size()
+
+    def get_edge_observations_size(self):
+        """
+        :return
+            Observation state input to neural network
+                [
+                    time
+                    data_in_edge
+                    trajectories
+                    data_types
+                    edge_view
+                    view
+                ]
+        """
+        return int(
+            1  # time_slots_index
+            + int(self.vehicle_number * self.data_types_number)  # owned data types of all vehicles in edge node
+            + int(self.vehicle_number * self.time_slots_number)  # predicted trajectories of all vehicles
+            + int(self.vehicle_number * self.data_types_number)  # data types of all vehicles
+            + int(self.edge_views_number * self.time_slots_number)  # required edge view in edge node
+            + int(self.vehicle_number * self.data_types_number * self.edge_views_number)  # view required data
+        )
+
+    def get_actor_input_size_for_edge(self):
+        return self.get_edge_observations_size() + self.get_sensor_observations_size() * self.vehicle_number
+
+    def get_edge_action_size(self):
+        """
+        :return
+             Action output from neural network
+             [
+                    bandwidth
+             ]
+        """
+        return int(
+            self.vehicle_number
+        )
+
+    def get_critic_size_for_edge(self):
+        return self.get_actor_input_size_for_edge() + self.get_edge_action_size()
+
+    def get_global_state_size(self):
+        """
+            :return
+                Observation state input to neural network
+                    [
+                        time
+                        action_time
+                        data_in_edge
+                        trajectories
+                        data_types
+                        edge_view
+                        view
+                    ]
+        """
+        return int(
+            1  # time_slots_index
+            + int(self.vehicle_number * self.time_slots_number)  # action time of sensor nodes
+            + int(self.vehicle_number * self.data_types_number)  # owned data types of all vehicles in edge node
+            + int(self.vehicle_number * self.time_slots_number)  # predicted trajectories of all vehicles
+            + int(self.vehicle_number * self.data_types_number)  # data types of all vehicles
+            + int(self.edge_views_number * self.time_slots_number)  # required edge view in edge node
+            + int(self.vehicle_number * self.data_types_number * self.edge_views_number)  # view required data
+        )
+
+    def get_global_action_size(self):
+        """
+        :return
+            sensor action of all vehicles
+            edge action
+        """
+        return int(
+            (self.data_types_number  + self.data_types_number) * self.vehicle_number
+            + self.vehicle_number
+        )
+
+    def get_actor_input_size_for_reward(self):
+        return self.get_global_state_size() + self.get_global_action_size()
+
+    def get_reward_action_size(self):
+        """
+        :return:
+            internal reward for sensor nodes and edge node
+        """
+        return self.vehicle_number + 1
+
+    def get_critic_size_for_reward(self):
+        return self.get_actor_input_size_for_reward() + self.get_reward_action_size()
 
     def step(self, action):
         """
