@@ -64,10 +64,10 @@ class DDPG(object):
     def pick_action(self, state=None):
         """Picks an action using the actor network and then adds some noise to it to ensure exploration"""
         if state is None: state = torch.from_numpy(self.state).float().unsqueeze(0).to(self.device)
-        self.actor_local.eval()
+        self.actor_local.eval()  # set the model to evaluation state
         with torch.no_grad():
             action = self.actor_local(state).cpu().data.numpy()
-        self.actor_local.train()
+        self.actor_local.train()  # set the model to training state
         action = self.exploration_strategy.perturb_action_for_exploration_purposes({"action": action})
         return action.squeeze(0)
 
