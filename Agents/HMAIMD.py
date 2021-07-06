@@ -222,5 +222,33 @@ class HMAIMD_Agent(object):
     ______________________________________________________________________________________________________________
     """
 
+    """
+    Workflow of each step of HMAIMD_Agent
+    No.1 Actor of each sensor node to pick an action according to sensor observation
+    No.2 Actor of edge node to pick an action according to edge observation and action of sensor nodes
+    No.3 Combine action of sensor nodes and edge node into one global action
+    No.4 Conduct global action to environment and get return with next_state, reward and etc.
+    No.5 Actor of reward function to pick an action according to global state and global action
+    No.6 Save experiences into experiences replay buffer
+    No.7 Save reward experiences into reward reward buffer
+    No.8 If time to learn, sample from experiences
+    No.9 Train each critic target network and actor target network
+    
+    """
     def step(self):
+        """Runs a step in the game"""
+        while not self.done:  # when the episode is not over
+            # print("State ", self.state.shape)
+            self.action = self.pick_action()  # pick a action
+            self.conduct_action(self.action)
+            if self.time_for_critic_and_actor_to_learn():
+                for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                    states, actions, rewards, next_states, dones = self.sample_experiences()
+                    self.critic_learn(states, actions, rewards, next_states, dones)
+                    self.actor_learn(states)
+            self.save_experience()
+            self.state = self.next_state #this is to set the state for the next iteration
+            self.global_step_number += 1
+        self.episode_number += 1
+
         pass
