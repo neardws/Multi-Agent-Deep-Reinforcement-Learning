@@ -13,16 +13,22 @@ from nn_builder.pytorch.NN import NN  # construct a neural network via PyTorch
 from Utilities.Data_structures.Config import Agent_Config
 from Utilities.Data_structures.Replay_Buffer import Replay_Buffer
 from Exploration_strategies.OU_Noise_Exploration import OU_Noise_Exploration
+from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 
 class HMAIMD_Agent(object):
     """
 
     """
-    def __init__(self, agent_config = Agent_Config()):
+    def __init__(self, agent_config = Agent_Config(), environment = VehicularNetworkEnv()):
         self.config = agent_config
+        self.environment = environment
+        self.hyperparameters = self.config.hyperparameters
 
-        self.global_action_size = None
-        self.global_state_size = None
+        """
+        ______________________________________________________________________________________________________________
+        Replay Buffer and Exploration Strategy
+        ______________________________________________________________________________________________________________
+        """
 
         """Experience Replay Buffer"""
         self.experience_replay_buffer = Replay_Buffer(buffer_size=self.config.experience_replay_buffer_buffer_size,
@@ -34,108 +40,187 @@ class HMAIMD_Agent(object):
                                                   batch_size=self.config.reward_replay_buffer_batch_size,
                                                   seed=self.config.reward_replay_buffer_seed)
 
+        """Exploration Strategy"""
+        self.exploration_strategy = OU_Noise_Exploration(self.config)
+
         """
-        Actor network of sensor nodes
-        Input:
-            [
-                time
-                data_types_in_vehicle
-                action_time
-                edge_view_in_edge_node
-                view_required_data
-                data_in_edge
-            ]
-            dimension:
-                1
-                data_types_number
-                time_slots_number
-                
-        Output:
-            [data_types_number, 2]
-            represents priority and arrival rate
-            sum of priority equal to 1
-            sum of arrival rate times expected service time equal to 1, due to one sensor node may not have each data type
-            thus, the actual sum of arrival rate times expected service time will not exceed 1
+        ______________________________________________________________________________________________________________
+        Replay Buffer and Exploration Strategy End
+        ______________________________________________________________________________________________________________
         """
-        self.actor_networks_of_sensor_nodes = list()
-        for i in range(self.config.vehicle_number):
-            self.actor_networks_of_sensor_nodes.append(
-                self.create_NN(
-                    input_dim=
+
+        """
+        ______________________________________________________________________________________________________________
+        Actor network and Critic network
+        ______________________________________________________________________________________________________________
+        """
+
+        """Actor Network of Sensor Nodes"""
+        self.actor_local_of_sensor_nodes = list()
+        for index in range(self.environment.vehicle_number):
+            self.actor_local_of_sensor_nodes.append(
+                self.create_NN_for_actor_network_of_sensor_node(
+                    input_dim=self.environment.get_sensor_observations_size(),
+                    output_dim=self.environment.get_sensor_action_size()
                 )
             )
+        self.actor_target_of_sensor_nodes = list()
+        for index in range(self.environment.vehicle_number):
+            self.actor_target_of_sensor_nodes.append(
+                self.create_NN_for_actor_network_of_sensor_node(
+                    input_dim=self.environment.get_sensor_observations_size(),
+                    output_dim=self.environment.get_sensor_action_size()
+                )
+            )
+        for index in range(self.environment.vehicle_number):
+            HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[index],
+                                         to_model=self.actor_target_of_sensor_nodes[index])
+        self.actor_of_sensor_nodes_optimizer = list()
+        for index in range(self.environment.vehicle_number):
+            self.actor_of_sensor_nodes_optimizer.append(
+                optim.Adam(params=self.actor_local_of_sensor_nodes[index].parameters(),
+                           lr=self.hyperparameters['actor_of_sensor']['learning_rate'],
+                           eps=1e-4)
+            )
 
+        """Critic Network of Sensor Nodes"""
+        self.critic_local_of_sensor_nodes = list()
+        for index in range(self.environment.vehicle_number):
+            self.critic_local_of_sensor_nodes.append(
+                self.create_NN_for_critic_network_of_sensor_node(
+                    input_dim=self.environment.get_critic_size_for_sensor(),
+                    output_dim=1
+                )
+            )
+        self.critic_target_of_sensor_nodes = list()
+        for index in range(self.environment.vehicle_number):
+            self.critic_target_of_sensor_nodes.append(
+                self.create_NN_for_critic_network_of_sensor_node(
+                    input_dim=self.environment.get_critic_size_for_sensor(),
+                    output_dim=1
+                )
+            )
+        for index in range(self.environment.vehicle_number):
+            HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[index],
+                                         to_model=self.critic_target_of_sensor_nodes[index])
+        self.critic_of_sensor_nodes_optimizer = list()
+        for index in range(self.environment.vehicle_number):
+            self.critic_of_sensor_nodes_optimizer.append(
+                optim.Adam(params=self.critic_local_of_sensor_nodes[index].parameters(),
+                           lr=self.hyperparameters['critic_of_sensor']['learning_rate'],
+                           eps=1e-4)
+            )
 
-    def create_NN_for_actor_network(self):
-        pass
+        """Actor Network for Edge Node"""
+        self.actor_local_of_edge_node = self.create_NN_for_actor_network_of_edge_node(
+            input_dim=self.environment.get_actor_input_size_for_edge(),
+            output_dim=self.environment.get_edge_action_size()
+        )
+        self.actor_target_of_edge_node = self.create_NN_for_actor_network_of_edge_node(
+            input_dim=self.environment.get_actor_input_size_for_edge(),
+            output_dim=self.environment.get_edge_action_size()
+        )
+        HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_edge_node,
+                                     to_model=self.actor_target_of_edge_node)
+        self.actor_of_edge_node_optimizer = optim.Adam(
+            params=self.actor_local_of_edge_node.parameters(),
+            lr=self.hyperparameters['actor_of_edge']['learning_rate'],
+            eps=1e-4
+        )
 
-    def create_NN_for_critic_network(self):
-        pass
+        """Critic Network for Edge Node"""
+        self.critic_local_of_edge_node = self.create_NN_for_critic_network_of_edge_node(
+            input_dim=self.environment.get_critic_size_for_edge(),
+            output_dim=1
+        )
+        self.critic_target_of_edge_node = self.create_NN_for_critic_network_of_edge_node(
+            input_dim=self.environment.get_critic_size_for_edge(),
+            output_dim=1
+        )
+        HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_edge_node,
+                                     to_model=self.critic_target_of_edge_node)
+        self.critic_of_edge_node_optimizer = optim.Adam(
+            params=self.critic_local_of_edge_node.parameters(),
+            lr=self.hyperparameters['critic_of_edge_node']['learning_rate'],
+            eps=1e-4
+        )
 
-    def create_NN_for_vehicle_actor_network(self):   # the structure of network is different from other actor networks
-        pass
+        """Actor Network for Reward Function"""
+        self.actor_local_of_reward_function = self.create_NN_for_actor_network_of_reward_function(
+            input_dim=self.environment.get_actor_input_size_for_reward(),
+            output_dim=self.environment.get_reward_action_size()
+        )
+        self.actor_target_of_reward_function = self.create_NN_for_actor_network_of_reward_function(
+            input_dim=self.environment.get_actor_input_size_for_reward(),
+            output_dim=self.environment.get_reward_action_size()
+        )
+        HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_reward_function,
+                                     to_model=self.actor_target_of_reward_function)
+        self.actor_target_of_reward_function_optimizer = optim.Adam(
+            params=self.actor_local_of_reward_function.parameters(),
+            lr=self.hyperparameters['actor_of_reward_function']['learning_rate'],
+            eps=1e-4
+        )
 
-    def create_NN(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
+        """Critic Network for Reward Function"""
+        self.critic_local_of_reward_function = self.create_NN_for_critic_network_of_reward_function(
+            input_dim=self.environment.get_critic_size_for_reward(),
+            output_dim=1
+        )
+        self.critic_target_of_reward_function = self.create_NN_for_critic_network_of_reward_function(
+            input_dim=self.environment.get_critic_size_for_reward(),
+            output_dim=1
+        )
+        HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_reward_function,
+                                     to_model=self.critic_target_of_reward_function)
+        self.critic_target_of_reward_function_optimizer = optim.Adam(
+            params=self.critic_local_of_reward_function.parameters(),
+            lr=self.hyperparameters['critic_of_reward_function']['learning_rate'],
+            eps=1e-4
+        )
+
         """
-        Creates a neural network for the agents to use
-        :param input_dim: input dimension
-        :param output_dim: output dimension
-        :param key_to_use:
-        :param override_seed:
-        :param hyperparameters:
-        :return:
+        ______________________________________________________________________________________________________________
+        Actor network and Critic network End
+        ______________________________________________________________________________________________________________
         """
-        if hyperparameters is None: hyperparameters = self.hyperparameters
-        if key_to_use: hyperparameters = hyperparameters[key_to_use]
-        if override_seed: seed = override_seed
-        else: seed = self.config.seed
 
-        default_hyperparameter_choices = {"output_activation": None,
-                                          "hidden_activations": "relu",
-                                          "dropout": 0.0,
-                                          "initialiser": "default",
-                                          "batch_norm": False,
-                                          "columns_of_data_to_be_embedded": [],
-                                          "embedding_dimensions": [],
-                                          "y_range": ()}
 
-        for key in default_hyperparameter_choices:
-            if key not in hyperparameters.keys():
-                hyperparameters[key] = default_hyperparameter_choices[key]
+    @staticmethod
+    def copy_model_over(from_model, to_model):
+        """Copies model parameters from from_model to to_model"""
+        for to_model, from_model in zip(to_model.parameters(), from_model.parameters()):
+            to_model.data.copy_(from_model.data.clone())
 
-        """Creates a PyTorch neural network
-           Args:
-               - input_dim: Integer to indicate the dimension of the input into the network
-               - layers_info: List of integers to indicate the width and number of linear layers you want in your network,
-                             e.g. [5, 8, 1] would produce a network with 3 linear layers of width 5, 8 and then 1
-               - hidden_activations: String or list of string to indicate the activations you want used on the output of hidden layers
-                                     (not including the output layer). Default is ReLU.
-               - output_activation: String to indicate the activation function you want the output to go through. Provide a list of
-                                    strings if you want multiple output heads
-               - dropout: Float to indicate what dropout probability you want applied after each hidden layer
-               - initialiser: String to indicate which initialiser you want used to initialise all the parameters. All PyTorch
-                              initialisers are supported. PyTorch's default initialisation is the default.
-               - batch_norm: Boolean to indicate whether you want batch norm applied to the output of every hidden layer. Default is False
-               - columns_of_data_to_be_embedded: List to indicate the columns numbers of the data that you want to be put through an embedding layer
-                                                 before being fed through the other layers of the network. Default option is no embeddings
-               - embedding_dimensions: If you have categorical variables you want embedded before flowing through the network then
-                                       you specify the embedding dimensions here with a list like so: [ [embedding_input_dim_1, embedding_output_dim_1],
-                                       [embedding_input_dim_2, embedding_output_dim_2] ...]. Default is no embeddings
-               - y_range: Tuple of float or integers of the form (y_lower, y_upper) indicating the range you want to restrict the
-                          output values to in regression tasks. Default is no range restriction
-               - random_seed: Integer to indicate the random seed you want to use
-        """
-        return NN(input_dim=input_dim,
-                  layers_info=hyperparameters["linear_hidden_units"] + [output_dim],
-                  output_activation=hyperparameters["final_layer_activation"],
-                  batch_norm=hyperparameters["batch_norm"],
-                  dropout=hyperparameters["dropout"],
-                  hidden_activations=hyperparameters["hidden_activations"],
-                  initialiser=hyperparameters["initialiser"],
-                  columns_of_data_to_be_embedded=hyperparameters["columns_of_data_to_be_embedded"],
-                  embedding_dimensions=hyperparameters["embedding_dimensions"],
-                  y_range=hyperparameters["y_range"],
-                  random_seed=seed).to(self.device)
+    """
+    ______________________________________________________________________________________________________________
+    Create Neural Network for Actor and Critic Network
+    ______________________________________________________________________________________________________________
+    """
+
+    def create_NN_for_actor_network_of_sensor_node(self, input_dim, output_dim, hyperparameters=None):   # the structure of network is different from other actor networks
+        return NN(input_dim=input_dim)
+
+    def create_NN_for_critic_network_of_sensor_node(self, input_dim, output_dim, hyperparameters=None):   # the structure of network is different from other actor networks
+        return NN(input_dim=input_dim)
+
+    def create_NN_for_actor_network_of_edge_node(self, input_dim, output_dim, hyperparameters=None):
+        return NN(input_dim=input_dim)
+
+    def create_NN_for_critic_network_of_edge_node(self, input_dim, output_dim, hyperparameters=None):
+        return NN(input_dim=input_dim)
+
+    def create_NN_for_actor_network_of_reward_function(self, input_dim, output_dim, hyperparameters=None):
+        return NN(input_dim=input_dim)
+
+    def create_NN_for_critic_network_of_reward_function(self, input_dim, output_dim, hyperparameters=None):
+        return NN(input_dim=input_dim)
+
+    """
+    ______________________________________________________________________________________________________________
+    Create Neural Network for Actor and Critic Network End
+    ______________________________________________________________________________________________________________
+    """
 
     def step(self):
         pass
