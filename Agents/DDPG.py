@@ -44,9 +44,9 @@ class DDPG(object):
 
     def step(self):
         """Runs a step in the game"""
-        while not self.done:
+        while not self.done:  # when the episode is not over
             # print("State ", self.state.shape)
-            self.action = self.pick_action()
+            self.action = self.pick_action()  # pick a action
             self.conduct_action(self.action)
             if self.time_for_critic_and_actor_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
@@ -58,18 +58,29 @@ class DDPG(object):
             self.global_step_number += 1
         self.episode_number += 1
 
-    def sample_experiences(self):
-        return self.memory.sample()
-
     def pick_action(self, state=None):
         """Picks an action using the actor network and then adds some noise to it to ensure exploration"""
         if state is None: state = torch.from_numpy(self.state).float().unsqueeze(0).to(self.device)
         self.actor_local.eval()  # set the model to evaluation state
-        with torch.no_grad():
+        with torch.no_grad():  # do not compute the gradient
             action = self.actor_local(state).cpu().data.numpy()
         self.actor_local.train()  # set the model to training state
         action = self.exploration_strategy.perturb_action_for_exploration_purposes({"action": action})
         return action.squeeze(0)
+
+    def conduct_action(self, action):
+        """Conducts an action in the environment"""
+        self.next_state, self.reward, self.done, _ = self.environment.step(action)
+        self.total_episode_score_so_far += self.reward
+        if self.hyperparameters["clip_rewards"]: self.reward =  max(min(self.reward, 1.0), -1.0)
+
+    def time_for_critic_and_actor_to_learn(self):
+        """Returns boolean indicating whether there are enough experiences to learn from and it is time to learn for the
+        actor and critic"""
+        return self.enough_experiences_to_learn_from() and self.global_step_number % self.hyperparameters["update_every_n_steps"] == 0
+
+    def sample_experiences(self):
+        return self.memory.sample()
 
     def critic_learn(self, states, actions, rewards, next_states, dones):
         """Runs a learning iteration for the critic"""
@@ -108,10 +119,7 @@ class DDPG(object):
         critic_expected = self.critic_local(torch.cat((states, actions), 1))
         return critic_expected
 
-    def time_for_critic_and_actor_to_learn(self):
-        """Returns boolean indicating whether there are enough experiences to learn from and it is time to learn for the
-        actor and critic"""
-        return self.enough_experiences_to_learn_from() and self.global_step_number % self.hyperparameters["update_every_n_steps"] == 0
+
 
     def actor_learn(self, states):
         """Runs a learning iteration for the actor"""
@@ -122,11 +130,50 @@ class DDPG(object):
                                     self.hyperparameters["Actor"]["gradient_clipping_norm"])
         self.soft_update_of_target_network(self.actor_local, self.actor_target, self.hyperparameters["Actor"]["tau"])
 
+    def update_learning_rate(self, starting_lr,  optimizer):
+        """
+        Lowers the learning rate according to how close we are to the solution
+        The learning rate is smaller when closer the solution
+        However, we must determine the average score required to win
+        :param starting_lr:  learning rate of starting
+        :param optimizer:
+        :return:
+        """
+        new_lr = starting_lr
+        if len(self.rolling_results) > 0:
+            last_rolling_score = self.rolling_results[-1]
+            if last_rolling_score > 0.75 * self.average_score_required_to_win:
+                new_lr = starting_lr / 100.0
+            elif last_rolling_score > 0.6 * self.average_score_required_to_win:
+                new_lr = starting_lr / 20.0
+            elif last_rolling_score > 0.5 * self.average_score_required_to_win:
+                new_lr = starting_lr / 10.0
+            elif last_rolling_score > 0.25 * self.average_score_required_to_win:
+                new_lr = starting_lr / 2.0
+            else:
+                new_lr = starting_lr
+            for g in optimizer.param_groups:
+                g['lr'] = new_lr
+        if np.random.random() < 0.001: self.logger.info("Learning rate {}".format(new_lr))
+
+
     def calculate_actor_loss(self, states):
         """Calculates the loss for the actor"""
         actions_pred = self.actor_local(states)
         actor_loss = -self.critic_local(torch.cat((states, actions_pred), 1)).mean()
         return actor_loss
+
+    def take_optimisation_step(self, optimizer, network, loss, clipping_norm=None, retain_graph=False):
+        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
+        if not isinstance(network, list): network = [network]
+        optimizer.zero_grad() #reset gradients to 0
+        loss.backward(retain_graph=retain_graph) #this calculates the gradients
+        self.logger.info("Loss -- {}".format(loss.item()))
+        if self.debug_mode: self.log_gradient_and_weight_information(network, optimizer)
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm_(net.parameters(), clipping_norm) #clip gradients to help stabilise training
+        optimizer.step() #this applies the gradients
 
     @staticmethod
     def copy_model_over(from_model, to_model):
@@ -197,11 +244,7 @@ class DDPG(object):
                   y_range=hyperparameters["y_range"],
                   random_seed=seed).to(self.device)
 
-    def conduct_action(self, action):
-        """Conducts an action in the environment"""
-        self.next_state, self.reward, self.done, _ = self.environment.step(action)
-        self.total_episode_score_so_far += self.reward
-        if self.hyperparameters["clip_rewards"]: self.reward =  max(min(self.reward, 1.0), -1.0)
+
 
     def save_experience(self, memory=None, experience=None):
         """
@@ -216,17 +259,7 @@ class DDPG(object):
         if experience is None: experience = self.state, self.action, self.reward, self.next_state, self.done
         memory.add_experience(*experience)
 
-    def take_optimisation_step(self, optimizer, network, loss, clipping_norm=None, retain_graph=False):
-        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
-        if not isinstance(network, list): network = [network]
-        optimizer.zero_grad() #reset gradients to 0
-        loss.backward(retain_graph=retain_graph) #this calculates the gradients
-        self.logger.info("Loss -- {}".format(loss.item()))
-        if self.debug_mode: self.log_gradient_and_weight_information(network, optimizer)
-        if clipping_norm is not None:
-            for net in network:
-                torch.nn.utils.clip_grad_norm_(net.parameters(), clipping_norm) #clip gradients to help stabilise training
-        optimizer.step() #this applies the gradients
+
 
     def soft_update_of_target_network(self, local_model, target_model, tau):
         """
@@ -248,29 +281,5 @@ class DDPG(object):
         """
         return len(self.memory) > self.hyperparameters["batch_size"]
 
-    def update_learning_rate(self, starting_lr,  optimizer):
-        """
-        Lowers the learning rate according to how close we are to the solution
-        The learning rate is smaller when closer the solution
-        However, we must determine the average score required to win
-        :param starting_lr:  learning rate of starting
-        :param optimizer:
-        :return:
-        """
-        new_lr = starting_lr
-        if len(self.rolling_results) > 0:
-            last_rolling_score = self.rolling_results[-1]
-            if last_rolling_score > 0.75 * self.average_score_required_to_win:
-                new_lr = starting_lr / 100.0
-            elif last_rolling_score > 0.6 * self.average_score_required_to_win:
-                new_lr = starting_lr / 20.0
-            elif last_rolling_score > 0.5 * self.average_score_required_to_win:
-                new_lr = starting_lr / 10.0
-            elif last_rolling_score > 0.25 * self.average_score_required_to_win:
-                new_lr = starting_lr / 2.0
-            else:
-                new_lr = starting_lr
-            for g in optimizer.param_groups:
-                g['lr'] = new_lr
-        if np.random.random() < 0.001: self.logger.info("Learning rate {}".format(new_lr))
+
 
