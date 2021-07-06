@@ -17,3 +17,5 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Update the readme.md 2021-07-03
 - [x] Renew Configuration 2021-07-04
 - [x] NN Input and Output Dimensions 2021-07-05
+- [x] Initialization of Actor Network and Critic Network for sensor nodes, edge node, and reward function, respectively 2021-07-06
+

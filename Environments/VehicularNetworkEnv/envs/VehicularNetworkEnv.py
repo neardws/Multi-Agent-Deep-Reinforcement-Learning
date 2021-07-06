@@ -461,7 +461,7 @@ class VehicularNetworkEnv(gym.Env):
     def update_edge_observations(self):
         pass
 
-    def get_actor_input__for_reward(self):
+    def get_actor_input_for_reward(self):
         pass
 
     def step(self, action):
