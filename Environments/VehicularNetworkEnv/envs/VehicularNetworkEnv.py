@@ -166,19 +166,19 @@ class VehicularNetworkEnv(gym.Env):
         #     Location:
         #     Bandwidth:
         # """
-        # self.state_space = spaces.Dict({
-        #     """Changeable"""
-        #     'time': spaces.Discrete(int(self.time_slots_number)),
-        #     'action_time': spaces.MultiBinary([self.vehicle_number, self.time_slots_number]),
-        #     'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number]),
-        #     'trajectories': spaces.Box(low=0, high=self.communication_range,
-        #                                shape=(self.vehicle_number, self.time_slots_number), dtype=np.float),
-        #     """Unchangeable"""
-        #     'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
-        #
-        #     'edge_view': spaces.MultiBinary(list(self.edge_views_in_edge_node.shape)),
-        #     'view': spaces.MultiBinary(list(self.view_required_data.shape))
-        # })
+        self.state_space = spaces.Dict({
+            """Changeable"""
+            'time': spaces.Discrete(int(self.time_slots_number)),
+            'action_time': spaces.MultiBinary([self.vehicle_number, self.time_slots_number]),
+            'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number]),
+            'trajectories': spaces.Box(low=0, high=self.communication_range,
+                                       shape=(self.vehicle_number, self.time_slots_number), dtype=np.float),
+            """Unchangeable"""
+            'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
+
+            'edge_view': spaces.MultiBinary(list(self.edge_views_in_edge_node.shape)),
+            'view': spaces.MultiBinary(list(self.view_required_data.shape))
+        })
 
 
     def reset(self):

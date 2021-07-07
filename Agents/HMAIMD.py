@@ -271,10 +271,12 @@ class HMAIMD_Agent(object):
             self.reward_action = self.reward_function_pick_action()
             self.save_experience()
             self.save_reward_experience()
-            if self.time_for_critic_and_actor_to_learn():
+            if self.time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
                     self.sensor_nodes_learn()
                     self.edge_node_learn()
+            if self.time_for_critic_and_actor_of_reward_function_to_learn():
+                for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
                     self.reward_function_learn()
                     # states, actions, rewards, next_states, dones = self.sample_experiences()
                     # self.critic_learn(states, actions, rewards, next_states, dones)
@@ -348,10 +350,21 @@ class HMAIMD_Agent(object):
         reward_experience = self.last_state, self.last_action, self.last_reward_action, self.reward, self.state, self.action
         self.reward_replay_buffer.add_experience(*reward_experience)
 
-    def time_for_critic_and_actor_to_learn(self):
-        pass
+    def time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn(self):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        return len(self.experience_replay_buffer) > self.config.experience_replay_buffer_batch_size and \
+               self.episode_step % self.hyperparameters["update_every_n_steps"] == 0
+
+    def time_for_critic_and_actor_of_reward_function_to_learn(self):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        return len(self.experience_replay_buffer) > self.config.reward_replay_buffer_batch_size and \
+               self.episode_step % self.hyperparameters["update_every_n_steps"] == 0
 
     def sensor_nodes_learn(self):
+
+
         pass
 
     def edge_node_learn(self):
