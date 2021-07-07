@@ -109,32 +109,6 @@ class HMAIMD_Agent(object):
             ) for index in range(self.environment.vehicle_number)
         ]
 
-        # self.actor_local_of_sensor_nodes = []
-        # for index in range(self.environment.vehicle_number):
-        #     self.actor_local_of_sensor_nodes.append(
-        #         self.create_NN_for_actor_network_of_sensor_node(
-        #             input_dim=self.environment.get_sensor_observations_size(),
-        #             output_dim=self.environment.get_sensor_action_size()
-        #         )
-        #     )
-        # self.actor_target_of_sensor_nodes = []
-        # for index in range(self.environment.vehicle_number):
-        #     self.actor_target_of_sensor_nodes.append(
-        #         self.create_NN_for_actor_network_of_sensor_node(
-        #             input_dim=self.environment.get_sensor_observations_size(),
-        #             output_dim=self.environment.get_sensor_action_size()
-        #         )
-        #     )
-        # for index in range(self.environment.vehicle_number):
-        #     HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[index],
-        #                                  to_model=self.actor_target_of_sensor_nodes[index])
-        # self.actor_of_sensor_nodes_optimizer = []
-        # for index in range(self.environment.vehicle_number):
-        #     self.actor_of_sensor_nodes_optimizer.append(
-        #         optim.Adam(params=self.actor_local_of_sensor_nodes[index].parameters(),
-        #                    lr=self.hyperparameters['actor_of_sensor']['learning_rate'],
-        #                    eps=1e-4)
-        #     )
 
         """Critic Network of Sensor Nodes"""
         self.critic_size_for_sensor = self.environment.get_critic_size_for_sensor()
@@ -161,35 +135,6 @@ class HMAIMD_Agent(object):
                        eps=1e-4
             )for index in range(self.environment.vehicle_number)
         ]
-
-
-        #
-        # self.critic_local_of_sensor_nodes = []
-        # for index in range(self.environment.vehicle_number):
-        #     self.critic_local_of_sensor_nodes.append(
-        #         self.create_NN_for_critic_network_of_sensor_node(
-        #             input_dim=self.environment.get_critic_size_for_sensor(),
-        #             output_dim=1
-        #         )
-        #     )
-        # self.critic_target_of_sensor_nodes = []
-        # for index in range(self.environment.vehicle_number):
-        #     self.critic_target_of_sensor_nodes.append(
-        #         self.create_NN_for_critic_network_of_sensor_node(
-        #             input_dim=self.environment.get_critic_size_for_sensor(),
-        #             output_dim=1
-        #         )
-        #     )
-        # for index in range(self.environment.vehicle_number):
-        #     HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[index],
-        #                                  to_model=self.critic_target_of_sensor_nodes[index])
-        # self.critic_of_sensor_nodes_optimizer = []
-        # for index in range(self.environment.vehicle_number):
-        #     self.critic_of_sensor_nodes_optimizer.append(
-        #         optim.Adam(params=self.critic_local_of_sensor_nodes[index].parameters(),
-        #                    lr=self.hyperparameters['critic_of_sensor']['learning_rate'],
-        #                    eps=1e-4)
-        #     )
 
         """Actor Network for Edge Node"""
         self.actor_local_of_edge_node = self.create_NN_for_actor_network_of_edge_node(
