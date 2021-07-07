@@ -120,11 +120,11 @@ class VehicularNetworkEnv(gym.Env):
         self.state = None  # global state
         self.action = None # global action
         self.sensor_observations = None  # individually observation state for sensor nodes
-        self.edge_observations = None # individually observation state for edge node
+        self.edge_observation = None # individually observation state for edge node
         self.reward = None  # external reward
         self.next_state = None
         self.done = False
-        self.episode_steps = 0
+        self.episode_step = 0
         self.action_experiences = None
         self.waiting_time_in_queue = None
 
@@ -189,7 +189,7 @@ class VehicularNetworkEnv(gym.Env):
         """
 
         """Parameters for Reinforcement Learning"""
-        self.episode_steps = 0
+        self.episode_step = 0
         """Init the action time of sensor nodes"""
         self.action_time_of_sensor_nodes = np.zeros(shape=(self.vehicle_number, self.time_slots_number))
         self.action_time_of_sensor_nodes[:,0] = 1
@@ -197,7 +197,7 @@ class VehicularNetworkEnv(gym.Env):
         self.data_in_edge_node = np.zeros(shape=(self.vehicle_number, self.data_types_number))
         """Notice that time, action time, data in edge node, and trajectories varying with time"""
         self.state = {  # global state
-            'time': self.episode_steps,
+            'time': self.episode_step,
             'action_time': self.action_time_of_sensor_nodes,
             'data_in_edge': self.data_in_edge_node,
             'trajectories': self.trajectories,
@@ -207,7 +207,7 @@ class VehicularNetworkEnv(gym.Env):
         }
         self.action = None
         self.sensor_observations = self.init_sensor_observations()  # individually observation state for sensor node
-        self.edge_observations = self.init_edge_observations()
+        self.edge_observation = self.init_edge_observation()
         self.reward = None  # external reward
         self.next_state = None
         self.done = False
@@ -306,7 +306,7 @@ class VehicularNetworkEnv(gym.Env):
     def get_critic_size_for_sensor(self):
         return self.get_sensor_observations_size() + self.get_sensor_action_size()
 
-    def get_edge_observations_size(self):
+    def get_edge_observation_size(self):
         """
         :return
             Observation state input to neural network
@@ -329,7 +329,7 @@ class VehicularNetworkEnv(gym.Env):
         )
 
     def get_actor_input_size_for_edge(self):
-        return self.get_edge_observations_size() + self.get_sensor_observations_size() * self.vehicle_number
+        return self.get_edge_observation_size() + self.get_sensor_observations_size() * self.vehicle_number
 
     def get_edge_action_size(self):
         """
@@ -455,10 +455,10 @@ class VehicularNetworkEnv(gym.Env):
             for index in range(index_start, index_start + self.data_types_number):
                 self.sensor_observations[vehicle_index][index] = self.state['data_in_edge'][vehicle_index][index]
 
-    def init_edge_observations(self):
+    def init_edge_observation(self):
         pass
 
-    def update_edge_observations(self):
+    def update_edge_observation(self):
         pass
 
     def get_actor_input_for_reward(self):
