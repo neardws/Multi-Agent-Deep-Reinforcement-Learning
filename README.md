@@ -3,8 +3,11 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 
 ### TODO
 - [ ] Work on Agents
-    - [ ] Transplant implementation code from DDPG
     - [ ] Create NN functions for actor and critic networks
+    - [ ] Save NN input and output tensor into self.parameters
+- [ ] Work on Replay Buffer
+    - [ ] Renew buffer input and output
+    - [ ] Compass experiences to save GPU RAM
 - [ ] Work on VehicularNetworkEnv
     - [ ] Service time add into sensor node state
     - [ ] Trajectories related, such as define global trajectory within the experiment, and add trajectory predicted time in experiment parameters
@@ -19,4 +22,5 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Initialization of Actor Network and Critic Network for sensor nodes, edge node, and reward function, respectively 2021-07-06
 - [x] Workflow of HMAIMD_Agent 2021-07-06
 - [x] Read DDPG in detail 2021-07-06
+- [x] Transplant implementation code from DDPG 2021-07-09
 

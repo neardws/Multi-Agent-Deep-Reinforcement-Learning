@@ -237,13 +237,13 @@ class VehicularNetworkEnv(gym.Env):
                    get_sensor_action_size()
            Critic network of sensor node
                Input:
-                   get_critic_size_for_sensor() = get_sensor_observations_size() + get_sensor_node_action_size()
+                   get_critic_size_for_sensor() = get_sensor_observations_size() + get_sensor_node_action_size() * all sensor nodes
                Output:
                    1
 
            Actor network of edge node
                Input:
-                   get_actor_input_size_for_edge() = get_edge_observations_size() + get_sensor_action_size() * all sensor
+                   get_actor_input_size_for_edge() = get_edge_observations_size() + get_sensor_action_size() * all sensor nodes
                Output:
                    get_edge_action_size()
            Critic network of edge node
@@ -304,7 +304,7 @@ class VehicularNetworkEnv(gym.Env):
         )
 
     def get_critic_size_for_sensor(self):
-        return self.get_sensor_observations_size() + self.get_sensor_action_size()
+        return self.get_sensor_observations_size() + self.get_sensor_action_size() * self.vehicle_number
 
     def get_edge_observation_size(self):
         """

@@ -119,8 +119,6 @@ class DDPG(object):
         critic_expected = self.critic_local(torch.cat((states, actions), 1))
         return critic_expected
 
-
-
     def actor_learn(self, states):
         """Runs a learning iteration for the actor"""
         if self.done: #we only update the learning rate at end of each episode
