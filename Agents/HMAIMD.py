@@ -8,22 +8,23 @@
 import numpy as np
 import torch
 import torch.nn.functional as functional
-from torch import optim
+from torch import optim, Tensor
 from nn_builder.pytorch.NN import NN  # construct a neural network via PyTorch
 from Utilities.Data_structures.Config import Agent_Config
 from Utilities.Data_structures.Replay_Buffer import Replay_Buffer
 from Exploration_strategies.OU_Noise_Exploration import OU_Noise_Exploration
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 
+
 class HMAIMD_Agent(object):
     """
 
     """
-    def __init__(self, agent_config = Agent_Config(), environment = VehicularNetworkEnv()):
+
+    def __init__(self, agent_config=Agent_Config(), environment=VehicularNetworkEnv()):
         self.config = agent_config
         self.environment = environment
         self.hyperparameters = self.config.hyperparameters
-
 
         self.state = self.environment.reset()
         self.sensor_observations = None
@@ -49,7 +50,6 @@ class HMAIMD_Agent(object):
         self.episode_step = 0
         self.device = "cuda" if self.config.use_GPU else "cpu"
         self.turn_off_exploration = False
-
 
         """
         ______________________________________________________________________________________________________________
@@ -102,13 +102,12 @@ class HMAIMD_Agent(object):
         for index in range(self.environment.vehicle_number):
             HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[index],
                                          to_model=self.actor_target_of_sensor_nodes[index])
-        self.actor_of_sensor_nodes_optimizer = [
+        self.actor_optimizer_of_sensor_nodes = [
             optim.Adam(params=self.actor_local_of_sensor_nodes[index].parameters(),
                        lr=self.hyperparameters['actor_of_sensor']['learning_rate'],
                        eps=1e-4
-            ) for index in range(self.environment.vehicle_number)
+                       ) for index in range(self.environment.vehicle_number)
         ]
-
 
         """Critic Network of Sensor Nodes"""
         self.critic_size_for_sensor = self.environment.get_critic_size_for_sensor()
@@ -129,11 +128,11 @@ class HMAIMD_Agent(object):
         for index in range(self.environment.vehicle_number):
             HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[index],
                                          to_model=self.critic_target_of_sensor_nodes[index])
-        self.critic_of_sensor_nodes_optimizer = [
+        self.critic_optimizer_of_sensor_nodes = [
             optim.Adam(params=self.critic_local_of_sensor_nodes[index].parameters(),
                        lr=self.hyperparameters['critic_of_sensor']['learning_rate'],
                        eps=1e-4
-            )for index in range(self.environment.vehicle_number)
+                       ) for index in range(self.environment.vehicle_number)
         ]
 
         """Actor Network for Edge Node"""
@@ -147,7 +146,7 @@ class HMAIMD_Agent(object):
         )
         HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_edge_node,
                                      to_model=self.actor_target_of_edge_node)
-        self.actor_of_edge_node_optimizer = optim.Adam(
+        self.actor_optimizer_of_edge_node = optim.Adam(
             params=self.actor_local_of_edge_node.parameters(),
             lr=self.hyperparameters['actor_of_edge']['learning_rate'],
             eps=1e-4
@@ -164,7 +163,7 @@ class HMAIMD_Agent(object):
         )
         HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_edge_node,
                                      to_model=self.critic_target_of_edge_node)
-        self.critic_of_edge_node_optimizer = optim.Adam(
+        self.critic_optimizer_of_edge_node = optim.Adam(
             params=self.critic_local_of_edge_node.parameters(),
             lr=self.hyperparameters['critic_of_edge_node']['learning_rate'],
             eps=1e-4
@@ -181,7 +180,7 @@ class HMAIMD_Agent(object):
         )
         HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_reward_function,
                                      to_model=self.actor_target_of_reward_function)
-        self.actor_target_of_reward_function_optimizer = optim.Adam(
+        self.actor_optimizer_of_reward_function = optim.Adam(
             params=self.actor_local_of_reward_function.parameters(),
             lr=self.hyperparameters['actor_of_reward_function']['learning_rate'],
             eps=1e-4
@@ -198,7 +197,7 @@ class HMAIMD_Agent(object):
         )
         HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_reward_function,
                                      to_model=self.critic_target_of_reward_function)
-        self.critic_target_of_reward_function_optimizer = optim.Adam(
+        self.critic_optimizer_of_reward_function = optim.Adam(
             params=self.critic_local_of_reward_function.parameters(),
             lr=self.hyperparameters['critic_of_reward_function']['learning_rate'],
             eps=1e-4
@@ -209,7 +208,6 @@ class HMAIMD_Agent(object):
         Actor network and Critic network End
         ______________________________________________________________________________________________________________
         """
-
 
     @staticmethod
     def copy_model_over(from_model, to_model):
@@ -223,10 +221,12 @@ class HMAIMD_Agent(object):
     ______________________________________________________________________________________________________________
     """
 
-    def create_NN_for_actor_network_of_sensor_node(self, input_dim, output_dim, hyperparameters=None):   # the structure of network is different from other actor networks
+    def create_NN_for_actor_network_of_sensor_node(self, input_dim, output_dim,
+                                                   hyperparameters=None):  # the structure of network is different from other actor networks
         return NN(input_dim=input_dim)
 
-    def create_NN_for_critic_network_of_sensor_node(self, input_dim, output_dim, hyperparameters=None):   # the structure of network is different from other actor networks
+    def create_NN_for_critic_network_of_sensor_node(self, input_dim, output_dim,
+                                                    hyperparameters=None):  # the structure of network is different from other actor networks
         return NN(input_dim=input_dim)
 
     def create_NN_for_actor_network_of_edge_node(self, input_dim, output_dim, hyperparameters=None):
@@ -261,6 +261,7 @@ class HMAIMD_Agent(object):
     No.9 Train each critic target network and actor target network
     
     """
+
     def step(self):
         """Runs a step in the game"""
         while not self.done:  # when the episode is not over
@@ -273,37 +274,54 @@ class HMAIMD_Agent(object):
             self.save_reward_experience()
             if self.time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
-                    self.sensor_nodes_learn()
-                    self.edge_node_learn()
+
+                    sensor_nodes_observations, edge_node_observations, sensor_actions, edge_actions, sensor_nodes_rewards, \
+                    edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones = self.sample_experiences(
+                        "experience_replay_buffer")
+
+                    self.sensor_nodes_and_edge_node_to_learn(sensor_nodes_observations=sensor_nodes_observations,
+                                                             edge_node_observations=edge_node_observations,
+                                                             sensor_actions=sensor_actions,
+                                                             edge_actions=edge_actions,
+                                                             sensor_nodes_rewards=sensor_nodes_rewards,
+                                                             edge_node_rewards=edge_node_rewards,
+                                                             next_sensor_nodes_observations=next_sensor_nodes_observations,
+                                                             next_edge_node_observations=next_edge_node_observations,
+                                                             dones=dones)
+
             if self.time_for_critic_and_actor_of_reward_function_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                    states, actions, rewards, next_states, dones = self.sample_experiences("reward_replay_buffer")
                     self.reward_function_learn()
-                    # states, actions, rewards, next_states, dones = self.sample_experiences()
-                    # self.critic_learn(states, actions, rewards, next_states, dones)
-                    # self.actor_learn(states)
-            self.state = self.next_state #this is to set the state for the next iteration
+            self.state = self.next_state  # this is to set the state for the next iteration
             self.episode_step += 1
         self.episode_index += 1
 
+    def sample_experiences(self, buffer_name):
+        if buffer_name == "experience_replay_buffer":
+            return self.experience_replay_buffer.sample()
+        elif buffer_name == "reward_replay_buffer":
+            return self.reward_replay_buffer.sample()
+        else:
+            raise Exception("Buffer name is Wrong")
 
-    def sensor_nodes_pick_actions(self):
+    def sensor_nodes_pick_actions(self, sensor_nodes_observation):
         """Picks an action using the actor network of each sensor node
         and then adds some noise to it to ensure exploration"""
-        for index, sensor_observation in enumerate(self.sensor_observations):
-            if self.state['action_time'][index][self.episode_index] == 1:
-                sensor_node_state = torch.from_numpy(sensor_observation).float().unsqueeze(0).to(
-                    self.device)
-                self.actor_local_of_sensor_nodes[index].eval()  # set the model to evaluation state
+        for sensor_node_index in range(self.environment.vehicle_number):
+            if self.state['action_time'][sensor_node_index][self.episode_index] == 1:
+                sensor_node_observation = sensor_nodes_observation[sensor_node_index, :]
+                self.actor_local_of_sensor_nodes[sensor_node_index].eval()  # set the model to evaluation state
                 with torch.no_grad():  # do not compute the gradient
-                    sensor_action = self.actor_local_of_sensor_nodes[index](sensor_node_state).cpu().data.numpy()
-                self.actor_local_of_sensor_nodes[index].train()  # set the model to training state
+                    sensor_action = self.actor_local_of_sensor_nodes[sensor_node_index](
+                        sensor_node_observation).cpu().data.numpy()
+                self.actor_local_of_sensor_nodes[sensor_node_index].train()  # set the model to training state
                 sensor_action = self.exploration_strategy.perturb_action_for_exploration_purposes(
                     {"action": sensor_action})
-                self.sensor_actions[index] = sensor_action
+                self.sensor_actions[sensor_node_index] = sensor_action
 
-
-    def edge_node_pick_action(self):
-        edge_node_state = torch.from_numpy(self.edge_observation).float().unsqueeze(0).to(self.device)
+    def edge_node_pick_action(self, edge_observation, sensor_nodes_actions):
+        edge_node_state = torch.cat((edge_observation, sensor_nodes_actions), 1)
         self.actor_local_of_edge_node.eval()
         with torch.no_grad():
             edge_action = self.actor_local_of_edge_node(edge_node_state).cpu().data.numpy()
@@ -329,11 +347,17 @@ class HMAIMD_Agent(object):
         with torch.no_grad():
             reward_function_action = self.actor_local_of_reward_function(reward_function_state).cpu().data.numpy()
         self.actor_local_of_reward_function.train()
-        reward_function_action = self.exploration_strategy.perturb_action_for_exploration_purposes({"action":reward_function_action})
+        reward_function_action = self.exploration_strategy.perturb_action_for_exploration_purposes(
+            {"action": reward_function_action})
         self.reward_action = reward_function_action
 
     def save_experience(self):
+
+        # TODO Renew structure of experience and replay buffer
         """
+        sensor_nodes_observations=torch.empty(), sensor_actions=torch.empty(),
+                           sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty(),
+                           dones=torch.empty()
         Saves the recent experience to the experience replay buffer
         :param memory: Buffer
         :param experience: self.state, self.action, self.reward, self.next_state, self.done
@@ -341,7 +365,7 @@ class HMAIMD_Agent(object):
         """
         if self.experience_replay_buffer is None:
             raise Exception("experience_replay_buffer is None, function save_experience at HMAIMD.py")
-        experience = self.state, self.action, self.reward, self.next_state, self.done
+        experience = self.sensor_nodes_observations, self.sensor_actions, self.sensor_nodes_rewards, self.next_sensor_nodes_observations, self.done
         self.experience_replay_buffer.add_experience(*experience)
 
     def save_reward_experience(self):
@@ -362,13 +386,194 @@ class HMAIMD_Agent(object):
         return len(self.experience_replay_buffer) > self.config.reward_replay_buffer_batch_size and \
                self.episode_step % self.hyperparameters["update_every_n_steps"] == 0
 
-    def sensor_nodes_learn(self):
+    def sensor_nodes_and_edge_node_to_learn(self, sensor_nodes_observations=torch.empty(),
+                                            edge_node_observations=torch.empty(),
+                                            sensor_actions=torch.empty(), edge_actions=torch.empty(),
+                                            sensor_nodes_rewards=torch.empty(), edge_node_rewards=torch.empty(),
+                                            next_sensor_nodes_observations=torch.empty(),
+                                            next_edge_node_observations=torch.empty(),
+                                            dones=torch.empty()):
+
+        sensor_nodes_actions_next_list = [
+            self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_node_observations)
+            for sensor_node_index, next_sensor_node_observations in enumerate(next_sensor_nodes_observations)]
+
+        sensor_nodes_actions_next_tensor = torch.cat(
+            (sensor_nodes_actions_next_list[0], sensor_nodes_actions_next_list[1]), 0)
+        for index, sensor_nodes_actions_next in enumerate(sensor_nodes_actions_next_list):
+            if index > 1:
+                sensor_nodes_actions_next_tensor = torch.cat(
+                    (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), 0)
+
+        for sensor_node_index in range(self.environment.vehicle_number):
+            sensor_node_observations = sensor_nodes_observations[sensor_node_index, :]
+            sensor_node_rewards = sensor_nodes_rewards[sensor_node_index, :]
+            next_sensor_node_observations = sensor_nodes_observations[sensor_node_index, :]
+
+            """Runs a learning iteration for the critic"""
+            """Computes the loss for the critic"""
+            with torch.no_grad():
+                critic_targets_next_of_sensor_node = self.critic_target_of_sensor_nodes[sensor_node_index](
+                    torch.cat(next_sensor_node_observations, sensor_nodes_actions_next_tensor), 1)
+                critic_targets_of_sensor_node = sensor_node_rewards + (
+                            self.hyperparameters["discount_rate"] * critic_targets_next_of_sensor_node * (1.0 - dones))
+            critic_expected_of_sensor_node = self.critic_local_of_sensor_nodes[sensor_node_index](
+                torch.cat((sensor_node_observations, sensor_actions), 1))
+            critic_loss_of_sensor_node: Tensor = functional.mse_loss(critic_expected_of_sensor_node,
+                                                                     critic_targets_of_sensor_node)
+
+            """Update target critic networks"""
+            self.take_optimisation_step(self.critic_optimizer_of_sensor_nodes[sensor_node_index],
+                                        self.critic_local_of_sensor_nodes[sensor_node_index],
+                                        critic_loss_of_sensor_node,
+                                        self.hyperparameters["critic_of_sensor"]["gradient_clipping_norm"])
+            self.soft_update_of_target_network(self.critic_local_of_sensor_nodes[sensor_node_index],
+                                               self.critic_target_of_sensor_nodes[sensor_node_index],
+                                               self.hyperparameters["critic_of_sensor"]["tau"])
+
+            """Runs a learning iteration for the actor"""
+            if self.done:  # we only update the learning rate at end of each episode
+                self.update_learning_rate(self.hyperparameters["actor_of_sensor"]["learning_rate"],
+                                          self.actor_optimizer_of_sensor_nodes[sensor_node_index])
+            """Calculates the loss for the actor"""
+            actions_predicted_of_sensor_node = self.actor_local_of_sensor_nodes[sensor_node_index](
+                sensor_node_observations)
+            if sensor_node_index == 0:
+                sensor_nodes_actions_add_actions_pred = torch.cat(
+                    (actions_predicted_of_sensor_node, sensor_actions[1:self.environment.vehicle_number, :]), dim=1)
+            elif sensor_node_index == self.environment.vehicle_number - 1:
+                sensor_nodes_actions_add_actions_pred = torch.cat(
+                    (sensor_actions[0:self.environment.vehicle_number - 1, :], actions_predicted_of_sensor_node), dim=1)
+            else:
+                sensor_nodes_actions_add_actions_pred = torch.cat((sensor_actions[0:sensor_node_index - 1, :],
+                                                                   actions_predicted_of_sensor_node,
+                                                                   sensor_actions[sensor_node_index + 1:self.environment.vehicle_number,
+                                                                                 :]), dim=1)
+
+            actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
+                torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred), 1)).mean()
+
+            self.take_optimisation_step(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
+                                        self.actor_local_of_sensor_nodes[sensor_node_index],
+                                        actor_loss_of_sensor_node,
+                                        self.hyperparameters["actor_of_sensor"]["gradient_clipping_norm"])
+            self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
+                                               self.actor_target_of_sensor_nodes[sensor_node_index],
+                                               self.hyperparameters["actor_of_sensor"]["tau"])
+
+        """Runs a learning iteration for the critic of edge node"""
+        """Computes the loss for the critic"""
+        with torch.no_grad():
+            """Computes the critic target values to be used in the loss for the critic"""
+            actions_next_of_edge_node = self.actor_target_of_edge_node(
+                torch.cat((next_edge_node_observations, sensor_nodes_actions_next_tensor), dim=1))
+            critic_targets_next_of_edge_node = self.critic_target_of_edge_node(
+                torch.cat((next_edge_node_observations, sensor_nodes_actions_next_tensor, actions_next_of_edge_node),
+                          dim=1))
+            critic_targets_of_edge_node = edge_node_rewards + (
+                    self.hyperparameters["discount_rate"] * critic_targets_next_of_edge_node * (1.0 - dones))
+
+        critic_expected_of_edge_node = self.critic_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_actions, edge_actions), 1))
+        loss_of_edge_node = functional.mse_loss(critic_expected_of_edge_node, critic_targets_of_edge_node)
+        self.take_optimisation_step(self.critic_optimizer_of_edge_node,
+                                    self.critic_local_of_edge_node,
+                                    loss_of_edge_node,
+                                    self.hyperparameters["critic_of_edge"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.critic_local_of_edge_node, self.critic_target_of_edge_node,
+                                           self.hyperparameters["critic_of_edge"]["tau"])
+
+        """Runs a learning iteration for the actor of edge node"""
+        if self.done:  # we only update the learning rate at end of each episode
+            self.update_learning_rate(self.hyperparameters["actor_of_edge"]["learning_rate"],
+                                      self.actor_optimizer_of_edge_node)
+        """Calculates the loss for the actor"""
+        actions_predicted_of_edge_node = self.actor_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_actions), dim=1))
+        actor_loss_of_edge_node = -self.critic_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_actions, actions_predicted_of_edge_node), dim=1)).mean()
+        self.take_optimisation_step(self.actor_optimizer_of_edge_node, self.actor_local_of_edge_node,
+                                    actor_loss_of_edge_node,
+                                    self.hyperparameters["actor_of_edge"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.actor_local_of_edge_node, self.actor_target_of_edge_node,
+                                           self.hyperparameters["actor_of_edge"]["tau"])
+
+    def reward_function_to_learn(self, last_states=torch.empty(), last_actions=torch.empty(),
+                              last_reward_actions=torch.empty(), rewards=torch.empty(),
+                              states=torch.empty(), actions=torch.empty(), dones=torch.empty()):
+
+        """Runs a learning iteration for the critic of reward function"""
+        with torch.no_grad():
+            reward_actions_next = self.actor_target_of_reward_function(torch.cat((states, actions), dim=1))
+            critic_targets_next = self.critic_target_of_reward_function(torch.cat((states, actions, reward_actions_next), 1))
+            critic_targets = rewards + (self.hyperparameters["discount_rate"] * critic_targets_next * (1.0 - dones))
+        critic_expected = self.critic_local_of_reward_function(torch.cat((last_states, last_actions, last_reward_actions), 1))
+        loss = functional.mse_loss(critic_expected, critic_targets)
+        self.take_optimisation_step(self.critic_optimizer_of_reward_function,
+                                    self.critic_local_of_reward_function, loss,
+                                    self.hyperparameters["critic_of_reward"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.critic_local_of_reward_function, self.critic_target_of_reward_function,
+                                           self.hyperparameters["critic_of_reward"]["tau"])
+
+        """Runs a learning iteration for the actor"""
+        if self.done:  # we only update the learning rate at end of each episode
+            self.update_learning_rate(self.hyperparameters["actor_of_reward"]["learning_rate"], self.actor_optimizer_of_reward_function)
+        """Calculates the loss for the actor"""
+        actions_predicted = self.actor_local_of_reward_function(torch.cat((last_actions, last_actions), dim=1))
+        actor_loss = -self.critic_local_of_reward_function(torch.cat((last_actions, last_actions, actions_predicted), dim=1)).mean()
+        self.take_optimisation_step(self.actor_optimizer_of_reward_function, self.actor_local_of_reward_function, actor_loss,
+                                    self.hyperparameters["actor_of_reward"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.actor_local_of_reward_function, self.actor_target_of_reward_function,
+                                           self.hyperparameters["actor_of_reeard"]["tau"])
 
 
-        pass
+    def update_learning_rate(self, starting_lr, optimizer):
+        """
+        Lowers the learning rate according to how close we are to the solution
+        The learning rate is smaller when closer the solution
+        However, we must determine the average score required to win
+        :param starting_lr:  learning rate of starting
+        :param optimizer:
+        :return:
+        """
+        new_lr = starting_lr
+        if len(self.rolling_results) > 0:
+            last_rolling_score = self.rolling_results[-1]
+            if last_rolling_score > 0.75 * self.average_score_required_to_win:
+                new_lr = starting_lr / 100.0
+            elif last_rolling_score > 0.6 * self.average_score_required_to_win:
+                new_lr = starting_lr / 20.0
+            elif last_rolling_score > 0.5 * self.average_score_required_to_win:
+                new_lr = starting_lr / 10.0
+            elif last_rolling_score > 0.25 * self.average_score_required_to_win:
+                new_lr = starting_lr / 2.0
+            else:
+                new_lr = starting_lr
+            for g in optimizer.param_groups:
+                g['lr'] = new_lr
+        if np.random.random() < 0.001: self.logger.info("Learning rate {}".format(new_lr))
 
-    def edge_node_learn(self):
-        pass
+    def take_optimisation_step(self, optimizer, network, loss, clipping_norm=None, retain_graph=False):
+        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
+        if not isinstance(network, list): network = [network]
+        optimizer.zero_grad()  # reset gradients to 0
+        loss.backward(retain_graph=retain_graph)  # this calculates the gradients
+        self.logger.info("Loss -- {}".format(loss.item()))
+        if self.debug_mode: self.log_gradient_and_weight_information(network, optimizer)
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm_(net.parameters(),
+                                               clipping_norm)  # clip gradients to help stabilise training
+        optimizer.step()  # this applies the gradients
 
-    def reward_function_learn(self):
-        pass
+    def soft_update_of_target_network(self, local_model, target_model, tau):
+        """
+        Updates the target network in the direction of the local network but by taking a step size
+        less than one so the target network's parameter values trail the local networks. This helps stabilise training
+        :param local_model:
+        :param target_model:
+        :param tau:
+        :return:
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
