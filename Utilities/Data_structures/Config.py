@@ -139,41 +139,6 @@ class Experiment_Config(object):
         self.path_loss_exponent = path_loss_exponent
 
 
-        #
-        #
-        # np.random.seed(self.seed_data_size_of_types)
-        # self.data_size_of_types = np.random.uniform(low=self.data_size_low_bound,
-        #                                             high=self.data_size_up_bound,
-        #                                             size=self.data_types_number)
-        #
-        # """Random generated of data types in all vehicles"""
-        # np.random.seed(self.seed_data_types_in_vehicles)
-        # self.data_types_in_vehicles = np.random.rand(vehicle_number, data_types_number)
-        # for value in np.nditer(self.data_types_in_vehicles, op_flags=['readwrite']):
-        #     if value <= threshold_data_types_in_vehicles:
-        #         value[...] = 1
-        #     else:
-        #         value[...] = 0
-        # """Random generated of edge views requirement at each time-slot in one edge node"""
-        # np.random.seed(self.seed_edge_views_in_edge_node)
-        # self.edge_views_in_edge_node = np.random.rand(edge_views_number, self.time_slots_number)
-        # for value in np.nditer(self.edge_views_in_edge_node, op_flags=['readwrite']):
-        #     if value <= threshold_edge_views_in_edge_node:
-        #         value[...] = 1
-        #     else:
-        #         value[...] = 0
-        # """Random generated of view required data"""
-        # np.random.seed(self.seed_view_required_data)
-        # self.view_required_data = np.random.rand(vehicle_number, data_types_number, edge_views_number)
-        # for value in np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite']):
-        #     if self.data_types_in_vehicles[tuple(value.multi_index)[0]][tuple(value.multi_index)[1]] == 1 and\
-        #             value[...] <= threshold_view_required_data:
-        #         value[...] = 1
-        #     else:
-        #         value[...] = 0
-        # """Trajectories and data in edge node"""
-        # self.trajectories = np.zeros(shape=(self.vehicle_number, self.time_slots_number), dtype=np.float32)
-        # self.data_in_edge_node = np.zeros(shape=(vehicle_number, data_types_number))
 
 class Agent_Config(object):
     """
