@@ -3,7 +3,6 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 
 ### TODO
 - [ ] Work on Agents
-    - [ ] Create NN functions for actor and critic networks
     - [ ] Save NN input and output tensor into self.parameters
 - [ ] Work on Replay Buffer
     - [ ] Renew buffer input and output
@@ -23,4 +22,6 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Workflow of HMAIMD_Agent 2021-07-06
 - [x] Read DDPG in detail 2021-07-06
 - [x] Transplant implementation code from DDPG 2021-07-09
+- [x] Create NN functions for actor and critic networks 2021-07-11
+
 
