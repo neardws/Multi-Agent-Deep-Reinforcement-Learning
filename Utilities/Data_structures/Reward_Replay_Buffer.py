@@ -24,7 +24,7 @@ class Reward_Replay_Buffer(object):
         """
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
+        self.experience = namedtuple("Experience", field_names=["last_state", "last_action", "last_reward_action", "reward", "state", "action", "done"])
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
         if device:
@@ -32,25 +32,20 @@ class Reward_Replay_Buffer(object):
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def add_experience(self, states, actions, rewards, next_states, dones):
+    def add_experience(self, last_state, last_action, last_reward_action, reward, state, action, done):
         """
         Adds experience(s) into the replay buffer
-        :param states: state of agent
-        :param actions: action of agent
-        :param rewards: reward got after take the action
-        :param next_states: the next state after take the action
-        :param dones: the episode is over or not
-        :return: None
+        :param last_state:
+        :param last_action:
+        :param last_reward_action:
+        :param reward:
+        :param state:
+        :param action:
+        :param done:
+        :return:
         """
-        if type(dones) == list:
-            assert type(dones[0]) != list, "A done shouldn't be a list"
-            experiences = [self.experience(state, action, reward, next_state, done)
-                           for state, action, reward, next_state, done in
-                           zip(states, actions, rewards, next_states, dones)]
-            self.memory.extend(experiences)
-        else:
-            experience = self.experience(states, actions, rewards, next_states, dones)
-            self.memory.append(experience)
+        experience = self.experience(last_state, last_action, last_reward_action, reward, state, action, done)
+        self.memory.append(experience)
 
     def sample(self, num_experiences=None, separate_out_data_types=True):
         """
@@ -61,8 +56,8 @@ class Reward_Replay_Buffer(object):
         """
         experiences = self.pick_experiences(num_experiences)
         if separate_out_data_types:
-            states, actions, rewards, next_states, dones = self.separate_out_data_types(experiences)
-            return states, actions, rewards, next_states, dones
+            last_states, last_actions, last_reward_actions, rewards, states, actions, dones = self.separate_out_data_types(experiences)
+            return last_states, last_actions, last_reward_actions, rewards, states, actions, dones
         else:
             return experiences
 
@@ -72,14 +67,15 @@ class Reward_Replay_Buffer(object):
         :param experiences: Input
         :return:/
         """
-        states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
-        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(self.device)
+        last_states = torch.from_numpy(np.vstack([e.last_state for e in experiences if e is not None])).float().to(self.device)
+        last_actions = torch.from_numpy(np.vstack([e.last_action for e in experiences if e is not None])).float().to(self.device)
+        last_reward_actions = torch.from_numpy(np.vstack([e.last_reward_action for e in experiences if e is not None])).float().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
-        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
-            self.device)
+        states = torch.from_numpy(np.vstack([int(e.state) for e in experiences if e is not None])).float().to(self.device)
+        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(self.device)
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
 
-        return states, actions, rewards, next_states, dones
+        return last_states, last_actions, last_reward_actions, rewards, states, actions, dones
 
     def pick_experiences(self, num_experiences=None):
         """

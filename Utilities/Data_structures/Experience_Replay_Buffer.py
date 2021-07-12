@@ -24,7 +24,10 @@ class Experience_Replay_Buffer(object):
         """
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
+        self.experience = namedtuple("Experience", field_names=["sensor_nodes_observation", "edge_node_observation",
+                                                                "sensor_nodes_action", "edge_node_action",
+                                                                "sensor_nodes_reward", "edge_node_reward",
+                                                                "next_sensor_nodes_observation", "next_edge_node_observation", "done"])
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
         if device:
@@ -32,25 +35,26 @@ class Experience_Replay_Buffer(object):
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def add_experience(self, states, actions, rewards, next_states, dones):
+    def add_experience(self, sensor_nodes_observation, edge_node_observation, sensor_nodes_action, edge_node_action,
+                       sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation, next_edge_node_observation, done):
         """
         Adds experience(s) into the replay buffer
-        :param states: state of agent
-        :param actions: action of agent
-        :param rewards: reward got after take the action
-        :param next_states: the next state after take the action
-        :param dones: the episode is over or not
+        :param sensor_nodes_observation:
+        :param edge_node_observation:
+        :param sensor_nodes_action:
+        :param edge_node_action:
+        :param sensor_nodes_reward:
+        :param edge_node_reward:
+        :param next_sensor_nodes_observation:
+        :param next_edge_node_observation:
+        :param done:
         :return: None
         """
-        if type(dones) == list:
-            assert type(dones[0]) != list, "A done shouldn't be a list"
-            experiences = [self.experience(state, action, reward, next_state, done)
-                           for state, action, reward, next_state, done in
-                           zip(states, actions, rewards, next_states, dones)]
-            self.memory.extend(experiences)
-        else:
-            experience = self.experience(states, actions, rewards, next_states, dones)
-            self.memory.append(experience)
+        experience = self.experience(sensor_nodes_observation, edge_node_observation, sensor_nodes_action, edge_node_action,
+                                     sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation, next_edge_node_observation,
+                                     done)
+        self.memory.append(experience)
+
 
     def sample(self, num_experiences=None, separate_out_data_types=True):
         """
@@ -61,25 +65,31 @@ class Experience_Replay_Buffer(object):
         """
         experiences = self.pick_experiences(num_experiences)
         if separate_out_data_types:
-            states, actions, rewards, next_states, dones = self.separate_out_data_types(experiences)
-            return states, actions, rewards, next_states, dones
+            sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
+            sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones \
+                = self.separate_out_data_types(experiences)
+            return sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
+               sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones
         else:
             return experiences
 
     def separate_out_data_types(self, experiences):
         """
         Puts the sampled experience into the correct format for a PyTorch neural network
-        :param experiences: Input
-        :return:/
+        :param experiences:
+        :return:
         """
-        states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
-        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(self.device)
-        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
-        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
-            self.device)
+        sensor_nodes_observations = torch.from_numpy(np.vstack([e.sensor_nodes_observation for e in experiences if e is not None])).float().to(self.device)
+        edge_node_observations = torch.from_numpy(np.vstack([e.edge_node_observation for e in experiences if e is not None])).float().to(self.device)
+        sensor_nodes_actions = torch.from_numpy(np.vstack([e.sensor_nodes_action for e in experiences if e is not None])).float().to(self.device)
+        edge_node_actions = torch.from_numpy(np.vstack([e.edge_node_action for e in experiences if e is not None])).float().to(self.device)
+        sensor_nodes_rewards = torch.from_numpy(np.vstack([e.sensor_nodes_reward for e in experiences if e is not None])).float().to(self.device)
+        edge_node_rewards = torch.from_numpy(np.vstack([e.edge_node_reward for e in experiences if e is not None])).float().to(self.device)
+        next_sensor_nodes_observations = torch.from_numpy(np.vstack([int(e.next_sensor_nodes_observation) for e in experiences if e is not None])).float().to(self.device)
+        next_edge_node_observations = torch.from_numpy(np.vstack([e.next_edge_node_observation for e in experiences if e is not None])).float().to(self.device)
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
-
-        return states, actions, rewards, next_states, dones
+        return sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
+               sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones
 
     def pick_experiences(self, num_experiences=None):
         """
