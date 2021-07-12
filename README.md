@@ -2,15 +2,18 @@
 Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View (MAAV) Problem
 
 ### TODO
+
 - [ ] Work on Agents
-    - [ ] Save NN input and output tensor into self.parameters
-- [ ] Work on Replay Buffer
-    - [ ] Compass experiences to save GPU RAM
+    - [ ] combined_action function realization
+- [ ] Work on Configuration
+    - [ ] Reorganize parameters in config according to HMAIMD_Agent
 - [ ] Work on VehicularNetworkEnv
     - [ ] Service time add into sensor node state
     - [ ] Trajectories related, such as define global trajectory within the experiment, and add trajectory predicted time in experiment parameters
     - [ ] Transfer NN output to action     
-    - [ ] Init and update NN input and output 
+    - [ ] Init and update NN input and output
+- [ ] Work on Replay Buffer
+    - [ ] Compass experiences to save GPU RAM  
 
 ### Done ✓
 
@@ -22,5 +25,5 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Read DDPG in detail 2021-07-06
 - [x] Transplant implementation code from DDPG 2021-07-09
 - [x] Create NN functions for actor and critic networks 2021-07-11
-- [x] Renew buffer input and output 2021-07-12
-
+- [x] Renew buffer input and output 2021-07-12 
+- [x] Save NN input and output tensor into self.parameters 2021-07-12
