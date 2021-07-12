@@ -26,7 +26,11 @@ class HMAIMD_Agent(object):
         self.environment = environment
         self.hyperparameters = self.config.hyperparameters
 
+
         self.state = self.environment.reset()
+        self.action = None
+
+
         self.sensor_observations = None
         self.edge_observation = None
         self.next_state = None
@@ -421,13 +425,19 @@ class HMAIMD_Agent(object):
         """
         if self.experience_replay_buffer is None:
             raise Exception("experience_replay_buffer is None, function save_experience at HMAIMD.py")
-        experience = self.sensor_nodes_observations, self.sensor_actions, self.sensor_nodes_rewards, self.next_sensor_nodes_observations, self.done
+        """Save as torch.Tensor"""
+        experience = self.sensor_nodes_observation, self.edge_node_observation,\
+                     self.sensor_nodes_action, self.edge_node_action, \
+                     self.sensor_nodes_reward, self.edge_node_reward,\
+                     self.next_sensor_nodes_observation, self.next_edge_node_observation, self.done
         self.experience_replay_buffer.add_experience(*experience)
 
     def save_reward_experience(self):
         if self.reward_replay_buffer is None:
             raise Exception("reward_replay_buffer is None, function save_experience at HMAIMD.py")
-        reward_experience = self.last_state, self.last_action, self.last_reward_action, self.reward, self.state, self.action
+        """Save as torch.Tensor"""
+        reward_experience = self.last_state, self.last_action, self.last_reward_action, \
+                            self.reward, self.state, self.action, self.done
         self.reward_replay_buffer.add_experience(*reward_experience)
 
     def time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn(self):
