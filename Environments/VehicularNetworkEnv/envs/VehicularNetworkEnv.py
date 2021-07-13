@@ -23,7 +23,7 @@ No.2 VehicularNetworkEnv reset at each episode start
      
 No.3 Do each step at each time slot
      call step() to get state, action, reward, next_state, done
-
+     
 """
 
 class VehicularNetworkEnv(gym.Env):
@@ -173,10 +173,11 @@ class VehicularNetworkEnv(gym.Env):
         # """
         self.state_space = spaces.Dict({
             """Changeable"""
-            'time': spaces.Discrete(int(self.time_slots_number)),
+            'time': spaces.Discrete(int(self.time_slots_number)),                                   # need to Normalization
             'action_time': spaces.MultiBinary([self.vehicle_number, self.time_slots_number]),
-            'data_in_edge': spaces.MultiBinary([self.data_types_number, self.time_slots_number]),
-            'trajectories': spaces.Box(low=0, high=self.communication_range,
+            'data_in_edge': spaces.Box(low=0, high=self.time_slots_number,                          # need to Normalization
+                                       shape=(self.vehicle_number, self.data_types_number)),
+            'trajectories': spaces.Box(low=0, high=self.communication_range,                        # need to Normalization
                                        shape=(self.vehicle_number, self.time_slots_number), dtype=np.float),
             """Unchangeable"""
             'data_types': spaces.MultiBinary(list(self.data_types_in_vehicles.shape)), # the MultiBinary require list
@@ -426,7 +427,7 @@ class VehicularNetworkEnv(gym.Env):
             observation = np.zeros(shape=(self.get_sensor_observation_size()),
                                    dtype=np.float)
             index_start = 0
-            observation[index_start] = self.state['time']
+            observation[index_start] = float(self.state['time']) / self.time_slots_number
 
             index_start = 1
             for time_index in range(self.time_slots_number):
@@ -434,7 +435,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
             for data_type_index in range(self.data_types_number):
-                observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                observation[index_start] = float(self.state['data_in_edge'][vehicle_index][data_type_index]) / self.time_slots_number
                 index_start += 1
 
             for data_type_index in range(self.data_types_number):
@@ -461,7 +462,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         for vehicle_index in range(self.vehicle_number):
             index_start = 0
-            self.sensor_nodes_observation[vehicle_index][index_start] = self.state['time']
+            self.sensor_nodes_observation[vehicle_index][index_start] = float(self.state['time']) / self.time_slots_number
 
             index_start = 1
             for time_index in range(self.time_slots_number):
@@ -469,7 +470,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
             for data_type_index in range(self.data_types_number):
-                self.sensor_nodes_observation[vehicle_index][index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                self.sensor_nodes_observation[vehicle_index][index_start] = float(self.state['data_in_edge'][vehicle_index][data_type_index]) / self.time_slots_number
                 index_start += 1
 
 
@@ -477,17 +478,17 @@ class VehicularNetworkEnv(gym.Env):
         observation = np.zeros(shape=(self.get_edge_observation_size()),
                                dtype=np.float)
         index_start = 0
-        observation[index_start] = self.state['time']
+        observation[index_start] = float(self.state['time']) / self.time_slots_number
 
         index_start = 1
         for vehicle_index in range(self.vehicle_number):
             for data_type_index in range(self.data_types_number):
-                observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                observation[index_start] = float(self.state['data_in_edge'][vehicle_index][data_type_index]) / self.time_slots_number
                 index_start += 1
 
         for vehicle_index in range(self.vehicle_number):
             for time_index in range(self.time_slots_number):
-                observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                observation[index_start] = float(self.state['trajectories'][vehicle_index][time_index]) / self.communication_range
                 index_start += 1
 
         for vehicle_index in range(self.vehicle_number):
@@ -511,24 +512,24 @@ class VehicularNetworkEnv(gym.Env):
 
     def update_edge_observation(self):
         index_start = 0
-        self.edge_node_observation[index_start] = self.state['time']
+        self.edge_node_observation[index_start] = float(self.state['time']) / self.time_slots_number
 
         index_start = 1
         for vehicle_index in range(self.vehicle_number):
             for data_type_index in range(self.data_types_number):
-                self.edge_node_observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                self.edge_node_observation[index_start] = float(self.state['data_in_edge'][vehicle_index][data_type_index]) / self.time_slots_number
                 index_start += 1
 
         for vehicle_index in range(self.vehicle_number):
             for time_index in range(self.time_slots_number):
-                self.edge_node_observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                self.edge_node_observation[index_start] = float(self.state['trajectories'][vehicle_index][time_index]) / self.communication_range
                 index_start += 1
 
     def init_reward_observation(self):
         observation = np.zeros(shape=(self.get_global_state_size()),
                                dtype=np.float)
         index_start = 0
-        observation[index_start] = self.state['time']
+        observation[index_start] = float(self.state['time']) / self.time_slots_number
 
         index_start = 1
         for vehicle_index in range(self.vehicle_number):
@@ -538,12 +539,12 @@ class VehicularNetworkEnv(gym.Env):
 
         for vehicle_index in range(self.vehicle_number):
             for data_type_index in range(self.data_types_number):
-                observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                observation[index_start] = float(self.state['data_in_edge'][vehicle_index][data_type_index]) / self.time_slots_number
                 index_start += 1
 
         for vehicle_index in range(self.vehicle_number):
             for time_index in range(self.time_slots_number):
-                observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                observation[index_start] = float(self.state['trajectories'][vehicle_index][time_index]) / self.communication_range
                 index_start += 1
 
         for vehicle_index in range(self.vehicle_number):
@@ -566,7 +567,7 @@ class VehicularNetworkEnv(gym.Env):
 
     def update_reward_observation(self):
         index_start = 0
-        self.reward_observation[index_start] = self.state['time']
+        self.reward_observation[index_start] = float(self.state['time']) / self.time_slots_number
 
         index_start = 1
         for vehicle_index in range(self.vehicle_number):
@@ -576,12 +577,12 @@ class VehicularNetworkEnv(gym.Env):
 
         for vehicle_index in range(self.vehicle_number):
             for data_type_index in range(self.data_types_number):
-                self.reward_observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                self.reward_observation[index_start] = float(self.state['data_in_edge'][vehicle_index][data_type_index]) / self.time_slots_number
                 index_start += 1
 
         for vehicle_index in range(self.vehicle_number):
             for time_index in range(self.time_slots_number):
-                self.reward_observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                self.reward_observation[index_start] = float(self.state['trajectories'][vehicle_index][time_index]) / self.communication_range
                 index_start += 1
 
     """
@@ -589,10 +590,6 @@ class VehicularNetworkEnv(gym.Env):
         Init and update NN input and output End
     —————————————————————————————————————————————————————————————--*/
     """
-
-
-    def get_actor_input_for_reward(self):
-        pass
 
     def step(self, action):
         """

@@ -20,6 +20,20 @@ from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularN
 
 class HMAIMD_Agent(object):
     """
+    Workflow of HMAIMD_Agent
+
+    Step.1 Environments reset to get self.reward_state, self.sensor_nodes_observation, self.edge_node_observation
+    Step.2 sensor nodes pick actions according to self.sensor_nodes_observation
+    Step.3 edge node pick action according to self.edge_node_observation plus sensor actions at step. 2
+    Step.4 combine sensor nodes actions and edge node action into one global action, which type is dict
+    Step.5 conduct the global action to environment, and return self.next_sensor_nodes_observation,
+           self.next_edge_node_observation, self.next_reward_state, self.reward, self.done
+    Step.6 reward pick action according to self.reward_state plus the global action
+    Step.7 save replay experience
+    Step.8 renew self.reward_state, self.sensor_nodes_observation, self.edge_node_observation according to next parameters
+           at step.5
+    Step.9 replay step.2 - step.8
+
     @ TODO  reorganize parameters in config
     """
 
@@ -32,8 +46,6 @@ class HMAIMD_Agent(object):
         self.reward = None
         self.done = None                        # 1 or 0 indicate is episode finished
         """dict() parameters"""
-        self.state = self.environment.reset()
-        self.next_state = None
         self.action = None
         """torch.Tensor parameters"""
         self.last_reward_state = None
@@ -51,6 +63,9 @@ class HMAIMD_Agent(object):
         self.edge_node_reward = None
         self.next_sensor_nodes_observation = None
         self.next_edge_node_observation = None
+        self.next_reward_state = None
+
+        self.reward_state, self.sensor_nodes_observation, self.edge_node_observation = environment.reset()
 
         """
         Some parameters
@@ -97,7 +112,7 @@ class HMAIMD_Agent(object):
         """
 
         """Actor Network of Sensor Nodes"""
-        self.sensor_observations_size = self.environment.get_sensor_observations_size()
+        self.sensor_observations_size = self.environment.get_sensor_observation_size()
         self.sensor_action_size = self.environment.get_sensor_action_size()
         self.actor_local_of_sensor_nodes = [
             self.create_NN(
@@ -338,9 +353,10 @@ class HMAIMD_Agent(object):
             self.sensor_nodes_pick_actions(sensor_nodes_observation=self.sensor_nodes_observation)  # sensor nodes pick actions
             self.edge_node_pick_action(edge_node_observation=self.edge_node_observation,
                                        sensor_nodes_action=self.sensor_nodes_action)
-            self.action = self.combined_action()
+            self.combined_action()
             self.conduct_action()
-            self.reward_action = self.reward_function_pick_action()
+            self.reward_function_pick_action(reward_state=self.reward_state,
+                                             global_action=self.global_action)
             self.save_experience()
             self.save_reward_experience()
             if self.time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn():
@@ -366,14 +382,15 @@ class HMAIMD_Agent(object):
                     self.reward_function_to_learn(last_reward_states=last_reward_states, last_global_actions=last_global_actions, last_reward_actions=last_reward_actions,
                                                   rewards=rewards, reward_states=reward_states, global_actions=global_actions, dones=dones)
 
-            """Renew by environment"""
-            self.state = self.next_state  # this is to set the state for the next iteration
-            self.sensor_nodes_observation = self.next_sensor_nodes_observation
-            self.edge_node_observation = self.next_edge_node_observation
             """Renew by reward function"""
             self.last_reward_state = self.reward_state
             self.last_global_action = self.global_action
             self.last_reward_action = self.reward_action
+
+            """Renew by environment"""
+            self.sensor_nodes_observation = self.next_sensor_nodes_observation
+            self.edge_node_observation = self.next_edge_node_observation
+            self.reward_state = self.next_reward_state
 
             self.episode_step += 1
         self.episode_index += 1
@@ -390,7 +407,7 @@ class HMAIMD_Agent(object):
         """Picks an action using the actor network of each sensor node
         and then adds some noise to it to ensure exploration"""
         for sensor_node_index in range(self.environment.vehicle_number):
-            if self.state['action_time'][sensor_node_index][self.episode_index] == 1:
+            if self.environment.state['action_time'][sensor_node_index][self.episode_index] == 1:
                 sensor_node_observation = sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)
                 self.actor_local_of_sensor_nodes[sensor_node_index].eval()  # set the model to evaluation state
                 with torch.no_grad():  # do not compute the gradient
@@ -407,19 +424,44 @@ class HMAIMD_Agent(object):
         self.actor_local_of_edge_node.train()
         self.edge_action = self.exploration_strategy.perturb_action_for_exploration_purposes({"action": edge_action})
 
-    def combined_action(self):
+    def combined_action(self, sensor_nodes_action=torch.empty(), edge_node_action=torch.empty()):
 
-        pass
+        self.global_action = torch.cat(
+            (sensor_nodes_action[0,:], sensor_nodes_action[1,:]), dim=1)
+        for sensor_node_index in range(self.environment.vehicle_number):
+            if sensor_node_index > 1:
+                self.global_action = torch.cat(
+                    (self.global_action, sensor_nodes_action[sensor_node_index,:]), dim=1)
+        self.global_action = torch.cat((self.global_action, edge_node_action), dim=1)
+
+        priority = np.zeros(shape=(self.environment.vehicle_number, self.environment.data_types_number), dtype=np.float)
+        arrival_rate = np.zeros(shape=(self.environment.vehicle_number, self.environment.data_types_number), dtype=np.float)
+
+        for sensor_node_index in range(self.environment.vehicle_number):
+            sensor_node_action = sensor_nodes_action[sensor_node_index,:]
+            sensor_node_action_of_priority = sensor_node_action[0:self.environment.data_types_number-1]
+            sensor_node_action_of_arrival_rate = sensor_node_action[self.environment.data_types_number:-1]
+            for data_type_index in range(self.environment.data_types_number):
+                if self.environment.state['data_types'][sensor_node_index][data_type_index] == 1:
+                    priority[sensor_node_index][data_type_index] = sensor_node_action_of_priority[data_type_index]
+                    arrival_rate[sensor_node_index][data_type_index] = \
+                        float(sensor_node_action_of_arrival_rate[data_type_index]) / self.environment.mean_service_time_of_types[data_type_index]
+
+        edge_nodes_bandwidth = edge_node_action.numpy() * self.environment.bandwidth
+
+        self.action = {"priority": priority,
+                       "arrival_rate": arrival_rate,
+                       "edge_nodes_bandwidth": edge_nodes_bandwidth}
 
     def conduct_action(self):
         """Conducts an action in the environment"""
-        self.next_state, self.next_reward_state, self.next_sensor_nodes_observation, self.next_edge_node_observation, self.reward, self.done \
+        self.next_reward_state, self.next_sensor_nodes_observation, self.next_edge_node_observation, self.reward, self.done \
             = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
 
 
-    def reward_function_pick_action(self):
-        reward_function_state = torch.cat((self.reward_state, self.global_action), 1).unsqueeze(0)
+    def reward_function_pick_action(self, reward_state, global_action):
+        reward_function_state = torch.cat((reward_state, global_action), 1).unsqueeze(0)
         self.actor_local_of_reward_function.eval()
         with torch.no_grad():
             reward_function_action = self.actor_local_of_reward_function(reward_function_state)
@@ -478,8 +520,8 @@ class HMAIMD_Agent(object):
                                             dones=torch.empty()):
 
         sensor_nodes_actions_next_list = [
-            self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_node_observations)
-            for sensor_node_index, next_sensor_node_observations in enumerate(next_sensor_nodes_observations)]
+            self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_nodes_observations[sensor_node_index,:])
+            for sensor_node_index in range(self.environment.vehicle_number)]
 
         sensor_nodes_actions_next_tensor = torch.cat(
             (sensor_nodes_actions_next_list[0], sensor_nodes_actions_next_list[1]), dim=1)
@@ -660,3 +702,35 @@ class HMAIMD_Agent(object):
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
+
+    def run_n_episodes(self, num_episodes=None, show_whether_achieved_goal=True, save_and_print_results=True):
+        """Runs game to completion n times and then summarises results and saves model (if asked to)"""
+        if num_episodes is None: num_episodes = self.config.num_episodes_to_run
+        start = time.time()
+        while self.episode_number < num_episodes:
+            self.reset_game()
+            self.step()
+            if save_and_print_results: self.save_and_print_result()
+        time_taken = time.time() - start
+        if show_whether_achieved_goal: self.show_whether_achieved_goal()
+        if self.config.save_model: self.locally_save_policy()
+        return self.game_full_episode_scores, self.rolling_results, time_taken
+
+    def reset_game(self):
+        """Resets the game information so we are ready to play a new episode"""
+        self.environment.seed(self.config.seed)
+        self.next_state = None
+        self.action = None
+        self.reward = None
+        self.done = False
+        self.total_episode_score_so_far = 0
+        self.episode_states = []
+        self.episode_rewards = []
+        self.episode_actions = []
+        self.episode_next_states = []
+        self.episode_dones = []
+        self.episode_desired_goals = []
+        self.episode_achieved_goals = []
+        self.episode_observations = []
+        if "exploration_strategy" in self.__dict__.keys(): self.exploration_strategy.reset()
+        self.logger.info("Reseting game -- New start state {}".format(self.state))

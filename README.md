@@ -4,13 +4,13 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 ### TODO
 
 - [ ] Work on Agents
-    - [ ] combined_action function realization
+
 - [ ] Work on Configuration
     - [ ] Reorganize parameters in config according to HMAIMD_Agent
 - [ ] Work on VehicularNetworkEnv
     - [ ] Service time add into sensor node state
     - [ ] Trajectories related, such as define global trajectory within the experiment, and add trajectory predicted time in experiment parameters
-    - [ ] Transfer NN output to action     
+    - [ ] Transfer NN output to action
 - [ ] Work on Replay Buffer
     - [ ] Compass experiences to save GPU RAM  
 
@@ -27,3 +27,5 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Renew buffer input and output 2021-07-12 
 - [x] Save NN input and output tensor into self.parameters 2021-07-12
 - [x] Init and update NN input and output 2021-07-13
+- [x] Normalization the input of NN 2021-07-13
+- [x] combined_action function realization 2021-07-13
