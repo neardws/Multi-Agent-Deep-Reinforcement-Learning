@@ -8,7 +8,8 @@
 import numpy as np
 import torch
 import torch.nn.functional as functional
-from torch import optim, Tensor
+from torch import optim
+from torch import Tensor
 from nn_builder.pytorch.NN import NN  # construct a neural network via PyTorch
 from Utilities.Data_structures.Config import Agent_Config
 from Utilities.Data_structures.Experience_Replay_Buffer import Experience_Replay_Buffer

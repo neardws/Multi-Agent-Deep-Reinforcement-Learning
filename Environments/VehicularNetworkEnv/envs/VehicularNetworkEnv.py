@@ -7,9 +7,10 @@
 """
 import gym
 import numpy as np
+import torch
 from gym import spaces
+from torch import Tensor
 from Utilities.Data_structures.Config import Experiment_Config
-
 
 """
 Workflow of VehicularNetworkEnv
@@ -116,14 +117,18 @@ class VehicularNetworkEnv(gym.Env):
         -----------------------Parameters for Reinforcement Learning
         --------------------------------------------------------------------------------------------
         """
-
+        """float parameters"""
+        self.reward = None               # external reward
+        self.done = None
+        """dict() parameters"""
         self.state = None  # global state
         self.action = None # global action
-        self.sensor_observations = None  # individually observation state for sensor nodes
-        self.edge_observation = None # individually observation state for edge node
-        self.reward = None  # external reward
         self.next_state = None
-        self.done = False
+        """torch.Tensor parameters"""
+        self.reward_observation = None
+        self.sensor_nodes_observation = None  # individually observation state for sensor nodes
+        self.edge_node_observation = None # individually observation state for edge node
+        """other parameters"""
         self.episode_step = 0
         self.action_experiences = None
         self.waiting_time_in_queue = None
@@ -137,25 +142,25 @@ class VehicularNetworkEnv(gym.Env):
             bottom-level controller：
                 [bandwidth] of all sensor node 
         """
-        #  TODO: need to defined activation function
+        #  TODO: need to defined activation function, solved
         #  Cause: the sum of bandwidth may exceed 1, it should be minus the average value
         #         and the constraint of arrival rate
         #  Solution: use 'softmax' may work
         #  Fixed Data:  TBD
-        # self.action_space = spaces.Dict({
-        #     'priority': spaces.Box(low=0,
-        #                            high=1,
-        #                            shape=(self.vehicle_number, self.data_types_number),
-        #                            dtype=np.float),
-        #     'arrival_rate': spaces.Box(low=0,  # the actual output is arrival rate times average service time
-        #                                high=1,
-        #                                shape=(self.vehicle_number, self.data_types_number),
-        #                                dtype=np.float),
-        #     'edge_nodes_bandwidth': spaces.Box(low=0,
-        #                                        high=1,
-        #                                        shape=self.vehicle_number,
-        #                                        dtype=np.float)
-        # })
+        self.action_space = spaces.Dict({
+            'priority': spaces.Box(low=0,
+                                   high=1,
+                                   shape=(self.vehicle_number, self.data_types_number),
+                                   dtype=np.float),
+            'arrival_rate': spaces.Box(low=0,  # the actual output is arrival rate times average service time
+                                       high=1,
+                                       shape=(self.vehicle_number, self.data_types_number),
+                                       dtype=np.float),
+            'edge_nodes_bandwidth': spaces.Box(low=0,
+                                               high=1,
+                                               shape=self.vehicle_number,
+                                               dtype=np.float)
+        })
         #
         # """
         # State:
@@ -206,13 +211,17 @@ class VehicularNetworkEnv(gym.Env):
             'view': self.view_required_data
         }
         self.action = None
-        self.sensor_observations = self.init_sensor_observations()  # individually observation state for sensor node
-        self.edge_observation = self.init_edge_observation()
         self.reward = None  # external reward
         self.next_state = None
-        self.done = False
+        self.done = None
+
+        """get Tensor type parameters"""
+        self.sensor_nodes_observation = self.init_sensor_observation()  # individually observation state for sensor node
+        self.edge_node_observation = self.init_edge_observation()
+        self.reward_state = self.init_reward_observation()
+
         """Save action of each time-slot into action experiences"""
-        self.action_experiences = list()
+        self.action_experiences = []
         """Init the waiting time of sensor nodes"""
         self.waiting_time_in_queue = np.zeros(shape=(self.vehicle_number, self.data_types_number),
                                               dtype=np.float)
@@ -232,12 +241,12 @@ class VehicularNetworkEnv(gym.Env):
 
            Actor network of sensor node 
                Input: 
-                   get_sensor_observations_size()
+                   get_sensor_observation_size()
                Output:
                    get_sensor_action_size()
            Critic network of sensor node
                Input:
-                   get_critic_size_for_sensor() = get_sensor_observations_size() + get_sensor_node_action_size() * all sensor nodes
+                   get_critic_size_for_sensor() = get_sensor_observation_size() + get_sensor_node_action_size() * all sensor nodes
                Output:
                    1
 
@@ -265,7 +274,7 @@ class VehicularNetworkEnv(gym.Env):
            ________________________________________________________________*/
        """
 
-    def get_sensor_observations_size(self):
+    def get_sensor_observation_size(self):
         """
         @TODO add service time of each data type
         @May not need
@@ -304,7 +313,7 @@ class VehicularNetworkEnv(gym.Env):
         )
 
     def get_critic_size_for_sensor(self):
-        return self.get_sensor_observations_size() + self.get_sensor_action_size() * self.vehicle_number
+        return self.get_sensor_observation_size() + self.get_sensor_action_size() * self.vehicle_number
 
     def get_edge_observation_size(self):
         """
@@ -314,7 +323,7 @@ class VehicularNetworkEnv(gym.Env):
                     time
                     data_in_edge
                     trajectories
-                    data_types
+                    data_types_of_all_vehicles
                     edge_view
                     view
                 ]
@@ -329,7 +338,7 @@ class VehicularNetworkEnv(gym.Env):
         )
 
     def get_actor_input_size_for_edge(self):
-        return self.get_edge_observation_size() + self.get_sensor_observations_size() * self.vehicle_number
+        return self.get_edge_observation_size() + self.get_sensor_observation_size() * self.vehicle_number
 
     def get_edge_action_size(self):
         """
@@ -406,14 +415,15 @@ class VehicularNetworkEnv(gym.Env):
     —————————————————————————————————————————————————————————————--*/
     """
 
-    def init_sensor_observations(self):
+    def init_sensor_observation(self):
         """
+        # TODO Tensor.empty to torch.cat() work or not
         Inputs of actor network of sensor nodes
         :return:
         """
+        sensor_nodes_observation = Tensor.empty()
         for vehicle_index in range(self.vehicle_number):
-
-            observation = np.zeros(shape=(self.get_sensor_observations_size()),
+            observation = np.zeros(shape=(self.get_sensor_observation_size()),
                                    dtype=np.float)
             index_start = 0
             observation[index_start] = self.state['time']
@@ -423,14 +433,14 @@ class VehicularNetworkEnv(gym.Env):
                 observation[index_start] = self.state['action_time'][vehicle_index][time_index]
                 index_start += 1
 
-            for index in range(index_start, index_start + self.data_types_number):
-                observation[index] = self.state['data_in_edge'][vehicle_index][index]
+            for data_type_index in range(self.data_types_number):
+                observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                index_start += 1
 
-            index_start += self.data_types_number
-            for index in range(index_start, index_start + self.data_types_number):
-                observation[index] = self.state['data_types'][vehicle_index][index]
+            for data_type_index in range(self.data_types_number):
+                observation[index_start] = self.state['data_types'][vehicle_index][data_type_index]
+                index_start += 1
 
-            index_start += self.data_types_number
             for edge_index in range(self.edge_views_number):
                 for time_index in range(self.time_slots_number):
                     observation[index_start] = self.state['edge_view'][edge_index][time_index]
@@ -438,28 +448,148 @@ class VehicularNetworkEnv(gym.Env):
 
             for data_type_index in range(self.data_types_number):
                 for edge_index in range(self.edge_views_number):
-                    observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index][edge_index]
+                    observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
+                    index_start += 1
 
-            self.sensor_observations.append(observation)
+            observation = Tensor(observation)
+            torch.cat((sensor_nodes_observation, observation), dim=0)
+        return sensor_nodes_observation
 
-    def update_sensor_observations(self):
+    def update_sensor_observation(self):
         """
         Update the input of actor network at each time slot
         """
         for vehicle_index in range(self.vehicle_number):
-            self.sensor_observations[vehicle_index][0] = self.state['time']
+            index_start = 0
+            self.sensor_nodes_observation[vehicle_index][index_start] = self.state['time']
+
             index_start = 1
             for time_index in range(self.time_slots_number):
-                self.sensor_observations[vehicle_index][index_start] = self.state['action_time'][vehicle_index][time_index]
+                self.sensor_nodes_observation[vehicle_index][index_start] = self.state['action_time'][vehicle_index][time_index]
                 index_start += 1
-            for index in range(index_start, index_start + self.data_types_number):
-                self.sensor_observations[vehicle_index][index] = self.state['data_in_edge'][vehicle_index][index]
+
+            for data_type_index in range(self.data_types_number):
+                self.sensor_nodes_observation[vehicle_index][index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                index_start += 1
+
 
     def init_edge_observation(self):
-        pass
+        observation = np.zeros(shape=(self.get_edge_observation_size()),
+                               dtype=np.float)
+        index_start = 0
+        observation[index_start] = self.state['time']
+
+        index_start = 1
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for time_index in range(self.time_slots_number):
+                observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                observation[index_start] = self.state['data_types'][vehicle_index][data_type_index]
+                index_start += 1
+
+
+        for edge_index in range(self.edge_views_number):
+            for time_index in range(self.time_slots_number):
+                observation[index_start] = self.state['edge_view'][edge_index][time_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                for edge_index in range(self.edge_views_number):
+                    observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
+                    index_start += 1
+
+        return Tensor(observation)
 
     def update_edge_observation(self):
-        pass
+        index_start = 0
+        self.edge_node_observation[index_start] = self.state['time']
+
+        index_start = 1
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                self.edge_node_observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for time_index in range(self.time_slots_number):
+                self.edge_node_observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                index_start += 1
+
+    def init_reward_observation(self):
+        observation = np.zeros(shape=(self.get_global_state_size()),
+                               dtype=np.float)
+        index_start = 0
+        observation[index_start] = self.state['time']
+
+        index_start = 1
+        for vehicle_index in range(self.vehicle_number):
+            for time_index in range(self.time_slots_number):
+                observation[index_start] = self.state['action_time'][vehicle_index][time_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for time_index in range(self.time_slots_number):
+                observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                observation[index_start] = self.state['data_types'][vehicle_index][data_type_index]
+                index_start += 1
+
+        for edge_index in range(self.edge_views_number):
+            for time_index in range(self.time_slots_number):
+                observation[index_start] = self.state['edge_view'][edge_index][time_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                for edge_index in range(self.edge_views_number):
+                    observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
+                    index_start += 1
+
+        return Tensor(observation)
+
+    def update_reward_observation(self):
+        index_start = 0
+        self.reward_observation[index_start] = self.state['time']
+
+        index_start = 1
+        for vehicle_index in range(self.vehicle_number):
+            for time_index in range(self.time_slots_number):
+                self.reward_observation[index_start] = self.state['action_time'][vehicle_index][time_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for data_type_index in range(self.data_types_number):
+                self.reward_observation[index_start] = self.state['data_in_edge'][vehicle_index][data_type_index]
+                index_start += 1
+
+        for vehicle_index in range(self.vehicle_number):
+            for time_index in range(self.time_slots_number):
+                self.reward_observation[index_start] = self.state['trajectories'][vehicle_index][time_index]
+                index_start += 1
+
+    """
+    /*——————————————————————————————————————————————————————————————
+        Init and update NN input and output End
+    —————————————————————————————————————————————————————————————--*/
+    """
+
 
     def get_actor_input_for_reward(self):
         pass
