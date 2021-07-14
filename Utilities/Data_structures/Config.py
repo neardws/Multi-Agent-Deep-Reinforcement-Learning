@@ -41,6 +41,7 @@ class Experiment_Config(object):
         self.data_size_low_bound = None
         self.data_size_up_bound = None
 
+        self.edge_view_required_start_time = None
         self.seed_edge_views_in_edge_node = None
         self.threshold_edge_views_in_edge_node = None
 
@@ -63,6 +64,9 @@ class Experiment_Config(object):
         self.second_moment_channel_fading_gain = None
         self.path_loss_exponent = None
 
+        self.noise_uncertainty_low_bound = None
+        self.noise_uncertainty_up_bound = None
+
 
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         # self.data_size_of_types = None
@@ -81,9 +85,10 @@ class Experiment_Config(object):
                edge_views_number = 10,
 
                threshold_data_types_in_vehicles = 0.3,
-               data_size_low_bound = 300,
-               data_size_up_bound = 5 * 1024 * 1024,
+               data_size_low_bound = 300,               # Bytes
+               data_size_up_bound = 5 * 1024 * 1024,    # Bytes
 
+               edge_view_required_start_time = 10,
                threshold_edge_views_in_edge_node = 0.3,
                threshold_view_required_data = 0.3,
 
@@ -92,13 +97,16 @@ class Experiment_Config(object):
                mean_service_time_of_types = None,
                second_moment_service_time_of_types = None,
 
-               communication_range = 500,
-               transmission_power = 1,
-               bandwidth = 1 * 1000 * 1000,
-               additive_white_gaussian_noise = -70,
+               communication_range = 500,       # meters
+               transmission_power = 1,          # mW
+               bandwidth = 1,     # MHz
+               additive_white_gaussian_noise = -70,  # dBm
                mean_channel_fading_gain = 2,
                second_moment_channel_fading_gain = 0.4,
-               path_loss_exponent = 3
+               path_loss_exponent = 3,
+
+               noise_uncertainty_low_bound = 0,         # dB
+               noise_uncertainty_up_bound = 3           # dB
                ):
         """Experiment Setup"""
         self.episode_number = episode_number
@@ -117,6 +125,7 @@ class Experiment_Config(object):
         self.data_size_up_bound = data_size_up_bound
 
         self.seed_edge_views_in_edge_node = np.random.randint(0, 2**32 - 2)
+        self.edge_view_required_start_time = edge_view_required_start_time,
         self.threshold_edge_views_in_edge_node = threshold_edge_views_in_edge_node
 
         self.seed_view_required_data = np.random.randint(0, 2**32 - 2)
@@ -137,6 +146,9 @@ class Experiment_Config(object):
         self.mean_channel_fading_gain = mean_channel_fading_gain  # channel fading gain according to Gauss Distribution
         self.second_moment_channel_fading_gain = second_moment_channel_fading_gain
         self.path_loss_exponent = path_loss_exponent
+
+        self.noise_uncertainty_low_bound = noise_uncertainty_low_bound
+        self.noise_uncertainty_up_bound = noise_uncertainty_up_bound
 
 
 

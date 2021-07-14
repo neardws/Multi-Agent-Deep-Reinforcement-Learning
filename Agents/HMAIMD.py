@@ -65,7 +65,7 @@ class HMAIMD_Agent(object):
         self.next_edge_node_observation = None
         self.next_reward_state = None
 
-        self.reward_state, self.sensor_nodes_observation, self.edge_node_observation = environment.reset()
+        self.sensor_nodes_observation, self.edge_node_observation, self.reward_state = environment.reset()
 
         """
         Some parameters
