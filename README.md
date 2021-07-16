@@ -31,3 +31,4 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] combined_action function realization 2021-07-13
 - [x] Transfer NN output to action 2021-07-14
 - [x] step in VehicularNetworkEnv 2021-07-15
+- [x] auto adjust learning rate 2021-07-16

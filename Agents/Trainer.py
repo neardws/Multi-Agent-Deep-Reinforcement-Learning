@@ -11,7 +11,7 @@ import pickle
 import os
 from gym import wrappers
 from Utilities.Data_structures.Config import Agent_Config
-from Agents.Base_Agent import Base_Agent
+from Agents.HMAIMD import HMAIMD_Agent
 
 class Trainer(object):
     """
@@ -19,7 +19,7 @@ class Trainer(object):
     """
     def __init__(self,
                  agent_config=Agent_Config(),
-                 agent = Base_Agent()):
+                 agent = HMAIMD_Agent()):
         self.config = agent_config
         self.agent = agent
 
@@ -68,8 +68,11 @@ class Trainer(object):
 
         if self.config.randomise_random_seed: agent_config.seed = random.randint(0, 2 ** 32 - 2)
         print("RANDOM SEED ", agent_config.seed)
+
         game_scores, rolling_scores, time_taken = self.agent.run_n_episodes()
         print("Time taken: {}".format(time_taken), flush=True)
+
         self.print_two_empty_lines()
         agent_result = [game_scores, rolling_scores, len(rolling_scores), -1 * max(rolling_scores), time_taken]
+
         pass

@@ -11,7 +11,4 @@ register(
     id='vehicular-networks-v0',
     entry_point='gym_foo.envs:VehicularNetworksEnv',
 )
-# register(
-#     id='foo-extrahard-v0',
-#     entry_point='gym_foo.envs:FooExtraHardEnv',
-# )
+
