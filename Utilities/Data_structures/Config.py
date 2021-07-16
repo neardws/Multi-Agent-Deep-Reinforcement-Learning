@@ -67,7 +67,7 @@ class Experiment_Config(object):
         self.noise_uncertainty_low_bound = None
         self.noise_uncertainty_up_bound = None
 
-
+        self.trajectories_predicted_time = None
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         # self.data_size_of_types = None
         # self.data_types_in_vehicles = None
@@ -106,7 +106,8 @@ class Experiment_Config(object):
                path_loss_exponent = 3,
 
                noise_uncertainty_low_bound = 0,         # dB
-               noise_uncertainty_up_bound = 3           # dB
+               noise_uncertainty_up_bound = 3,           # dB
+               trajectories_predicted_time = 10
                ):
         """Experiment Setup"""
         self.episode_number = episode_number
@@ -150,7 +151,7 @@ class Experiment_Config(object):
         self.noise_uncertainty_low_bound = noise_uncertainty_low_bound
         self.noise_uncertainty_up_bound = noise_uncertainty_up_bound
 
-
+        self.trajectories_predicted_time = trajectories_predicted_time
 
 class Agent_Config(object):
     """
