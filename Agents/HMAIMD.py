@@ -455,7 +455,7 @@ class HMAIMD_Agent(object):
 
     def conduct_action(self):
         """Conducts an action in the environment"""
-        self.next_reward_state, self.next_sensor_nodes_observation, self.next_edge_node_observation, self.reward, self.done \
+        self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_state, self.reward, self.done \
             = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
 
@@ -467,7 +467,7 @@ class HMAIMD_Agent(object):
             reward_function_action = self.actor_local_of_reward_function(reward_function_state)
         self.actor_local_of_reward_function.train()
         self.reward_action = self.exploration_strategy.perturb_action_for_exploration_purposes({"action": reward_function_action})
-        self.sensor_nodes_reward = self.reward * self.reward_action[:self.environment.vehicle_number-1]
+        self.sensor_nodes_reward = self.reward * self.reward_action[:self.environment.config.vehicle_number-1]
         self.edge_node_reward = self.reward * self.reward_action[-1]
 
     def save_experience(self):
