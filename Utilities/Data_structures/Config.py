@@ -68,6 +68,9 @@ class Experiment_Config(object):
         self.noise_uncertainty_up_bound = None
 
         self.trajectories_predicted_time = None
+
+        self.rolling_score_window = None
+
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         # self.data_size_of_types = None
         # self.data_types_in_vehicles = None
@@ -107,7 +110,8 @@ class Experiment_Config(object):
 
                noise_uncertainty_low_bound = 0,         # dB
                noise_uncertainty_up_bound = 3,           # dB
-               trajectories_predicted_time = 10
+               trajectories_predicted_time = 10,
+               rolling_score_window = 100
                ):
         """Experiment Setup"""
         self.episode_number = episode_number
@@ -152,6 +156,7 @@ class Experiment_Config(object):
         self.noise_uncertainty_up_bound = noise_uncertainty_up_bound
 
         self.trajectories_predicted_time = trajectories_predicted_time
+        self.rolling_score_window = rolling_score_window
 
 class Agent_Config(object):
     """
@@ -193,6 +198,7 @@ class Agent_Config(object):
         self.randomise_random_seed = True
         self.show_solution_score = False
         self.debug_mode = False
+
 
     def config(self,
                seed,

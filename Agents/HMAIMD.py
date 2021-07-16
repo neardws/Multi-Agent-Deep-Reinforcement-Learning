@@ -6,6 +6,7 @@
 @Date    ：7/1/21 9:49 上午 
 """
 import numpy as np
+import time
 import torch
 import torch.nn.functional as functional
 from torch import optim
@@ -117,28 +118,51 @@ class HMAIMD_Agent(object):
         self.actor_local_of_sensor_nodes = [
             self.create_NN(
                 input_dim=self.sensor_observations_size,
-                output_dim=[self.environment.data_types_number, self.environment.data_types_number],
+                output_dim=[self.environment.config.data_types_number, self.config.environment.data_types_number],
                 key_to_use="actor_of_sensor"
-            ) for _ in range(self.environment.vehicle_number)
+            ) for _ in range(self.environment.config.vehicle_number)
         ]
 
         self.actor_target_of_sensor_nodes = [
             self.create_NN(
                 input_dim=self.sensor_observations_size,
-                output_dim=[self.environment.data_types_number, self.environment.data_types_number],
+                output_dim=[self.environment.config.data_types_number, self.environment.config.data_types_number],
                 key_to_use="actor_of_sensor"
-            ) for _ in range(self.environment.vehicle_number)
+            ) for _ in range(self.environment.config.vehicle_number)
         ]
 
-        for index in range(self.environment.vehicle_number):
+        for index in range(self.environment.config.vehicle_number):
             HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[index],
                                          to_model=self.actor_target_of_sensor_nodes[index])
         self.actor_optimizer_of_sensor_nodes = [
             optim.Adam(params=self.actor_local_of_sensor_nodes[index].parameters(),
                        lr=self.hyperparameters['actor_of_sensor']['learning_rate'],
                        eps=1e-4
-                       ) for index in range(self.environment.vehicle_number)
+                       ) for index in range(self.environment.config.vehicle_number)
         ]
+        for index in range(self.environment.config.vehicle_number):
+            """
+            optimizer (Optimizer) – Wrapped optimizer.
+            mode (str) – One of min, max. In min mode, lr will be reduced when the quantity monitored has stopped decreasing; 
+            in max mode it will be reduced when the quantity monitored has stopped increasing. Default: ‘min’.
+            
+            factor (float) – Factor by which the learning rate will be reduced. new_lr = lr * factor. Default: 0.1.
+            patience (int) – Number of epochs with no improvement after which learning rate will be reduced. For example, 
+            if patience = 2, then we will ignore the first 2 epochs with no improvement, and will only decrease the LR after the 3rd epoch if the loss still hasn’t improved then. Default: 10.
+            
+            threshold (float) – Threshold for measuring the new optimum, to only focus on significant changes. Default: 1e-4.
+            threshold_mode (str) – One of rel, abs. In rel mode, dynamic_threshold = best * ( 1 + threshold ) in ‘max’ mode 
+            or best * ( 1 - threshold ) in min mode. In abs mode, dynamic_threshold = best + threshold in max mode or best - threshold in min mode. Default: ‘rel’.
+            
+            cooldown (int) – Number of epochs to wait before resuming normal operation after lr has been reduced. Default: 0.
+            min_lr (float or list) – A scalar or a list of scalars. A lower bound on the learning rate of all param groups or each group respectively. Default: 0.
+            eps (float) – Minimal decay applied to lr. If the difference between new and old lr is smaller than eps, the update is ignored. Default: 1e-8.
+            verbose (bool) – If True, prints a message to stdout for each update. Default: False.
+            """
+            optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_sensor_nodes[index], mode='min', factor=0.1,
+                                                 patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
+                                                 cooldown=0, min_lr=0, eps=1e-08)
+
 
         """Critic Network of Sensor Nodes"""
         self.critic_size_for_sensor = self.environment.get_critic_size_for_sensor()
@@ -147,7 +171,7 @@ class HMAIMD_Agent(object):
                 input_dim=self.critic_size_for_sensor,
                 output_dim=1,
                 key_to_use="critic_of_sensor"
-            ) for _ in range(self.environment.vehicle_number)
+            ) for _ in range(self.environment.config.vehicle_number)
         ]
 
         self.critic_target_of_sensor_nodes = [
@@ -155,18 +179,25 @@ class HMAIMD_Agent(object):
                 input_dim=self.critic_size_for_sensor,
                 output_dim=1,
                 key_to_use="critic_of_sensor"
-            ) for _ in range(self.environment.vehicle_number)
+            ) for _ in range(self.environment.config.vehicle_number)
         ]
 
-        for index in range(self.environment.vehicle_number):
+        for index in range(self.environment.config.vehicle_number):
             HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[index],
                                          to_model=self.critic_target_of_sensor_nodes[index])
         self.critic_optimizer_of_sensor_nodes = [
             optim.Adam(params=self.critic_local_of_sensor_nodes[index].parameters(),
                        lr=self.hyperparameters['critic_of_sensor']['learning_rate'],
                        eps=1e-4
-                       ) for index in range(self.environment.vehicle_number)
+                       ) for index in range(self.environment.config.vehicle_number)
         ]
+
+        for index in range(self.environment.config.vehicle_number):
+
+            optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_sensor_nodes[index], mode='min', factor=0.1,
+                                                 patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
+                                                 cooldown=0, min_lr=0, eps=1e-08)
+
 
         """Actor Network for Edge Node"""
         self.actor_local_of_edge_node = self.create_NN(
@@ -186,6 +217,9 @@ class HMAIMD_Agent(object):
             lr=self.hyperparameters['actor_of_edge']['learning_rate'],
             eps=1e-4
         )
+        optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_edge_node, mode='min', factor=0.1,
+                                             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
+                                             cooldown=0, min_lr=0, eps=1e-08)
 
         """Critic Network for Edge Node"""
         self.critic_local_of_edge_node = self.create_NN(
@@ -205,6 +239,9 @@ class HMAIMD_Agent(object):
             lr=self.hyperparameters['critic_of_edge_node']['learning_rate'],
             eps=1e-4
         )
+        optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_edge_node, mode='min', factor=0.1,
+                                             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
+                                             cooldown=0, min_lr=0, eps=1e-08)
 
         """Actor Network for Reward Function"""
         self.actor_local_of_reward_function = self.create_NN(
@@ -224,6 +261,10 @@ class HMAIMD_Agent(object):
             lr=self.hyperparameters['actor_of_reward_function']['learning_rate'],
             eps=1e-4
         )
+        optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_reward_function, mode='min', factor=0.1,
+                                             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
+                                             cooldown=0, min_lr=0, eps=1e-08)
+
 
         """Critic Network for Reward Function"""
         self.critic_local_of_reward_function = self.create_NN(
@@ -243,6 +284,9 @@ class HMAIMD_Agent(object):
             lr=self.hyperparameters['critic_of_reward_function']['learning_rate'],
             eps=1e-4
         )
+        optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_reward_function, mode='min', factor=0.1,
+                                             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
+                                             cooldown=0, min_lr=0, eps=1e-08)
 
         """
         ______________________________________________________________________________________________________________
@@ -373,8 +417,7 @@ class HMAIMD_Agent(object):
                                                              sensor_nodes_rewards=sensor_nodes_rewards,
                                                              edge_node_rewards=edge_node_rewards,
                                                              next_sensor_nodes_observations=next_sensor_nodes_observations,
-                                                             next_edge_node_observations=next_edge_node_observations,
-                                                             dones=dones)
+                                                             next_edge_node_observations=next_edge_node_observations)
 
             if self.time_for_critic_and_actor_of_reward_function_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
@@ -406,7 +449,7 @@ class HMAIMD_Agent(object):
     def sensor_nodes_pick_actions(self, sensor_nodes_observation):
         """Picks an action using the actor network of each sensor node
         and then adds some noise to it to ensure exploration"""
-        for sensor_node_index in range(self.environment.vehicle_number):
+        for sensor_node_index in range(self.environment.config.vehicle_number):
             if self.environment.state['action_time'][sensor_node_index][self.episode_index] == 1:
                 sensor_node_observation = sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)
                 self.actor_local_of_sensor_nodes[sensor_node_index].eval()  # set the model to evaluation state
@@ -428,26 +471,26 @@ class HMAIMD_Agent(object):
 
         self.global_action = torch.cat(
             (sensor_nodes_action[0,:], sensor_nodes_action[1,:]), dim=1)
-        for sensor_node_index in range(self.environment.vehicle_number):
+        for sensor_node_index in range(self.environment.config.vehicle_number):
             if sensor_node_index > 1:
                 self.global_action = torch.cat(
                     (self.global_action, sensor_nodes_action[sensor_node_index,:]), dim=1)
         self.global_action = torch.cat((self.global_action, edge_node_action), dim=1)
 
-        priority = np.zeros(shape=(self.environment.vehicle_number, self.environment.data_types_number), dtype=np.float)
-        arrival_rate = np.zeros(shape=(self.environment.vehicle_number, self.environment.data_types_number), dtype=np.float)
+        priority = np.zeros(shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number), dtype=np.float)
+        arrival_rate = np.zeros(shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number), dtype=np.float)
 
-        for sensor_node_index in range(self.environment.vehicle_number):
+        for sensor_node_index in range(self.environment.config.vehicle_number):
             sensor_node_action = sensor_nodes_action[sensor_node_index,:]
-            sensor_node_action_of_priority = sensor_node_action[0:self.environment.data_types_number-1]
-            sensor_node_action_of_arrival_rate = sensor_node_action[self.environment.data_types_number:-1]
-            for data_type_index in range(self.environment.data_types_number):
+            sensor_node_action_of_priority = sensor_node_action[0:self.environment.config.data_types_number-1]
+            sensor_node_action_of_arrival_rate = sensor_node_action[self.environment.config.data_types_number:-1]
+            for data_type_index in range(self.environment.config.data_types_number):
                 if self.environment.state['data_types'][sensor_node_index][data_type_index] == 1:
                     priority[sensor_node_index][data_type_index] = sensor_node_action_of_priority[data_type_index]
                     arrival_rate[sensor_node_index][data_type_index] = \
-                        float(sensor_node_action_of_arrival_rate[data_type_index]) / self.environment.mean_service_time_of_types[data_type_index]
+                        float(sensor_node_action_of_arrival_rate[data_type_index]) / self.environment.config.mean_service_time_of_types[data_type_index]
 
-        edge_nodes_bandwidth = edge_node_action.numpy() * self.environment.bandwidth
+        edge_nodes_bandwidth = edge_node_action.numpy() * self.environment.config.bandwidth
 
         self.action = {"priority": priority,
                        "arrival_rate": arrival_rate,
@@ -455,7 +498,7 @@ class HMAIMD_Agent(object):
 
     def conduct_action(self):
         """Conducts an action in the environment"""
-        self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_state, self.reward, self.done \
+        self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_state, self.reward\
             = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
 
@@ -475,11 +518,10 @@ class HMAIMD_Agent(object):
         # TODO Renew structure of experience and replay buffer
         """
         sensor_nodes_observations=torch.empty(), sensor_actions=torch.empty(),
-                           sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty(),
-                           dones=torch.empty()
+                           sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty()
         Saves the recent experience to the experience replay buffer
         :param memory: Buffer
-        :param experience: self.state, self.action, self.reward, self.next_state, self.done
+        :param experience: self.state, self.action, self.reward, self.next_state
         :return: None
         """
         if self.experience_replay_buffer is None:
@@ -488,7 +530,7 @@ class HMAIMD_Agent(object):
         experience = self.sensor_nodes_observation, self.edge_node_observation,\
                      self.sensor_nodes_action, self.edge_node_action, \
                      self.sensor_nodes_reward, self.edge_node_reward,\
-                     self.next_sensor_nodes_observation, self.next_edge_node_observation, self.done
+                     self.next_sensor_nodes_observation, self.next_edge_node_observation
         self.experience_replay_buffer.add_experience(*experience)
 
     def save_reward_experience(self):
@@ -496,7 +538,7 @@ class HMAIMD_Agent(object):
             raise Exception("reward_replay_buffer is None, function save_experience at HMAIMD.py")
         """Save as torch.Tensor"""
         reward_experience = self.last_reward_state, self.last_global_action, self.last_reward_action, \
-                            self.reward, self.reward_state, self.global_action, self.done
+                            self.reward, self.reward_state, self.global_action
         self.reward_replay_buffer.add_experience(*reward_experience)
 
     def time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn(self):
@@ -521,7 +563,7 @@ class HMAIMD_Agent(object):
 
         sensor_nodes_actions_next_list = [
             self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_nodes_observations[sensor_node_index,:])
-            for sensor_node_index in range(self.environment.vehicle_number)]
+            for sensor_node_index in range(self.environment.config.vehicle_number)]
 
         sensor_nodes_actions_next_tensor = torch.cat(
             (sensor_nodes_actions_next_list[0], sensor_nodes_actions_next_list[1]), dim=1)
@@ -530,7 +572,7 @@ class HMAIMD_Agent(object):
                 sensor_nodes_actions_next_tensor = torch.cat(
                     (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=1)
 
-        for sensor_node_index in range(self.environment.vehicle_number):
+        for sensor_node_index in range(self.environment.config.vehicle_number):
             sensor_node_observations = sensor_nodes_observations[sensor_node_index, :]
             sensor_node_rewards = sensor_nodes_rewards[sensor_node_index, :]
             next_sensor_node_observations = next_sensor_nodes_observations[sensor_node_index, :]
@@ -557,22 +599,20 @@ class HMAIMD_Agent(object):
                                                self.hyperparameters["critic_of_sensor"]["tau"])
 
             """Runs a learning iteration for the actor"""
-            if self.done:  # we only update the learning rate at end of each episode
-                self.update_learning_rate(self.hyperparameters["actor_of_sensor"]["learning_rate"],
-                                          self.actor_optimizer_of_sensor_nodes[sensor_node_index])
+
             """Calculates the loss for the actor"""
             actions_predicted_of_sensor_node = self.actor_local_of_sensor_nodes[sensor_node_index](
                 sensor_node_observations)
             if sensor_node_index == 0:
                 sensor_nodes_actions_add_actions_pred = torch.cat(
-                    (actions_predicted_of_sensor_node, sensor_actions[1:self.environment.vehicle_number, :]), dim=1)
-            elif sensor_node_index == self.environment.vehicle_number - 1:
+                    (actions_predicted_of_sensor_node, sensor_actions[1:self.environment.config.vehicle_number, :]), dim=1)
+            elif sensor_node_index == self.environment.config.vehicle_number - 1:
                 sensor_nodes_actions_add_actions_pred = torch.cat(
-                    (sensor_actions[0:self.environment.vehicle_number - 1, :], actions_predicted_of_sensor_node), dim=1)
+                    (sensor_actions[0:self.environment.config.vehicle_number - 1, :], actions_predicted_of_sensor_node), dim=1)
             else:
                 sensor_nodes_actions_add_actions_pred = torch.cat((sensor_actions[0:sensor_node_index - 1, :],
                                                                    actions_predicted_of_sensor_node,
-                                                                   sensor_actions[sensor_node_index + 1:self.environment.vehicle_number,
+                                                                   sensor_actions[sensor_node_index + 1:self.environment.config.vehicle_number,
                                                                                  :]), dim=1)
 
             actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
@@ -609,9 +649,7 @@ class HMAIMD_Agent(object):
                                            self.hyperparameters["critic_of_edge"]["tau"])
 
         """Runs a learning iteration for the actor of edge node"""
-        if self.done:  # we only update the learning rate at end of each episode
-            self.update_learning_rate(self.hyperparameters["actor_of_edge"]["learning_rate"],
-                                      self.actor_optimizer_of_edge_node)
+
         """Calculates the loss for the actor"""
         actions_predicted_of_edge_node = self.actor_local_of_edge_node(
             torch.cat((edge_node_observations, sensor_actions), dim=1))
@@ -641,50 +679,20 @@ class HMAIMD_Agent(object):
                                            self.hyperparameters["critic_of_reward"]["tau"])
 
         """Runs a learning iteration for the actor"""
-        if self.done:  # we only update the learning rate at end of each episode
-            self.update_learning_rate(self.hyperparameters["actor_of_reward"]["learning_rate"], self.actor_optimizer_of_reward_function)
+
         """Calculates the loss for the actor"""
         actions_predicted = self.actor_local_of_reward_function(torch.cat((last_reward_states, last_global_actions), dim=1))
         actor_loss = -self.critic_local_of_reward_function(torch.cat((last_reward_states, last_global_actions, actions_predicted), dim=1)).mean()
         self.take_optimisation_step(self.actor_optimizer_of_reward_function, self.actor_local_of_reward_function, actor_loss,
                                     self.hyperparameters["actor_of_reward"]["gradient_clipping_norm"])
         self.soft_update_of_target_network(self.actor_local_of_reward_function, self.actor_target_of_reward_function,
-                                           self.hyperparameters["actor_of_reeard"]["tau"])
-
-
-    def update_learning_rate(self, starting_lr, optimizer):
-        """
-        Lowers the learning rate according to how close we are to the solution
-        The learning rate is smaller when closer the solution
-        However, we must determine the average score required to win
-        :param starting_lr:  learning rate of starting
-        :param optimizer:
-        :return:
-        """
-        new_lr = starting_lr
-        if len(self.rolling_results) > 0:
-            last_rolling_score = self.rolling_results[-1]
-            if last_rolling_score > 0.75 * self.average_score_required_to_win:
-                new_lr = starting_lr / 100.0
-            elif last_rolling_score > 0.6 * self.average_score_required_to_win:
-                new_lr = starting_lr / 20.0
-            elif last_rolling_score > 0.5 * self.average_score_required_to_win:
-                new_lr = starting_lr / 10.0
-            elif last_rolling_score > 0.25 * self.average_score_required_to_win:
-                new_lr = starting_lr / 2.0
-            else:
-                new_lr = starting_lr
-            for g in optimizer.param_groups:
-                g['lr'] = new_lr
-        if np.random.random() < 0.001: self.logger.info("Learning rate {}".format(new_lr))
+                                           self.hyperparameters["actor_of_reward"]["tau"])
 
     def take_optimisation_step(self, optimizer, network, loss, clipping_norm=None, retain_graph=False):
         """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
         if not isinstance(network, list): network = [network]
         optimizer.zero_grad()  # reset gradients to 0
         loss.backward(retain_graph=retain_graph)  # this calculates the gradients
-        self.logger.info("Loss -- {}".format(loss.item()))
-        if self.debug_mode: self.log_gradient_and_weight_information(network, optimizer)
         if clipping_norm is not None:
             for net in network:
                 torch.nn.utils.clip_grad_norm_(net.parameters(),
@@ -703,34 +711,57 @@ class HMAIMD_Agent(object):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
-    def run_n_episodes(self, num_episodes=None, show_whether_achieved_goal=True, save_and_print_results=True):
+    def run_n_episodes(self, num_episodes=None):
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
         if num_episodes is None: num_episodes = self.config.num_episodes_to_run
         start = time.time()
-        while self.episode_number < num_episodes:
+        while self.episode_index < num_episodes:
             self.reset_game()
             self.step()
-            if save_and_print_results: self.save_and_print_result()
+
+            """Saves the result of an episode of the game"""
+            self.game_full_episode_scores.append(self.total_episode_score_so_far)
+            self.rolling_results.append(np.mean(self.game_full_episode_scores[-1 * self.environment.config.rolling_score_window:]))
+
+            """Updates the best episode result seen so far"""
+            if self.game_full_episode_scores[-1] > self.max_episode_score_seen:
+                self.max_episode_score_seen = self.game_full_episode_scores[-1]
+
+            if self.rolling_results[-1] > self.max_rolling_score_seen:
+                if len(self.rolling_results) > self.environment.config.rolling_score_window:
+                    self.max_rolling_score_seen = self.rolling_results[-1]
+
         time_taken = time.time() - start
-        if show_whether_achieved_goal: self.show_whether_achieved_goal()
-        if self.config.save_model: self.locally_save_policy()
         return self.game_full_episode_scores, self.rolling_results, time_taken
+
 
     def reset_game(self):
         """Resets the game information so we are ready to play a new episode"""
         self.environment.seed(self.config.seed)
-        self.next_state = None
-        self.action = None
+
+        """float parameters"""
         self.reward = None
-        self.done = False
+        self.done = None                        # 1 or 0 indicate is episode finished
+        """dict() parameters"""
+        self.action = None
+        """torch.Tensor parameters"""
+        self.last_reward_state = None
+        self.last_global_action = None           # Combine the Tensor sensor nodes action and edge node action
+        self.last_reward_action = None
+        self.reward_state = None
+        self.global_action = None
+        self.reward_action = None
+
+        self.sensor_nodes_action = None
+        self.edge_node_action = None
+        self.sensor_nodes_reward = None
+        self.edge_node_reward = None
+        self.next_sensor_nodes_observation = None
+        self.next_edge_node_observation = None
+        self.next_reward_state = None
+
+        self.sensor_nodes_observation, self.edge_node_observation, self.reward_state = self.environment.reset()
+
         self.total_episode_score_so_far = 0
-        self.episode_states = []
-        self.episode_rewards = []
-        self.episode_actions = []
-        self.episode_next_states = []
-        self.episode_dones = []
-        self.episode_desired_goals = []
-        self.episode_achieved_goals = []
-        self.episode_observations = []
-        if "exploration_strategy" in self.__dict__.keys(): self.exploration_strategy.reset()
-        self.logger.info("Reseting game -- New start state {}".format(self.state))
+        self.episode_step = 0
+        self.exploration_strategy.reset()
