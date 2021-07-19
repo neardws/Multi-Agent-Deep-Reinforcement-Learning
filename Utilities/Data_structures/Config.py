@@ -25,6 +25,15 @@ class Experiment_Config(object):
         view_required_data： view required data at each time-slot， which is randomly generated
     """
     def __init__(self):
+        """Map """
+        self.Longitude_min = None
+        self.Longitude_max = None
+        self.Latitude_min = None
+        self.Latitude_max = None
+
+        self.time_start = None
+        self.time_end = None
+
         """Experiment Setup"""
         self.episode_number = None
         self.max_episode_length = None
@@ -80,6 +89,14 @@ class Experiment_Config(object):
         # self.data_in_edge_node = None
 
     def config(self,
+
+               Longitude_min = 104.04565967220308,  # 104.05089219802858
+               Longitude_max = 104.07650822204591,  # 104.082306230011
+               Latitude_min = 30.654605745741608, # 30.64253859556557
+               Latitude_max = 30.68394513007631, # 30.6684641634594
+
+               time_start = 1479031200,
+
                episode_number = 5000,
                max_episode_length = 300,
 
@@ -113,9 +130,20 @@ class Experiment_Config(object):
                trajectories_predicted_time = 10,
                rolling_score_window = 100
                ):
+        """Map"""
+        self.Longitude_min = Longitude_min
+        self.Longitude_max = Longitude_max
+        self.Latitude_min = Latitude_min
+        self.Latitude_max = Latitude_max
+
+        self.time_start = time_start
+
         """Experiment Setup"""
         self.episode_number = episode_number
         self.max_episode_length = max_episode_length
+
+        self.time_end = time_start + max_episode_length
+
         """Some constant number"""
         self.vehicle_number = vehicle_number
         self.data_types_number = data_types_number

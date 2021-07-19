@@ -9,7 +9,6 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
     - [ ] Reorganize parameters in config according to HMAIMD_Agent
 - [ ] Work on VehicularNetworkEnv
     - [ ] Service time add into sensor node state
-    - [ ] Trajectories related, such as define global trajectory within the experiment, and add trajectory predicted time in experiment parameters   
 - [ ] Work on Replay Buffer
     - [ ] Compass experiences to save GPU RAM
 - [ ] Code review  
@@ -32,3 +31,4 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Transfer NN output to action 2021-07-14
 - [x] step in VehicularNetworkEnv 2021-07-15
 - [x] auto adjust learning rate 2021-07-16
+- [x] Trajectories related, such as define global trajectory within the experiment, and add trajectory predicted time in experiment parameters 2021-07-19

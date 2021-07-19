@@ -8,7 +8,7 @@
 import csv
 import matplotlib.pyplot as plt
 
-csvFile = open("vehicle.csv")
+csvFile = open("../CSV/vehicle.csv")
 f_read = csv.reader(csvFile)
 row = list(f_read)
 x = []
