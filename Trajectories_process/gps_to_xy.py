@@ -31,6 +31,7 @@ def Extract(file_name, Longitude_min, Longitude_max, Latitude_min, Latitude_max,
     # 排序
     datat = data2.copy()
     datat.sort_values(by=['vehicle_id', 'time'], inplace=True)
+
     datat.to_csv(outfile)
     return outfile
 
@@ -205,15 +206,15 @@ if __name__ == "__main__":
     Latitude_max = 30.68394513007631  # 30.6684641634594
     time_start = 1479031200
     time_end = 1479031500
-    file = Extract("gps_20161113", Longitude_min, Longitude_max, Latitude_min, Latitude_max, time_start, time_end,
-                   "step1_gps_20161113.csv")
+    file = Extract("../CSV/gps_20161113", Longitude_min, Longitude_max, Latitude_min, Latitude_max, time_start, time_end,
+                   "../CSV/step1_gps_20161113.csv")
     print("Extract finished")
-    file2 = Tran(file, "step2_gps_20161113.csv")
+    file2 = Tran(file, "../CSV/step2_gps_20161113.csv")
     print("Tran finished")
-    file3 = Fill(file2, "step3_gps_20161113.csv", time_start, time_end)
+    file3 = Fill(file2, "../CSV/step3_gps_20161113.csv", time_start, time_end)
     print("Fill finished")
     # x=geodistance(108.9345752,34.214946,108.9345752,34.241936)
-    coordinate_transformation("step3_gps_20161113.csv", Longitude_min, Latitude_min, "vehicle.csv", time_start)
+    coordinate_transformation("../CSV/step3_gps_20161113.csv", Longitude_min, Latitude_min, "../CSV/vehicle.csv", time_start)
     print("Finial finished")
 
 # gps_20161110 训练集 10min

@@ -8,6 +8,7 @@
 import gym
 import numpy as np
 import torch
+import pandas as pd
 from gym import spaces
 from torch import Tensor
 from Utilities.Data_structures.Config import Experiment_Config
@@ -100,13 +101,13 @@ class VehicularNetworkEnv(gym.Env):
         self.edge_node_observation = None # individually observation state for edge node
         """other parameters"""
         self.episode_step = None
+        self.global_trajectories = None
         self.trajectories = None
         self.waiting_time_in_queue = None
         self.action_time_of_sensor_nodes = None
         self.next_action_time_of_sensor_nodes = None
         self.required_to_transmit_data_size_of_sensor_nodes = None
         self.data_in_edge_node = None
-
 
         """
         Define action and observation space
@@ -201,11 +202,29 @@ class VehicularNetworkEnv(gym.Env):
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_state
 
 
-    def get_experiences_global_trajectory(self):
-        pass
+    def init_experiences_global_trajectory(self, file_name, edge_node_x, edge_node_y):
+        self.global_trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number), dtype=np.float)
+
+        df = pd.read_csv(file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], index_col=0)
+        max_vehicle_id = df.groupby("vehicle_id").max()
+        random_vehicle_id = np.random.sample(range(0, max_vehicle_id), self.config.vehicle_number)
+
+        vehicle_id = 0
+        for id in random_vehicle_id:
+            new_df = df[df['vehicle_id'] == id]
+            for row in new_df.itertuples():
+                time = row['time']
+                x = row['longitude']
+                y = row['latitude']
+                distance = np.sqrt((x - edge_node_x) ** 2 + (y - edge_node_y) ** 2)
+                self.global_trajectories[vehicle_id][time] = distance
+            vehicle_id += 1
 
     def init_trajectory(self):
-        pass
+        for vehicle_index in range(self.config.vehicle_number):
+            for time_slot_index in range(self.config.time_slots_number):
+                if time_slot_index < self.config.trajectories_predicted_time:
+                    self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][time_slot_index]
 
 
     """
