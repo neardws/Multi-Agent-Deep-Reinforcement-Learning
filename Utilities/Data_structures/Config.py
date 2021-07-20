@@ -7,6 +7,7 @@
 """
 import numpy as np
 
+
 class Experiment_Config(object):
     """
     Object to hold the config requirements for an experiment
@@ -24,6 +25,7 @@ class Experiment_Config(object):
         data_types_in_vehicles： data types in sensor node， which is randomly generated
         view_required_data： view required data at each time-slot， which is randomly generated
     """
+
     def __init__(self):
         """Map """
         self.Longitude_min = None
@@ -40,7 +42,7 @@ class Experiment_Config(object):
         """Some constant number"""
         self.vehicle_number = None
         self.data_types_number = None
-        self.time_slots_number = None   # equal to max_episode_length
+        self.time_slots_number = None  # equal to max_episode_length
         self.edge_views_number = None
 
         self.seed_data_types_in_vehicles = None
@@ -90,45 +92,45 @@ class Experiment_Config(object):
 
     def config(self,
 
-               Longitude_min = 104.04565967220308,  # 104.05089219802858
-               Longitude_max = 104.07650822204591,  # 104.082306230011
-               Latitude_min = 30.654605745741608, # 30.64253859556557
-               Latitude_max = 30.68394513007631, # 30.6684641634594
+               Longitude_min=104.04565967220308,  # 104.05089219802858
+               Longitude_max=104.07650822204591,  # 104.082306230011
+               Latitude_min=30.654605745741608,  # 30.64253859556557
+               Latitude_max=30.68394513007631,  # 30.6684641634594
 
-               time_start = 1479031200,
+               time_start=1479031200,
 
-               episode_number = 5000,
-               max_episode_length = 300,
+               episode_number=5000,
+               max_episode_length=300,
 
-               vehicle_number = 10,
-               data_types_number = 5,
-               edge_views_number = 10,
+               vehicle_number=10,
+               data_types_number=5,
+               edge_views_number=10,
 
-               threshold_data_types_in_vehicles = 0.3,
-               data_size_low_bound = 300,               # Bytes
-               data_size_up_bound = 5 * 1024 * 1024,    # Bytes
+               threshold_data_types_in_vehicles=0.3,
+               data_size_low_bound=300,  # Bytes
+               data_size_up_bound=5 * 1024 * 1024,  # Bytes
 
-               edge_view_required_start_time = 10,
-               threshold_edge_views_in_edge_node = 0.3,
-               threshold_view_required_data = 0.3,
+               edge_view_required_start_time=10,
+               threshold_edge_views_in_edge_node=0.3,
+               threshold_view_required_data=0.3,
 
-               arrival_rate_low_bound = None,
-               arrival_rate_up_bound = None,
-               mean_service_time_of_types = None,
-               second_moment_service_time_of_types = None,
+               arrival_rate_low_bound=None,
+               arrival_rate_up_bound=None,
+               mean_service_time_of_types=None,
+               second_moment_service_time_of_types=None,
 
-               communication_range = 500,       # meters
-               transmission_power = 1,          # mW
-               bandwidth = 1,     # MHz
-               additive_white_gaussian_noise = -70,  # dBm
-               mean_channel_fading_gain = 2,
-               second_moment_channel_fading_gain = 0.4,
-               path_loss_exponent = 3,
+               communication_range=500,  # meters
+               transmission_power=1,  # mW
+               bandwidth=1,  # MHz
+               additive_white_gaussian_noise=-70,  # dBm
+               mean_channel_fading_gain=2,
+               second_moment_channel_fading_gain=0.4,
+               path_loss_exponent=3,
 
-               noise_uncertainty_low_bound = 0,         # dB
-               noise_uncertainty_up_bound = 3,           # dB
-               trajectories_predicted_time = 10,
-               rolling_score_window = 100
+               noise_uncertainty_low_bound=0,  # dB
+               noise_uncertainty_up_bound=3,  # dB
+               trajectories_predicted_time=10,
+               rolling_score_window=100
                ):
         """Map"""
         self.Longitude_min = Longitude_min
@@ -150,18 +152,18 @@ class Experiment_Config(object):
         self.time_slots_number = max_episode_length  # equal to max_episode_length
         self.edge_views_number = edge_views_number
 
-        self.seed_data_types_in_vehicles = np.random.randint(0, 2**32 - 2)
+        self.seed_data_types_in_vehicles = np.random.randint(0, 2 ** 32 - 2)
         self.threshold_data_types_in_vehicles = threshold_data_types_in_vehicles
 
-        self.seed_data_size_of_types = np.random.randint(0, 2**32 - 2)
+        self.seed_data_size_of_types = np.random.randint(0, 2 ** 32 - 2)
         self.data_size_low_bound = data_size_low_bound
         self.data_size_up_bound = data_size_up_bound
 
-        self.seed_edge_views_in_edge_node = np.random.randint(0, 2**32 - 2)
+        self.seed_edge_views_in_edge_node = np.random.randint(0, 2 ** 32 - 2)
         self.edge_view_required_start_time = edge_view_required_start_time,
         self.threshold_edge_views_in_edge_node = threshold_edge_views_in_edge_node
 
-        self.seed_view_required_data = np.random.randint(0, 2**32 - 2)
+        self.seed_view_required_data = np.random.randint(0, 2 ** 32 - 2)
         self.threshold_view_required_data = threshold_view_required_data
 
         """The parameters related with transmission queue"""
@@ -186,6 +188,7 @@ class Experiment_Config(object):
         self.trajectories_predicted_time = trajectories_predicted_time
         self.rolling_score_window = rolling_score_window
 
+
 class Agent_Config(object):
     """
     Object to hold the config requirements for an agent/game
@@ -208,62 +211,66 @@ class Agent_Config(object):
         show_solution_score: show the solution score or not
         debug_mode: in debug mode or not
     """
-    def __init__(self):
-        self.seed = None   # 随机数种子
-        self.environment = None
-        self.requirements_to_solve_game = None
-        self.num_episodes_to_run = None
-        self.file_to_save_data_results = None
-        self.file_to_save_results_graph = None
-        self.runs_per_agent = None
-        self.visualise_overall_results = None
-        self.visualise_individual_results = None
-        self.hyperparameters = None
-        self.use_GPU = None
-        self.overwrite_existing_results_file = None
-        self.save_model = False
-        self.standard_deviation_results = 1.0
-        self.randomise_random_seed = True
-        self.show_solution_score = False
-        self.debug_mode = False
 
+    def __init__(self):
+        self.experience_replay_buffer_buffer_size = None
+        self.experience_replay_buffer_batch_size = None
+        self.experience_replay_buffer_seed = None
+
+        self.reward_replay_buffer_buffer_size = None
+        self.reward_replay_buffer_batch_size = None
+        self.reward_replay_buffer_seed = None
+
+        self.use_GPU = None
+
+        """Noise"""
+        self.noise_action_size = None
+        self.noise_seed = None
+        self.noise_mu = None
+        self.noise_theta = None
+        self.noise_sigma = None
+
+        self.NN_seed = None
+
+        self.environment_seed = None
+
+        self.hyperparameters = None
+
+        self.file_to_save_data_results = None
 
     def config(self,
-               seed,
-               environment,
-               requirements_to_solve_game,
-               num_episodes_to_run,
-               file_to_save_data_results,
-               file_to_save_results_graph,
-               runs_per_agent,
-               visualise_overall_results,
-               visualise_individual_results,
-               hyperparameters,
-               use_GPU,
-               overwrite_existing_results_file,
-               save_model = False,
-               standard_deviation_results = 1.0,
-               randomise_random_seed = True,
-               show_solution_score = False,
-               debug_mode = False):
-        self.seed = seed
-        self.environment = environment
-        self.requirements_to_solve_game = requirements_to_solve_game
-        self.num_episodes_to_run = num_episodes_to_run
-        self.file_to_save_data_results = file_to_save_data_results
-        self.file_to_save_results_graph = file_to_save_results_graph
-        self.runs_per_agent = runs_per_agent
-        self.visualise_overall_results = visualise_overall_results
-        self.visualise_individual_results = visualise_individual_results
-        self.hyperparameters = hyperparameters
+               experience_replay_buffer_buffer_size=30000,
+               experience_replay_buffer_batch_size=256,
+               experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               reward_replay_buffer_buffer_size=30000,
+               reward_replay_buffer_batch_size=256,
+               reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               use_GPU=True,
+               noise_action_size=None,
+               noise_seed=np.random.randint(0, 2 ** 32 - 2),
+               noise_mu=0.0,
+               noise_theta=0.15,
+               noise_sigma=0.25,
+               NN_seed=np.random.randint(0, 2 ** 32 - 2),
+               environment_seed=np.random.randint(0, 2 ** 32 - 2),
+               hyperparameters=None,
+               file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
+        self.experience_replay_buffer_buffer_size = experience_replay_buffer_buffer_size
+        self.experience_replay_buffer_batch_size = experience_replay_buffer_batch_size
+        self.experience_replay_buffer_seed = experience_replay_buffer_seed
+        self.reward_replay_buffer_buffer_size = reward_replay_buffer_buffer_size
+        self.reward_replay_buffer_batch_size = reward_replay_buffer_batch_size
+        self.reward_replay_buffer_seed = reward_replay_buffer_seed
         self.use_GPU = use_GPU
-        self.overwrite_existing_results_file = overwrite_existing_results_file
-        self.save_model = save_model
-        self.standard_deviation_results = standard_deviation_results
-        self.randomise_random_seed = randomise_random_seed
-        self.show_solution_score = show_solution_score
-        self.debug_mode = debug_mode
-
+        self.noise_action_size = noise_action_size
+        self.noise_seed = noise_seed
+        self.noise_mu = noise_mu
+        self.noise_theta = noise_theta
+        self.noise_sigma = noise_sigma
+        self.NN_seed = NN_seed
+        self.environment_seed = environment_seed
+        self.hyperparameters = hyperparameters
+        self.file_to_save_data_results = file_to_save_data_results
 
 
 if __name__ == '__main__':
