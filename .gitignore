@@ -12,3 +12,5 @@ gen
 /CSV/step2_gps_20161113.csv
 /CSV/step3_gps_20161113.csv
 /CSV/vehicle.csv
+CSV/
+CSV/*
