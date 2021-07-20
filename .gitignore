@@ -1,0 +1,14 @@
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+/CSV/*
+/CSV/gps_20161113
+/CSV/step1_gps_20161113.csv
+/CSV/step2_gps_20161113.csv
+/CSV/step3_gps_20161113.csv
+/CSV/vehicle.csv

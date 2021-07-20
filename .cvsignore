@@ -1,7 +1,0 @@
-### CVS template
-.cvsignore
-/CSV/gps_20161113
-/CSV/step1_gps_20161113.csv
-/CSV/step2_gps_20161113.csv
-/CSV/step3_gps_20161113.csv
-/CSV/vehicle.csv
