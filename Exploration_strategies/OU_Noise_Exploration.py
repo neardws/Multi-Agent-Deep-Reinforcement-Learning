@@ -5,11 +5,6 @@
 @Author  ：Neardws
 @Date    ：7/2/21 2:29 下午 
 """
-
-import sys
-from os import path
-
-sys.path.append(path.join(path.dirname(__file__), '..'))
 from Utilities.OU_Noise import OU_Noise
 from Exploration_strategies.BaseExplorationStrategy import BaseExplorationStrategy
 
@@ -18,10 +13,13 @@ from Exploration_strategies.BaseExplorationStrategy import BaseExplorationStrate
 class OU_Noise_Exploration(BaseExplorationStrategy):
     """Ornstein-Uhlenbeck noise process exploration strategy"""
 
-    def __init__(self, config):
-        super().__init__(config)
-        self.noise = OU_Noise(self.config.noise_action_size, self.config.noise_seed, self.config.noise_mu,
-                              self.config.noise_theta, self.config.noise_sigma)
+    def __init__(self, size, hyperparameters, key_to_use=None):
+        super().__init__()
+        self.noise = OU_Noise(size,
+                              hyperparameters[key_to_use]['noise_seed'],
+                              hyperparameters[key_to_use]['mu'],
+                              hyperparameters[key_to_use]['theta'],
+                              hyperparameters[key_to_use]['sigma'])
 
     def perturb_action_for_exploration_purposes(self, action_info):
         """Perturbs the action of the agent to encourage exploration"""

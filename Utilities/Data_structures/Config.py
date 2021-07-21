@@ -224,13 +224,6 @@ class AgentConfig(object):
 
         self.use_gpu = None
 
-        """Noise"""
-        self.noise_action_size = None
-        self.noise_seed = None
-        self.noise_mu = None
-        self.noise_theta = None
-        self.noise_sigma = None
-
         self.nn_seed = None
 
         self.environment_seed = None

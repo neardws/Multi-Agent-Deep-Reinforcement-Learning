@@ -148,9 +148,9 @@ class VehicularNetworkEnv(gym.Env):
         """get Tensor type parameters"""
         self.sensor_nodes_observation = self.init_sensor_observation()  # individually observation state for sensor node
         self.edge_node_observation = self.init_edge_observation()
-        self.reward_state = self.init_reward_observation()  # TODO reward state and observation are not same
+        self.reward_observation = self.init_reward_observation()  # TODO reward state and observation are not same
 
-        return self.sensor_nodes_observation, self.edge_node_observation, self.reward_state
+        return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation
 
     def init_experiences_global_trajectory(self, file_name, edge_node_x, edge_node_y):
         self.global_trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number),
@@ -496,7 +496,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         Execute one time step within the environment
         :param action:
-        :return: self.next_reward_state, self.next_sensor_nodes_observation,
+        :return: self.next_reward_observation, self.next_sensor_nodes_observation,
                  self.next_edge_node_observation, self.reward, self.done
         """
         self.action = action

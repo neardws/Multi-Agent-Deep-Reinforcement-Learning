@@ -52,10 +52,10 @@ class ExperienceReplayBuffer(object):
         :param done:
         :return: None
         """
-        experience = self.experience(sensor_nodes_observation, edge_node_observation, sensor_nodes_action,
-                                     edge_node_action,
-                                     sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation,
-                                     next_edge_node_observation,
+        experience = self.experience(sensor_nodes_observation, edge_node_observation,
+                                     sensor_nodes_action, edge_node_action,
+                                     sensor_nodes_reward, edge_node_reward,
+                                     next_sensor_nodes_observation, next_edge_node_observation,
                                      done)
         self.memory.append(experience)
 
