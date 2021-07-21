@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
 """
 @Project ：Hierarchical-Reinforcement-Learning 
-@File    ：Base_Exploration_Strategy.py
+@File    ：BaseExplorationStrategy.py
 @Author  ：Neardws
 @Date    ：7/2/21 2:29 下午 
 """
-class Base_Exploration_Strategy(object):
+
+
+class BaseExplorationStrategy(object):
     """Base abstract class for agent exploration strategies. Every exploration strategy must inherit from this class
     and implement the methods perturb_action_for_exploration_purposes and add_exploration_rewards"""
     def __init__(self, config):

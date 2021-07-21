@@ -1,14 +1,14 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-fig = plt.figure()  #定义新的三维坐标轴
+fig = plt.figure()  # 定义新的三维坐标轴
 ax3 = plt.axes(projection='3d')
 
 start_value = 0.01
 stop_value = 0.99
 step = 0.01
 
-#定义三维数据
+#      定义三维数据
 xx = np.arange(start_value, stop_value, step)
 arr_xx = []
 for x in xx:
@@ -49,7 +49,7 @@ Z = X + Y
 print(Z)
 #
 #
-#作图
-ax3.plot_surface(X,Y,Z,rstride = 1, cstride = 1,cmap='rainbow')
+# 作图
+ax3.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='rainbow')
 # ax3.contour(X,Y,Z,offset=-2, cmap = 'rainbow')#绘制等高线
 plt.show()

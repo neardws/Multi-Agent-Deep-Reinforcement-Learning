@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 """
 @Project ：Hierarchical-Reinforcement-Learning 
-@File    ：Experience_Replay_Buffer.py
+@File    ：ExperienceReplayBuffer.py
 @Author  ：Neardws
 @Date    ：7/7/21 7:35 下午 
 """
@@ -11,7 +11,7 @@ import torch
 import numpy as np
 
 
-class Experience_Replay_Buffer(object):
+class ExperienceReplayBuffer(object):
     """Replay buffer to store past reward experiences that the agent can then use for training data"""
 
     def __init__(self, buffer_size, batch_size, seed, device=None):
@@ -27,7 +27,8 @@ class Experience_Replay_Buffer(object):
         self.experience = namedtuple("Experience", field_names=["sensor_nodes_observation", "edge_node_observation",
                                                                 "sensor_nodes_action", "edge_node_action",
                                                                 "sensor_nodes_reward", "edge_node_reward",
-                                                                "next_sensor_nodes_observation", "next_edge_node_observation", "done"])
+                                                                "next_sensor_nodes_observation",
+                                                                "next_edge_node_observation", "done"])
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
         if device:
@@ -36,7 +37,8 @@ class Experience_Replay_Buffer(object):
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def add_experience(self, sensor_nodes_observation, edge_node_observation, sensor_nodes_action, edge_node_action,
-                       sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation, next_edge_node_observation, done):
+                       sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation, next_edge_node_observation,
+                       done):
         """
         Adds experience(s) into the replay buffer
         :param sensor_nodes_observation:
@@ -50,11 +52,12 @@ class Experience_Replay_Buffer(object):
         :param done:
         :return: None
         """
-        experience = self.experience(sensor_nodes_observation, edge_node_observation, sensor_nodes_action, edge_node_action,
-                                     sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation, next_edge_node_observation,
+        experience = self.experience(sensor_nodes_observation, edge_node_observation, sensor_nodes_action,
+                                     edge_node_action,
+                                     sensor_nodes_reward, edge_node_reward, next_sensor_nodes_observation,
+                                     next_edge_node_observation,
                                      done)
         self.memory.append(experience)
-
 
     def sample(self, num_experiences=None, separate_out_data_types=True):
         """
@@ -65,11 +68,7 @@ class Experience_Replay_Buffer(object):
         """
         experiences = self.pick_experiences(num_experiences)
         if separate_out_data_types:
-            sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
-            sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones \
-                = self.separate_out_data_types(experiences)
-            return sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
-               sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones
+            return self.separate_out_data_types(experiences)
         else:
             return experiences
 
@@ -79,17 +78,26 @@ class Experience_Replay_Buffer(object):
         :param experiences:
         :return:
         """
-        sensor_nodes_observations = torch.from_numpy(np.vstack([e.sensor_nodes_observation for e in experiences if e is not None])).float().to(self.device)
-        edge_node_observations = torch.from_numpy(np.vstack([e.edge_node_observation for e in experiences if e is not None])).float().to(self.device)
-        sensor_nodes_actions = torch.from_numpy(np.vstack([e.sensor_nodes_action for e in experiences if e is not None])).float().to(self.device)
-        edge_node_actions = torch.from_numpy(np.vstack([e.edge_node_action for e in experiences if e is not None])).float().to(self.device)
-        sensor_nodes_rewards = torch.from_numpy(np.vstack([e.sensor_nodes_reward for e in experiences if e is not None])).float().to(self.device)
-        edge_node_rewards = torch.from_numpy(np.vstack([e.edge_node_reward for e in experiences if e is not None])).float().to(self.device)
-        next_sensor_nodes_observations = torch.from_numpy(np.vstack([int(e.next_sensor_nodes_observation) for e in experiences if e is not None])).float().to(self.device)
-        next_edge_node_observations = torch.from_numpy(np.vstack([e.next_edge_node_observation for e in experiences if e is not None])).float().to(self.device)
+        sensor_nodes_observations = torch.from_numpy(
+            np.vstack([e.sensor_nodes_observation for e in experiences if e is not None])).float().to(self.device)
+        edge_node_observations = torch.from_numpy(
+            np.vstack([e.edge_node_observation for e in experiences if e is not None])).float().to(self.device)
+        sensor_nodes_actions = torch.from_numpy(
+            np.vstack([e.sensor_nodes_action for e in experiences if e is not None])).float().to(self.device)
+        edge_node_actions = torch.from_numpy(
+            np.vstack([e.edge_node_action for e in experiences if e is not None])).float().to(self.device)
+        sensor_nodes_rewards = torch.from_numpy(
+            np.vstack([e.sensor_nodes_reward for e in experiences if e is not None])).float().to(self.device)
+        edge_node_rewards = torch.from_numpy(
+            np.vstack([e.edge_node_reward for e in experiences if e is not None])).float().to(self.device)
+        next_sensor_nodes_observations = torch.from_numpy(
+            np.vstack([int(e.next_sensor_nodes_observation) for e in experiences if e is not None])).float().to(
+            self.device)
+        next_edge_node_observations = torch.from_numpy(
+            np.vstack([e.next_edge_node_observation for e in experiences if e is not None])).float().to(self.device)
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
         return sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
-               sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones
+            sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones
 
     def pick_experiences(self, num_experiences=None):
         """

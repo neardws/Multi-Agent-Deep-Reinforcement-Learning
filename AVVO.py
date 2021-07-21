@@ -8,18 +8,17 @@
 
 from Agents.HMAIMD import HMAIMD_Agent
 from Environments.VehicularNetworkEnv.envs import VehicularNetworkEnv
-from Utilities.Data_structures.Config import Agent_Config
-from Utilities.Data_structures.Config import Experiment_Config
+from Utilities.Data_structures.Config import AgentConfig
+from Utilities.Data_structures.Config import ExperimentConfig
 from Agents.Trainer import Trainer
 
-
-if __name__== '__main__':
-    experiment_config = Experiment_Config()
+if __name__ == '__main__':
+    experiment_config = ExperimentConfig()
     experiment_config.config()
 
     vehicularNetworkEnv = VehicularNetworkEnv(experiment_config)
 
-    agent_config = Agent_Config()
+    agent_config = AgentConfig()
 
     noise_action_size = vehicularNetworkEnv.get_global_action_size()
 
@@ -31,7 +30,8 @@ if __name__== '__main__':
         "Actor_of_Sensor": {
             "learning_rate": 0.001,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5), int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
+                [int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
+                 int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
                  int(vehicularNetworkEnv.get_sensor_observation_size())],
             "final_layer_activation": ["softmax", "softmax"],
             "batch_norm": False,
@@ -42,7 +42,8 @@ if __name__== '__main__':
         "Critic_of_Sensor": {
             "learning_rate": 0.01,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5), int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
+                [int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
                  int(vehicularNetworkEnv.get_critic_size_for_sensor())],
             "final_layer_activation": None,
             "batch_norm": False,

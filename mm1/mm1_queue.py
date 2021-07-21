@@ -48,6 +48,7 @@ for index, value in enumerate(start):
 
 stop = start + waiting + y
 #
+# noinspection PyArgumentList
 queue_length = np.zeros(int(np.array(stop).max() * 100 + 1))
 
 for index, value in enumerate(start):
@@ -71,6 +72,7 @@ average = num / len(queue_length)
 print(average)
 colors = '#00CED1'  # 点的颜色
 area = np.pi * 1**1  # 点面积
+# noinspection PyArgumentList
 y_index = range(int(np.array(stop).max() * 100 + 1))
 plt.scatter(y_index, queue_length, s=area, c=colors, alpha=0.4)
 plt.show()
