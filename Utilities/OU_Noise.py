@@ -18,7 +18,7 @@ class OU_Noise(object):
         self.theta = theta
         self.sigma = sigma
         random.seed(seed)
-        self.state = None
+        self.state = copy.copy(self.mu)
         self.reset()
 
     def reset(self):

@@ -24,7 +24,9 @@ class RewardReplayBuffer(object):
         """
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["last_reward_state", "last_global_action", "last_reward_action", "reward", "reward_state", "global_action", "done"])
+        self.experience = namedtuple("Experience", field_names=["last_reward_observation", "last_global_action",
+                                                                "last_reward_action", "reward", "reward_observation",
+                                                                "global_action", "done"])
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
         if device:
@@ -32,19 +34,21 @@ class RewardReplayBuffer(object):
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def add_experience(self, last_reward_state, last_global_action, last_reward_action, reward, reward_state, global_action, done):
+    def add_experience(self, last_reward_observation, last_global_action, last_reward_action,
+                       reward, reward_observation, global_action, done):
         """
         Adds experience(s) into the replay buffer
-        :param last_reward_state:
+        :param last_reward_observation:
         :param last_global_action:
         :param last_reward_action:
         :param reward:
-        :param reward_state:
+        :param reward_observation:
         :param global_action:
         :param done:
         :return:
         """
-        experience = self.experience(last_reward_state, last_global_action, last_reward_action, reward, reward_state, global_action, done)
+        experience = self.experience(last_reward_observation, last_global_action, last_reward_action,
+                                     reward, reward_observation, global_action, done)
         self.memory.append(experience)
 
     def sample(self, num_experiences=None, separate_out_data_types=True):
@@ -56,8 +60,10 @@ class RewardReplayBuffer(object):
         """
         experiences = self.pick_experiences(num_experiences)
         if separate_out_data_types:
-            last_reward_states, last_global_actions, last_reward_actions, rewards, reward_states, global_actions, dones = self.separate_out_data_types(experiences)
-            return last_reward_states, last_global_actions, last_reward_actions, rewards, reward_states, global_actions, dones
+            last_reward_observation, last_global_actions, last_reward_actions, \
+                rewards, reward_observation, global_actions, dones = self.separate_out_data_types(experiences)
+            return last_reward_observation, last_global_actions, last_reward_actions, \
+                rewards, reward_observation, global_actions, dones
         else:
             return experiences
 
@@ -67,15 +73,21 @@ class RewardReplayBuffer(object):
         :param experiences: Input
         :return:/
         """
-        last_reward_states = torch.from_numpy(np.vstack([e.last_reward_state for e in experiences if e is not None])).float().to(self.device)
-        last_global_actions = torch.from_numpy(np.vstack([e.last_global_action for e in experiences if e is not None])).float().to(self.device)
-        last_reward_actions = torch.from_numpy(np.vstack([e.last_reward_action for e in experiences if e is not None])).float().to(self.device)
+        last_reward_observations = torch.from_numpy(np.vstack([e.last_reward_observation for e in experiences if e is not None]))\
+            .float().to(self.device)
+        last_global_actions = torch.from_numpy(np.vstack([e.last_global_action for e in experiences if e is not None]))\
+            .float().to(self.device)
+        last_reward_actions = torch.from_numpy(np.vstack([e.last_reward_action for e in experiences if e is not None]))\
+            .float().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
-        reward_states = torch.from_numpy(np.vstack([int(e.reward_state) for e in experiences if e is not None])).float().to(self.device)
-        global_actions = torch.from_numpy(np.vstack([e.global_action for e in experiences if e is not None])).float().to(self.device)
+        reward_observations = torch.from_numpy(np.vstack([int(e.reward_observation) for e in experiences if e is not None]))\
+            .float().to(self.device)
+        global_actions = torch.from_numpy(np.vstack([e.global_action for e in experiences if e is not None])).float()\
+            .to(self.device)
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
 
-        return last_reward_states, last_global_actions, last_reward_actions, rewards, reward_states, global_actions, dones
+        return last_reward_observations, last_global_actions, last_reward_actions, \
+            rewards, reward_observations, global_actions, dones
 
     def pick_experiences(self, num_experiences=None):
         """
