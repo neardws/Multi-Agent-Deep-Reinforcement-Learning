@@ -9,13 +9,16 @@ import numpy as np
 import random
 import copy
 
+
+# noinspection PyPep8Naming
 class OU_Noise(object):
     """Ornstein-Uhlenbeck process."""
     def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.2):
         self.mu = mu * np.ones(size)
         self.theta = theta
         self.sigma = sigma
-        self.seed = random.seed(seed)
+        random.seed(seed)
+        self.state = None
         self.reset()
 
     def reset(self):

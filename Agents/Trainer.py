@@ -6,26 +6,28 @@
 @Date    ：7/1/21 10:11 上午 
 """
 import pickle
-from Utilities.Data_structures.Config import Agent_Config
+from Utilities.Data_structures.Config import AgentConfig
 from Agents.HMAIMD import HMAIMD_Agent
+
 
 class Trainer(object):
     """
     Runs game for given agent
     """
     def __init__(self,
-                 agent_config=Agent_Config(),
-                 agent = HMAIMD_Agent()):
+                 agent_config=AgentConfig(),
+                 agent=HMAIMD_Agent()):
         self.config = agent_config
         self.agent = agent
 
-
-    def print_two_empty_lines(self):
+    @staticmethod
+    def print_two_empty_lines():
         print("-----------------------------------------------------------------------------------")
         print("-----------------------------------------------------------------------------------")
         print(" ")
 
-    def save_obj(self, obj, name):
+    @staticmethod
+    def save_obj(obj, name):
         """
         Saves given object as a pickle file
         :param obj:
@@ -37,7 +39,8 @@ class Trainer(object):
         with open(name, 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-    def load_obj(self, name):
+    @staticmethod
+    def load_obj(name):
         """
         Loads a pickle file object
         :param name:

@@ -8,12 +8,16 @@
 
 import sys
 from os import path
+
 sys.path.append(path.join(path.dirname(__file__), '..'))
 from Utilities.OU_Noise import OU_Noise
-from Exploration_strategies.Base_Exploration_Strategy import Base_Exploration_Strategy
+from Exploration_strategies.BaseExplorationStrategy import BaseExplorationStrategy
 
-class OU_Noise_Exploration(Base_Exploration_Strategy):
+
+# noinspection PyPep8Naming
+class OU_Noise_Exploration(BaseExplorationStrategy):
     """Ornstein-Uhlenbeck noise process exploration strategy"""
+
     def __init__(self, config):
         super().__init__(config)
         self.noise = OU_Noise(self.config.noise_action_size, self.config.noise_seed, self.config.noise_mu,

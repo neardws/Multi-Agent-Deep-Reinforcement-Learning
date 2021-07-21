@@ -16,7 +16,7 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Transplant implementation code from DDPG 2021-07-09
 - [x] Create NN functions for actor and critic networks 2021-07-11
 - [x] Renew buffer input and output 2021-07-12 
-- [x] Save NN input and output tensor into self.parameters 2021-07-12
+- [x] Save NN input and output tensor into self.Parameters 2021-07-12
 - [x] Init and update NN input and output 2021-07-13
 - [x] Normalization the input of NN 2021-07-13
 - [x] combined_action function realization 2021-07-13

@@ -8,7 +8,7 @@
 import numpy as np
 
 
-class Experiment_Config(object):
+class ExperimentConfig(object):
     """
     Object to hold the config requirements for an experiment
     :arg
@@ -28,10 +28,10 @@ class Experiment_Config(object):
 
     def __init__(self):
         """Map """
-        self.Longitude_min = None
-        self.Longitude_max = None
-        self.Latitude_min = None
-        self.Latitude_max = None
+        self.longitude_min = None
+        self.longitude_max = None
+        self.latitude_min = None
+        self.latitude_max = None
 
         self.time_start = None
         self.time_end = None
@@ -39,6 +39,7 @@ class Experiment_Config(object):
         """Experiment Setup"""
         self.episode_number = None
         self.max_episode_length = None
+
         """Some constant number"""
         self.vehicle_number = None
         self.data_types_number = None
@@ -92,10 +93,10 @@ class Experiment_Config(object):
 
     def config(self,
 
-               Longitude_min=104.04565967220308,  # 104.05089219802858
-               Longitude_max=104.07650822204591,  # 104.082306230011
-               Latitude_min=30.654605745741608,  # 30.64253859556557
-               Latitude_max=30.68394513007631,  # 30.6684641634594
+               longitude_min=104.04565967220308,  # 104.05089219802858
+               longitude_max=104.07650822204591,  # 104.082306230011
+               latitude_min=30.654605745741608,  # 30.64253859556557
+               latitude_max=30.68394513007631,  # 30.6684641634594
 
                time_start=1479031200,
 
@@ -133,10 +134,10 @@ class Experiment_Config(object):
                rolling_score_window=100
                ):
         """Map"""
-        self.Longitude_min = Longitude_min
-        self.Longitude_max = Longitude_max
-        self.Latitude_min = Latitude_min
-        self.Latitude_max = Latitude_max
+        self.longitude_min = longitude_min
+        self.longitude_max = longitude_max
+        self.latitude_min = latitude_min
+        self.latitude_max = latitude_max
 
         self.time_start = time_start
 
@@ -189,7 +190,7 @@ class Experiment_Config(object):
         self.rolling_score_window = rolling_score_window
 
 
-class Agent_Config(object):
+class AgentConfig(object):
     """
     Object to hold the config requirements for an agent/game
     :arg
@@ -221,7 +222,7 @@ class Agent_Config(object):
         self.reward_replay_buffer_batch_size = None
         self.reward_replay_buffer_seed = None
 
-        self.use_GPU = None
+        self.use_gpu = None
 
         """Noise"""
         self.noise_action_size = None
@@ -230,7 +231,7 @@ class Agent_Config(object):
         self.noise_theta = None
         self.noise_sigma = None
 
-        self.NN_seed = None
+        self.nn_seed = None
 
         self.environment_seed = None
 
@@ -245,13 +246,13 @@ class Agent_Config(object):
                reward_replay_buffer_buffer_size=30000,
                reward_replay_buffer_batch_size=256,
                reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               use_GPU=True,
+               use_gpu=True,
                noise_action_size=None,
                noise_seed=np.random.randint(0, 2 ** 32 - 2),
                noise_mu=0.0,
                noise_theta=0.15,
                noise_sigma=0.25,
-               NN_seed=np.random.randint(0, 2 ** 32 - 2),
+               nn_seed=np.random.randint(0, 2 ** 32 - 2),
                environment_seed=np.random.randint(0, 2 ** 32 - 2),
                hyperparameters=None,
                file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
@@ -261,13 +262,13 @@ class Agent_Config(object):
         self.reward_replay_buffer_buffer_size = reward_replay_buffer_buffer_size
         self.reward_replay_buffer_batch_size = reward_replay_buffer_batch_size
         self.reward_replay_buffer_seed = reward_replay_buffer_seed
-        self.use_GPU = use_GPU
+        self.use_gpu = use_gpu
         self.noise_action_size = noise_action_size
         self.noise_seed = noise_seed
         self.noise_mu = noise_mu
         self.noise_theta = noise_theta
         self.noise_sigma = noise_sigma
-        self.NN_seed = NN_seed
+        self.nn_seed = nn_seed
         self.environment_seed = environment_seed
         self.hyperparameters = hyperparameters
         self.file_to_save_data_results = file_to_save_data_results

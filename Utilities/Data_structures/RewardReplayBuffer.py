@@ -11,7 +11,7 @@ import torch
 import numpy as np
 
 
-class Reward_Replay_Buffer(object):
+class RewardReplayBuffer(object):
     """Replay buffer to store past reward experiences that the agent can then use for training data"""
 
     def __init__(self, buffer_size, batch_size, seed, device=None):
