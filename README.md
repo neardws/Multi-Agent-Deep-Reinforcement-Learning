@@ -4,8 +4,9 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 ### TODO
 
 - [ ] Code review
+- [ ] Unit testing
 
-### Done ✓
+### Done
 
 - [x] Update the readme.md 2021-07-03
 - [x] Renew Configuration 2021-07-04
@@ -25,3 +26,4 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] auto adjust learning rate 2021-07-16
 - [x] Trajectories related, such as define global trajectory within the experiment, and add trajectory predicted time in experiment parameters 2021-07-19
 - [x] Reorganize parameters in config according to HMAIMD_Agent 2021-07-20
+- [x] sensor_nodes_observations dimensions have some issues，need add unit testing 2021-07-26
