@@ -39,7 +39,7 @@ class HMAIMD_Agent(object):
 
     """
 
-    def __init__(self, agent_config=AgentConfig(), environment=VehicularNetworkEnv()):
+    def __init__(self, agent_config: AgentConfig, environment: VehicularNetworkEnv):
         self.config = agent_config
         self.environment = environment
         self.hyperparameters = self.config.hyperparameters
