@@ -78,24 +78,28 @@ class ExperienceReplayBuffer(object):
         :param experiences:
         :return:
         """
-        sensor_nodes_observations = torch.from_numpy(
-            np.vstack([e.sensor_nodes_observation for e in experiences if e is not None])).float().to(self.device)
+        sensor_nodes_observations = [e.sensor_nodes_observation for e in experiences if e is not None]
+        # one sensor_nodes_observation have observation of each sensor nodes
         edge_node_observations = torch.from_numpy(
             np.vstack([e.edge_node_observation for e in experiences if e is not None])).float().to(self.device)
-        sensor_nodes_actions = torch.from_numpy(
-            np.vstack([e.sensor_nodes_action for e in experiences if e is not None])).float().to(self.device)
+
+        sensor_nodes_actions = [e.sensor_nodes_action for e in experiences if e is not None]
+
         edge_node_actions = torch.from_numpy(
             np.vstack([e.edge_node_action for e in experiences if e is not None])).float().to(self.device)
-        sensor_nodes_rewards = torch.from_numpy(
-            np.vstack([e.sensor_nodes_reward for e in experiences if e is not None])).float().to(self.device)
+
+        sensor_nodes_rewards = [e.sensor_nodes_reward for e in experiences if e is not None]
+
         edge_node_rewards = torch.from_numpy(
             np.vstack([e.edge_node_reward for e in experiences if e is not None])).float().to(self.device)
-        next_sensor_nodes_observations = torch.from_numpy(
-            np.vstack([int(e.next_sensor_nodes_observation) for e in experiences if e is not None])).float().to(
-            self.device)
+
+        next_sensor_nodes_observations = [int(e.next_sensor_nodes_observation) for e in experiences if e is not None]
+
         next_edge_node_observations = torch.from_numpy(
             np.vstack([e.next_edge_node_observation for e in experiences if e is not None])).float().to(self.device)
+
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
+
         return sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
             sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, dones
 

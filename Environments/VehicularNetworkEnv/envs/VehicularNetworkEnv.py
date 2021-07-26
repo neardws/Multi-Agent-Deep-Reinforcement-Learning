@@ -143,12 +143,12 @@ class VehicularNetworkEnv(gym.Env):
         }
         self.action = dict()
         self.reward = None  # external reward
-        self.done = torch.from_numpy([0])
+        self.done = False
 
         """get Tensor type parameters"""
         self.sensor_nodes_observation = self.init_sensor_observation()  # individually observation state for sensor node
         self.edge_node_observation = self.init_edge_observation()
-        self.reward_observation = self.init_reward_observation()  # TODO reward state and observation are not same
+        self.reward_observation = self.init_reward_observation()
 
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation
 
@@ -221,8 +221,7 @@ class VehicularNetworkEnv(gym.Env):
 
     def get_sensor_observation_size(self):
         """
-        @TODO add service time of each data type
-        @May not need
+        # TODO Simplify the observation, may not necessary
         :return
             Observation state input to neural network
                     [
@@ -236,9 +235,9 @@ class VehicularNetworkEnv(gym.Env):
         """
         return int(
             1  # time_slots_index, changeable with time
-            + self.config.time_slots_number  # action_time_of_vehicle, changeable with action of vehicle
-            + self.config.data_types_number  # data_in_edge, changeable with action of vehicle
-            + self.config.data_types_number  # data_types_in_vehicle, unchangeable
+            + int(self.config.time_slots_number)  # action_time_of_vehicle, changeable with action of vehicle
+            + int(self.config.data_types_number)  # data_in_edge, changeable with action of vehicle
+            + int(self.config.data_types_number)  # data_types_in_vehicle, unchangeable
             + int(self.config.edge_views_number * self.config.time_slots_number)  # edge_view_in_edge_node, unchangeable
             + int(self.config.data_types_number * self.config.edge_views_number)  # view_required_data, unchangeable
         )
@@ -286,7 +285,11 @@ class VehicularNetworkEnv(gym.Env):
         )
 
     def get_actor_input_size_for_edge(self):
-        return self.get_edge_observation_size() + self.get_sensor_observation_size() * self.config.vehicle_number
+        """
+        Edge observation plus sensor nodes` actions
+        :return:
+        """
+        return self.get_edge_observation_size() + self.get_sensor_action_size() * self.config.vehicle_number
 
     def get_edge_action_size(self):
         """
@@ -504,7 +507,9 @@ class VehicularNetworkEnv(gym.Env):
         now_time_slot = self.episode_step
 
         if now_time_slot == self.config.max_episode_length:
-            self.done = torch.from_numpy([1])
+            self.done = True
+        else:
+            self.done = False
 
         """
         When the sensor node conduct the action, update the action time
