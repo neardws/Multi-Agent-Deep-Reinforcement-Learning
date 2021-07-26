@@ -6,6 +6,7 @@
 @Date    ：7/26/21 2:45 下午 
 """
 from torch import Tensor
+import numpy as np
 import torch
 
 if __name__ == '__main__':
@@ -22,3 +23,7 @@ if __name__ == '__main__':
     a = torch.cat((a, b), dim=0)
     print(a)
     print(a.shape)
+
+    c = np.zeros(shape=(3, 4))
+    c = Tensor(c)
+    print(c)

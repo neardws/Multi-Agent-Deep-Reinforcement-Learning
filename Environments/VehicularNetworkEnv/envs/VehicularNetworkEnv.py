@@ -387,7 +387,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         sensor_nodes_observation_list = []
         for vehicle_index in range(self.config.vehicle_number):
-            observation = np.zeros(shape=(self.get_sensor_observation_size()),
+            observation = np.zeros(shape=self.get_sensor_observation_size(),
                                    dtype=np.float)
             index_start = 0
             observation[index_start] = float(self.state['time']) / self.config.time_slots_number
@@ -428,7 +428,7 @@ class VehicularNetworkEnv(gym.Env):
         return sensor_nodes_observation
 
     def init_edge_observation(self):
-        observation = np.zeros(shape=(self.get_edge_observation_size()),
+        observation = np.zeros(shape=self.get_edge_observation_size(),
                                dtype=np.float)
         index_start = 0
         observation[index_start] = float(self.state['time']) / self.config.time_slots_number
@@ -465,7 +465,7 @@ class VehicularNetworkEnv(gym.Env):
         return Tensor(observation)
 
     def init_reward_observation(self):
-        observation = np.zeros(shape=(self.get_global_state_size()),
+        observation = np.zeros(shape=self.get_global_state_size(),
                                dtype=np.float)
         index_start = 0
         observation[index_start] = float(self.state['time']) / self.config.time_slots_number
@@ -521,9 +521,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         self.action = action
 
-        now_time_slot = self.episode_step
-
-        if now_time_slot == self.config.max_episode_length:
+        if self.episode_step == self.config.max_episode_length:
             self.done = True
         else:
             self.done = False
@@ -534,22 +532,24 @@ class VehicularNetworkEnv(gym.Env):
         """
         for vehicle_index in range(self.config.vehicle_number):
             """When the action time equal to now time"""
-            if self.next_action_time_of_sensor_nodes[vehicle_index] == now_time_slot:
+            if self.next_action_time_of_sensor_nodes[vehicle_index] == self.episode_step:
 
                 for data_type_index in range(self.config.data_types_number):
                     self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] = \
                         self.data_size_of_types[data_type_index]
 
-                vehicle_action = list()
+                vehicle_action = []
                 for data_type_index in range(self.config.data_types_number):
                     if self.data_types_in_vehicles[vehicle_index][data_type_index] == 1:
                         priority = self.action['priority'][vehicle_index][data_type_index]
                         arrival_rate = self.action['arrival_rate'][vehicle_index][data_type_index]
                         vehicle_action.append(
                             {'priority': priority, 'arrival_rate': arrival_rate, 'data_type': data_type_index})
+
                 vehicle_action.sort(key=lambda value: value['priority'])
                 max_average_waiting_time = 0
-                for index, action in enumerate(vehicle_action):
+                for index, values in enumerate(vehicle_action):
+                    data_type_index = values['data_type']
                     work_load_before_type = 0
                     mu_before_type = 0
                     if index != 0:
@@ -559,18 +559,19 @@ class VehicularNetworkEnv(gym.Env):
                                                          vehicle_action[i]['data_type']]
                             mu_before_type += vehicle_action[i]['arrival_rate'] * \
                                 self.config.second_moment_service_time_of_types[vehicle_action[i]['data_type']]
-                    average_sojourn_time = 1 / (1 - work_load_before_type + action['arrival_rate'] *
-                                                self.config.mean_service_time_of_types[action['data_type']])
+                    average_sojourn_time = 1 / (1 - work_load_before_type + values['arrival_rate'] *
+                                                self.config.mean_service_time_of_types[data_type_index])
                     if index != 0:
-                        average_sojourn_time *= self.config.mean_service_time_of_types[action['data_type']] + \
+                        average_sojourn_time *= self.config.mean_service_time_of_types[data_type_index] + \
                                                 (mu_before_type / (2 * (1 - work_load_before_type)))
                     else:
-                        average_sojourn_time *= self.config.mean_service_time_of_types[action['data_type']]
+                        average_sojourn_time *= self.config.mean_service_time_of_types[data_type_index]
+
                     average_waiting_time = average_sojourn_time - self.config.mean_service_time_of_types[
-                        action['data_type']]
+                        data_type_index]
 
                     """Update the waiting time in queue"""
-                    self.waiting_time_in_queue[vehicle_index][action['data_type']] = average_waiting_time
+                    self.waiting_time_in_queue[vehicle_index][data_type_index] = average_waiting_time
 
                     if average_waiting_time > max_average_waiting_time:
                         max_average_waiting_time = average_waiting_time
@@ -586,8 +587,9 @@ class VehicularNetworkEnv(gym.Env):
                 if self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] > 0:
                     transmission_start_time = self.action_time_of_sensor_nodes[vehicle_index] + \
                                               self.waiting_time_in_queue[vehicle_index][data_type_index]
-                    if now_time_slot >= transmission_start_time:
-                        SNR = self.compute_SNR(vehicle_index, now_time_slot)
+                    if self.episode_step >= transmission_start_time:
+                        self.data_in_edge_node[vehicle_index][data_type_index] = 0
+                        SNR = self.compute_SNR(vehicle_index, self.episode_step)
                         SNR_wall = self.computer_SNR_wall_by_noise_uncertainty(
                             noise_uncertainty=np.random.uniform(low=self.config.noise_uncertainty_low_bound,
                                                                 high=self.config.noise_uncertainty_up_bound))
@@ -601,13 +603,13 @@ class VehicularNetworkEnv(gym.Env):
                             data_type_index] -= transmission_bytes
                         if self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] <= 0:
                             self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] = 0
-                            self.data_in_edge_node[vehicle_index][data_type_index] = now_time_slot
+                            self.data_in_edge_node[vehicle_index][data_type_index] = self.episode_step
 
         """Computes the reward"""
         sum_age_of_view = 0
         view_required_number = 0
         for edge_view_index in range(self.config.edge_views_number):
-            if self.edge_views_in_edge_node[edge_view_index][now_time_slot] == 1:
+            if self.edge_views_in_edge_node[edge_view_index][self.episode_step] == 1:
                 view_required_number += 1
                 received_data_number = 0
                 required_data_number = 0
@@ -629,14 +631,16 @@ class VehicularNetworkEnv(gym.Env):
                     for data_type_index in range(self.config.data_types_number):
                         if (self.view_required_data[vehicle_index][data_type_index][edge_view_index] == 1) and (
                                 self.data_in_edge_node[vehicle_index][data_type_index] > 0):
-                            consistence += np.power(
-                                np.abs(self.action_time_of_sensor_nodes[vehicle_index] - average_generation_time), 2)
+                            consistence += np.abs(self.action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
                 if required_data_number == 0 or received_data_number == 0:
                     completeness = 0
                 else:
-                    completeness = received_data_number / required_data_number
-                age_of_view = 1 / 3 * (3 - (np.tanh(timeliness) + np.tanh(consistence) + completeness))
+                    completeness = received_data_number / required_data_number  # the number of successfully received data divided required data
+                # timeliness and consistence should be min as they can
+                # however, completeness should be max as it can
+                age_of_view = 1 / 3 * (2 - (np.tanh(timeliness) + np.tanh(consistence)) + completeness)
                 sum_age_of_view += age_of_view
+
         if view_required_number == 0 or sum_age_of_view == 0:
             self.reward = 0
         else:
