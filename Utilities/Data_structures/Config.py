@@ -83,6 +83,9 @@ class ExperimentConfig(object):
 
         self.rolling_score_window = None
 
+        self.edge_node_x = None
+        self.edge_node_y = None
+
         """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
         # self.data_size_of_types = None
         # self.data_types_in_vehicles = None
@@ -131,7 +134,10 @@ class ExperimentConfig(object):
                noise_uncertainty_low_bound=0,  # dB
                noise_uncertainty_up_bound=3,  # dB
                trajectories_predicted_time=10,
-               rolling_score_window=100
+               rolling_score_window=100,
+
+               edge_node_x=1500,
+               edge_node_y=1500
                ):
         """Map"""
         self.longitude_min = longitude_min
@@ -188,6 +194,9 @@ class ExperimentConfig(object):
 
         self.trajectories_predicted_time = trajectories_predicted_time
         self.rolling_score_window = rolling_score_window
+
+        self.edge_node_x = edge_node_x
+        self.edge_node_y = edge_node_y
 
 
 class AgentConfig(object):

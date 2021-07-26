@@ -1,3 +1,10 @@
+# -*- coding: UTF-8 -*-
+"""
+@Project ：Hierarchical-Reinforcement-Learning
+@File    ：test_HMAIMD.py
+@Author  ：Neardws
+@Date    ：7/26/21 2:45 下午
+"""
 import torch
 import numpy as np
 

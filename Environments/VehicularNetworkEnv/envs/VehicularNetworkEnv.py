@@ -33,7 +33,7 @@ class VehicularNetworkEnv(gym.Env):
     action: dict
     metadata = {'render.modes': []}
 
-    def __init__(self, experiment_config=ExperimentConfig()):
+    def __init__(self, experiment_config: ExperimentConfig):
         """
         init the environment via Experiment_Config
         :param experiment_config:
@@ -106,7 +106,11 @@ class VehicularNetworkEnv(gym.Env):
         """other parameters"""
         self.episode_step = None
         self.global_trajectories = None
+
+        self.trajectories_file_name = "/CSV/vehicle.csv"
         self.trajectories = None
+        self.init_experiences_global_trajectory()
+
         self.waiting_time_in_queue = None
         self.action_time_of_sensor_nodes = None
         self.next_action_time_of_sensor_nodes = None
@@ -123,6 +127,7 @@ class VehicularNetworkEnv(gym.Env):
         """Parameters for Reinforcement Learning"""
         self.episode_step = 0
         self.trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number), dtype=np.float)
+        self.init_trajectory()
 
         self.waiting_time_in_queue = np.zeros(shape=(self.config.vehicle_number, self.config.data_types_number))
         self.action_time_of_sensor_nodes = np.zeros(shape=self.config.vehicle_number)
@@ -152,11 +157,11 @@ class VehicularNetworkEnv(gym.Env):
 
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation
 
-    def init_experiences_global_trajectory(self, file_name, edge_node_x, edge_node_y):
+    def init_experiences_global_trajectory(self):
         self.global_trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number),
                                             dtype=np.float)
 
-        df = pd.read_csv(file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], index_col=0)
+        df = pd.read_csv(self.trajectories_file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], index_col=0)
         max_vehicle_id = df.groupby("vehicle_id").max()
         random_vehicle_id = np.random.sample(range(0, max_vehicle_id), self.config.vehicle_number)
 
@@ -167,7 +172,7 @@ class VehicularNetworkEnv(gym.Env):
                 time = row['time']
                 x = row['longitude']
                 y = row['latitude']
-                distance = np.sqrt((x - edge_node_x) ** 2 + (y - edge_node_y) ** 2)
+                distance = np.sqrt((x - self.config.edge_node_x) ** 2 + (y - self.config.edge_node_y) ** 2)
                 self.global_trajectories[new_vehicle_id][time] = distance
             new_vehicle_id += 1
 
@@ -177,6 +182,12 @@ class VehicularNetworkEnv(gym.Env):
                 if time_slot_index < self.config.trajectories_predicted_time:
                     self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][
                         time_slot_index]
+
+    def update_trajectories(self):
+        if self.episode_step >= self.config.trajectories_predicted_time:
+            for vehicle_index in range(self.config.vehicle_number):
+                self.trajectories[vehicle_index][self.episode_step] = self.global_trajectories[vehicle_index][
+                    self.episode_step]
 
     """
        /*________________________________________________________________
@@ -371,11 +382,10 @@ class VehicularNetworkEnv(gym.Env):
 
     def init_sensor_observation(self):
         """
-        # TODO Tensor.empty to torch.cat() work or not
         Inputs of actor network of sensor nodes
         :return:
         """
-        sensor_nodes_observation = Tensor.empty()
+        sensor_nodes_observation_list = []
         for vehicle_index in range(self.config.vehicle_number):
             observation = np.zeros(shape=(self.get_sensor_observation_size()),
                                    dtype=np.float)
@@ -407,7 +417,14 @@ class VehicularNetworkEnv(gym.Env):
                     index_start += 1
 
             observation = Tensor(observation)
-            torch.cat((sensor_nodes_observation, observation), dim=0)
+            sensor_nodes_observation_list.append(observation)
+
+        sensor_nodes_observation = torch.cat((sensor_nodes_observation_list[0], sensor_nodes_observation_list[1]),
+                                             dim=0)
+        for index, values in enumerate(sensor_nodes_observation_list):
+            if index > 1:
+                sensor_nodes_observation = torch.cat((sensor_nodes_observation, values), dim=0)
+
         return sensor_nodes_observation
 
     def init_edge_observation(self):
@@ -628,9 +645,10 @@ class VehicularNetworkEnv(gym.Env):
         """Update state and other observations"""
         self.episode_step += 1
 
-        # TODO update_trajectories
+        self.update_trajectories()
 
         self.state["time"] = self.episode_step
+        self.state["trajectories"] = self.trajectories
         self.state["action_time"] = self.action_time_of_sensor_nodes
         self.state["data_in_edge"] = self.data_in_edge_node
 
@@ -778,70 +796,3 @@ class VehicularNetworkEnv(gym.Env):
         :return:
         """
         pass
-
-
-if __name__ == '__main__':
-    # ratio = 2
-    # print(10 * np.log10(ratio))
-    # dB = 2
-    # print(np.power(10, (dB / 10)))
-
-    # mean_additive_white_gaussian_noise = 1 / np.power(10,10)
-    # mean_additive_white_gaussian_noise = 10e-11
-    # second_moment_additive_white_gaussian_noise = 0
-
-    # mean_channel_fading_gain = 2
-    # second_moment_channel_fading_gain = 0.4
-    #
-    # distance = 100
-    # path_loss_exponent = 3
-    # transmission_power = 0.001
-
-    # white_gaussian_noise = np.random.normal(loc=mean_additive_white_gaussian_noise,
-    #                                         scale=second_moment_additive_white_gaussian_noise)
-
-    # white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(-70)
-    # channel_fading_gain = np.random.normal(loc=mean_channel_fading_gain,
-    #                                        scale=second_moment_channel_fading_gain)
-    # SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
-    #       (1 / np.power(distance, path_loss_exponent)) * transmission_power
-    #
-    # print(white_gaussian_noise)
-    # # print(VehicularNetworkEnv.cover_W_to_dBm(mean_additive_white_gaussian_noise))
-    #
-    # print("Transmission power")
-    # print(VehicularNetworkEnv.cover_W_to_dBm(transmission_power))
-    #
-    # print("SNR")
-    # print(SNR)
-    # print(str(10 * np.log10(SNR)) + "dB")
-    #
-    # print(VehicularNetworkEnv.compute_transmission_rate(SNR, bandwidth=0.1))
-
-    # print(VehicularNetworkEnv.cover_dB_to_ratio(2))
-    #
-    # noise_uncertainty = np.random.random() * (3 - 1) + 1
-    # # noise_uncertainty = 1
-    # print("noise_uncertainty:" + str(noise_uncertainty))
-    # SNR_wall = VehicularNetworkEnv.computer_SNR_wall_by_noise_uncertainty(noise_uncertainty)
-    # print(SNR_wall)
-    # print(VehicularNetworkEnv.cover_ratio_to_dB(SNR_wall))
-
-    # dBm = 23
-    # print(np.power(10, (dBm / 10)) / 1000)
-    #
-    # W = 10e-11
-    # print(10 * np.log10(W * 1000))
-    #
-    # mW = 10e-12
-    # print(VehicularNetworkEnv.cover_mW_to_W(mW))
-    #
-    # print(VehicularNetworkEnv.cover_W_to_dBm(10e-11))
-    #
-    # print(VehicularNetworkEnv.cover_dBm_to_W(10))
-    #
-    # print(VehicularNetworkEnv.cover_dBm_to_W(-70))
-
-    # print(VehicularNetworkEnv.cover_dBm_to_W(-70) * 10e6)
-
-    print(1 / 3)
