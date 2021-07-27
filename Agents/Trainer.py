@@ -15,8 +15,8 @@ class Trainer(object):
     Runs game for given agent
     """
     def __init__(self,
-                 agent_config=AgentConfig(),
-                 agent=HMAIMD_Agent()):
+                 agent_config: AgentConfig,
+                 agent: HMAIMD_Agent):
         self.config = agent_config
         self.agent = agent
 
