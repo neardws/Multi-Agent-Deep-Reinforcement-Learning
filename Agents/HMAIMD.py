@@ -16,7 +16,7 @@ from torch import optim
 
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 from Exploration_strategies.OU_Noise_Exploration import OU_Noise_Exploration
-from Utilities.Data_structures.Config import AgentConfig
+from Config.AgentConfig import AgentConfig
 from Utilities.Data_structures.ExperienceReplayBuffer import ExperienceReplayBuffer
 from Utilities.Data_structures.RewardReplayBuffer import RewardReplayBuffer
 
@@ -639,7 +639,7 @@ class HMAIMD_Agent(object):
                                             edge_node_rewards: Tensor,
                                             next_sensor_nodes_observations: list,
                                             next_edge_node_observations: Tensor,
-                                            dones=torch.empty()):
+                                            dones: Tensor):
 
         """Runs a learning iteration for the critic of sensor nodes"""
         sensor_nodes_actions_next_list = []

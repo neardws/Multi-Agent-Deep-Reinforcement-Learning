@@ -9,7 +9,7 @@ import torch
 import numpy as np
 
 
-if __name__ == '__main__':
+def test_1():
     tensor_list = [torch.rand(2, 3) for _ in range(4)]
     print(tensor_list)
 
