@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import pandas as pd
 from torch import Tensor
-from Utilities.Data_structures.Config import ExperimentConfig
+from Config.ExperimentConfig import ExperimentConfig
 
 """
 Workflow of VehicularNetworkEnv
@@ -79,12 +79,14 @@ class VehicularNetworkEnv(gym.Env):
         self.view_required_data = np.random.rand(self.config.vehicle_number,
                                                  self.config.data_types_number,
                                                  self.config.edge_views_number)
-        for value in np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite']):
-            if self.data_types_in_vehicles[tuple(value.multi_index)[0]][tuple(value.multi_index)[1]] == 1 and \
-                    value[...] <= self.config.threshold_view_required_data:
-                value[...] = 1
+        it = np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite'])
+        while not it.finished:
+            if self.data_types_in_vehicles[tuple(it.multi_index)[0]][tuple(it.multi_index)[1]] == 1 and \
+                    it[0] <= self.config.threshold_view_required_data:
+                it[0] = 1
             else:
-                value[...] = 0
+                it[0] = 0
+            it.iternext()
 
         """Trajectories and data in edge node"""
 
@@ -107,7 +109,7 @@ class VehicularNetworkEnv(gym.Env):
         self.episode_step = None
         self.global_trajectories = None
 
-        self.trajectories_file_name = "/CSV/vehicle.csv"
+        self.trajectories_file_name = "~/Documents/pyProject_hrl/CSV/vehicle.csv"
         self.trajectories = None
         self.init_experiences_global_trajectory()
 
@@ -161,17 +163,19 @@ class VehicularNetworkEnv(gym.Env):
         self.global_trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number),
                                             dtype=np.float)
 
-        df = pd.read_csv(self.trajectories_file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], index_col=0)
-        max_vehicle_id = df.groupby("vehicle_id").max()
-        random_vehicle_id = np.random.sample(range(0, max_vehicle_id), self.config.vehicle_number)
+        df = pd.read_csv(self.trajectories_file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], header=0)
+
+        max_vehicle_id = df['vehicle_id'].max()
+
+        random_vehicle_id = np.random.choice(max_vehicle_id, self.config.vehicle_number, replace=False)
 
         new_vehicle_id = 0
         for vehicle_id in random_vehicle_id:
             new_df = df[df['vehicle_id'] == vehicle_id]
             for row in new_df.itertuples():
-                time = row['time']
-                x = row['longitude']
-                y = row['latitude']
+                time = getattr(row, 'time')
+                x = getattr(row, 'longitude')
+                y = getattr(row, 'latitude')
                 distance = np.sqrt((x - self.config.edge_node_x) ** 2 + (y - self.config.edge_node_y) ** 2)
                 self.global_trajectories[new_vehicle_id][time] = distance
             new_vehicle_id += 1
@@ -246,7 +250,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         return int(
             1  # time_slots_index, changeable with time
-            + int(self.config.time_slots_number)  # action_time_of_vehicle, changeable with action of vehicle
+            + 1  # action_time_of_vehicle, changeable with action of vehicle
             + int(self.config.data_types_number)  # data_in_edge, changeable with action of vehicle
             + int(self.config.data_types_number)  # data_types_in_vehicle, unchangeable
             + int(self.config.edge_views_number * self.config.time_slots_number)  # edge_view_in_edge_node, unchangeable
@@ -333,7 +337,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         return int(
             1  # time_slots_index
-            + int(self.config.vehicle_number * self.config.time_slots_number)  # action time of sensor nodes
+            + int(self.config.vehicle_number)  # action time of sensor nodes
             + int(
                 self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles
             # in edge node
@@ -393,9 +397,8 @@ class VehicularNetworkEnv(gym.Env):
             observation[index_start] = float(self.state['time']) / self.config.time_slots_number
 
             index_start = 1
-            for time_index in range(self.config.time_slots_number):
-                observation[index_start] = self.state['action_time'][vehicle_index][time_index]
-                index_start += 1
+            observation[index_start] = self.state['action_time'][vehicle_index]
+            index_start += 1
 
             for data_type_index in range(self.config.data_types_number):
                 observation[index_start] = float(
@@ -472,9 +475,8 @@ class VehicularNetworkEnv(gym.Env):
 
         index_start = 1
         for vehicle_index in range(self.config.vehicle_number):
-            for time_index in range(self.config.time_slots_number):
-                observation[index_start] = self.state['action_time'][vehicle_index][time_index]
-                index_start += 1
+            observation[index_start] = self.state['action_time'][vehicle_index]
+            index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
             for data_type_index in range(self.config.data_types_number):
@@ -679,10 +681,8 @@ class VehicularNetworkEnv(gym.Env):
                 self.state['time']) / self.config.time_slots_number
 
             index_start = 1
-            for time_index in range(self.config.time_slots_number):
-                self.sensor_nodes_observation[vehicle_index][index_start] = self.state['action_time'][vehicle_index][
-                    time_index]
-                index_start += 1
+            self.sensor_nodes_observation[vehicle_index][index_start] = self.state['action_time'][vehicle_index]
+            index_start += 1
 
             for data_type_index in range(self.config.data_types_number):
                 self.sensor_nodes_observation[vehicle_index][index_start] = float(
@@ -712,9 +712,8 @@ class VehicularNetworkEnv(gym.Env):
 
         index_start = 1
         for vehicle_index in range(self.config.vehicle_number):
-            for time_index in range(self.config.time_slots_number):
-                self.reward_observation[index_start] = self.state['action_time'][vehicle_index][time_index]
-                index_start += 1
+            self.reward_observation[index_start] = self.state['action_time'][vehicle_index]
+            index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
             for data_type_index in range(self.config.data_types_number):

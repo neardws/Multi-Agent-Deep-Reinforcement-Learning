@@ -1,9 +1,15 @@
 # Hierarchical-Reinforcement-Learning
 Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View (MAAV) Problem
 
+![](https://img.shields.io/github/issues/neardws/Hierarchical-Reinforcement-Learning)
+![](https://img.shields.io/github/forks/neardws/Hierarchical-Reinforcement-Learning)
+![](https://img.shields.io/github/stars/neardws/Hierarchical-Reinforcement-Learning)
+![](https://img.shields.io/github/license/neardws/Hierarchical-Reinforcement-Learning)
+
 ### TODO
 
 - [ ] Unit testing
+  - [ ] bug found on global trajectory process with zero values, and view required data maybe all zero in one view which means it may require no data
 
 ### Done
 
@@ -15,7 +21,7 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Read DDPG in detail 2021-07-06
 - [x] Transplant implementation code from DDPG 2021-07-09
 - [x] Create NN functions for actor and critic networks 2021-07-11
-- [x] Renew buffer input and output 2021-07-12 
+- [x] Renew buffer input and output 2021-07-12
 - [x] Save NN input and output tensor into self.Parameters 2021-07-12
 - [x] Init and update NN input and output 2021-07-13
 - [x] Normalization the input of NN 2021-07-13

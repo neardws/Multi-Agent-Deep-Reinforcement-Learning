@@ -9,7 +9,8 @@ from torch import Tensor
 import numpy as np
 import torch
 
-if __name__ == '__main__':
+
+def test_2():
 
     a = torch.rand(3, 4)
     b = torch.rand(3, 4)

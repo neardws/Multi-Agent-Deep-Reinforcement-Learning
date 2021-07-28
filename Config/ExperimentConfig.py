@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
 """
-@Project ：Hierarchical-Reinforcement-Learning
-@File    ：Config.py
+@Project ：Hierarchical-Reinforcement-Learning 
+@File    ：ExperimentConfig.py
 @Author  ：Neardws
-@Date    ：6/16/21 4:53 下午
+@Date    ：7/27/21 10:42 上午 
 """
 import numpy as np
 
@@ -86,14 +86,6 @@ class ExperimentConfig(object):
         self.edge_node_x = None
         self.edge_node_y = None
 
-        """Random generated value, the relationship of data types, edge views, vehicles, and edge node"""
-        # self.data_size_of_types = None
-        # self.data_types_in_vehicles = None
-        # self.edge_views_in_edge_node = None
-        # self.view_required_data = None
-        # self.trajectories = None
-        # self.data_in_edge_node = None
-
     def config(self,
 
                longitude_min=104.04565967220308,  # 104.05089219802858
@@ -167,7 +159,7 @@ class ExperimentConfig(object):
         self.data_size_up_bound = data_size_up_bound
 
         self.seed_edge_views_in_edge_node = np.random.randint(0, 2 ** 32 - 2)
-        self.edge_view_required_start_time = edge_view_required_start_time,
+        self.edge_view_required_start_time = edge_view_required_start_time
         self.threshold_edge_views_in_edge_node = threshold_edge_views_in_edge_node
 
         self.seed_view_required_data = np.random.randint(0, 2 ** 32 - 2)
@@ -197,86 +189,3 @@ class ExperimentConfig(object):
 
         self.edge_node_x = edge_node_x
         self.edge_node_y = edge_node_y
-
-
-class AgentConfig(object):
-    """
-    Object to hold the config requirements for an agent/game
-    :arg
-        seed: seed for random number, to make sure the result can be recurrent
-        environment: environment where agent interact with
-        requirement_to_solve_game: # TODO fix the meaning
-        num_episodes_to_run: the number of episodes
-        file_to_save_data_results: file to save the result
-        file_to_save_results_graph: # TODO may need more graph for the experiment
-        runs_per_agents: #TODO Fix the meaning
-        visualise_overall_results: show the overall results or not
-        visualise_individual_results: show the results individual or not
-        hyperparameters: the parameters of NN, neural network
-        use_GPU: is the data on the GPU, select devices to run
-        overwrite_existing_results_file: overwrite the result file or not
-        save_model: save the model or not
-        standard_deviation_results: # TODO fix the meaning
-        randomise_random_seed: # TODO fix the meaning
-        show_solution_score: show the solution score or not
-        debug_mode: in debug mode or not
-    """
-
-    def __init__(self):
-        self.experience_replay_buffer_buffer_size = None
-        self.experience_replay_buffer_batch_size = None
-        self.experience_replay_buffer_seed = None
-
-        self.reward_replay_buffer_buffer_size = None
-        self.reward_replay_buffer_batch_size = None
-        self.reward_replay_buffer_seed = None
-
-        self.use_gpu = None
-
-        self.nn_seed = None
-
-        self.environment_seed = None
-
-        self.hyperparameters = None
-
-        self.file_to_save_data_results = None
-
-    def config(self,
-               experience_replay_buffer_buffer_size=30000,
-               experience_replay_buffer_batch_size=256,
-               experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               reward_replay_buffer_buffer_size=30000,
-               reward_replay_buffer_batch_size=256,
-               reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               use_gpu=True,
-               nn_seed=np.random.randint(0, 2 ** 32 - 2),
-               environment_seed=np.random.randint(0, 2 ** 32 - 2),
-               hyperparameters=None,
-               file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
-        self.experience_replay_buffer_buffer_size = experience_replay_buffer_buffer_size
-        self.experience_replay_buffer_batch_size = experience_replay_buffer_batch_size
-        self.experience_replay_buffer_seed = experience_replay_buffer_seed
-        self.reward_replay_buffer_buffer_size = reward_replay_buffer_buffer_size
-        self.reward_replay_buffer_batch_size = reward_replay_buffer_batch_size
-        self.reward_replay_buffer_seed = reward_replay_buffer_seed
-        self.use_gpu = use_gpu
-        self.nn_seed = nn_seed
-        self.environment_seed = environment_seed
-        self.hyperparameters = hyperparameters
-        self.file_to_save_data_results = file_to_save_data_results
-
-
-if __name__ == '__main__':
-    # np.random.seed(1)
-    # print(np.random.rand(10))
-    # np.random.seed(1)
-    # print(np.random.rand(10))
-    # print(np.random.randint(0,2,10))
-    # print(np.random.randint(0,2,10))
-
-    # TODO test this code
-    action_time_of_sensor_nodes = np.zeros((2, 3))
-    print(action_time_of_sensor_nodes.shape)
-    print(action_time_of_sensor_nodes)
-    action_time_of_sensor_nodes[:, 0] = 1
-    print(action_time_of_sensor_nodes)

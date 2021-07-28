@@ -8,8 +8,8 @@
 import numpy as np
 from Agents.HMAIMD import HMAIMD_Agent
 from Environments.VehicularNetworkEnv.envs import VehicularNetworkEnv
-from Utilities.Data_structures.Config import AgentConfig
-from Utilities.Data_structures.Config import ExperimentConfig
+from Config.AgentConfig import AgentConfig
+from Config.ExperimentConfig import ExperimentConfig
 from Agents.Trainer import Trainer
 
 if __name__ == '__main__':
