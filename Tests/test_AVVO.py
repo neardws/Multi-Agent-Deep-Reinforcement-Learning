@@ -18,14 +18,15 @@ def test_init():
     experiment_config = ExperimentConfig()
     experiment_config.config()
 
-    for item in experiment_config.__dict__:
-        print(item)
-        print(experiment_config.__getattribute__(item))
-        print(type(experiment_config.__getattribute__(item)))
-        print()
+    # for item in experiment_config.__dict__:
+    #     print(item)
+    #     print(experiment_config.__getattribute__(item))
+    #     print(type(experiment_config.__getattribute__(item)))
+    #     print()
 
     vehicularNetworkEnv = VehicularNetworkEnv(experiment_config)
     vehicularNetworkEnv.reset()
+
     for item in vehicularNetworkEnv.__dict__:
         print(item)
         print(vehicularNetworkEnv.__getattribute__(item))

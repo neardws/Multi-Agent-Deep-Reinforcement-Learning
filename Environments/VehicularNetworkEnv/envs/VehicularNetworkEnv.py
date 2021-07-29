@@ -160,14 +160,20 @@ class VehicularNetworkEnv(gym.Env):
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation
 
     def init_experiences_global_trajectory(self):
+        # print("*" * 64)
+        # print("init_experiences_global_trajectory")
         self.global_trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number),
                                             dtype=np.float)
 
         df = pd.read_csv(self.trajectories_file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], header=0)
 
         max_vehicle_id = df['vehicle_id'].max()
+        # print(max_vehicle_id)
+        # print(type(max_vehicle_id))
 
-        random_vehicle_id = np.random.choice(max_vehicle_id, self.config.vehicle_number, replace=False)
+        random_vehicle_id = np.random.choice(int(max_vehicle_id), self.config.vehicle_number, replace=False)
+        # print("random_vehicle_id")
+        # print(random_vehicle_id)
 
         new_vehicle_id = 0
         for vehicle_id in random_vehicle_id:
@@ -176,8 +182,11 @@ class VehicularNetworkEnv(gym.Env):
                 time = getattr(row, 'time')
                 x = getattr(row, 'longitude')
                 y = getattr(row, 'latitude')
+                # print("time: ", time, "    x: ", x, "   y: ", y)
                 distance = np.sqrt((x - self.config.edge_node_x) ** 2 + (y - self.config.edge_node_y) ** 2)
-                self.global_trajectories[new_vehicle_id][time] = distance
+                # if distance == 0:
+                # print("x:", x, "    y:", y)
+                self.global_trajectories[new_vehicle_id][int(time)] = distance
             new_vehicle_id += 1
 
     def init_trajectory(self):
