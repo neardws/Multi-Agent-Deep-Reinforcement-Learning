@@ -76,17 +76,20 @@ class VehicularNetworkEnv(gym.Env):
 
         """Random generated of view required data"""
         np.random.seed(self.config.seed_view_required_data)
-        self.view_required_data = np.random.rand(self.config.vehicle_number,
-                                                 self.config.data_types_number,
-                                                 self.config.edge_views_number)
-        it = np.nditer(self.view_required_data, flags=['multi_index'], op_flags=['readwrite'])
-        while not it.finished:
-            if self.data_types_in_vehicles[tuple(it.multi_index)[0]][tuple(it.multi_index)[1]] == 1 and \
-                    it[0] <= self.config.threshold_view_required_data:
-                it[0] = 1
-            else:
-                it[0] = 0
-            it.iternext()
+        self.view_required_data = np.random.rand(self.config.edge_views_number,
+                                                 self.config.vehicle_number,
+                                                 self.config.data_types_number)
+
+        for edge_view_index in range(self.config.edge_views_number):
+            for vehicle_index in range(self.config.vehicle_number):
+                for data_types_index in range(self.config.data_types_number):
+                    if self.data_types_in_vehicles[vehicle_index][data_types_index] == 1:
+                        if self.view_required_data[edge_view_index][vehicle_index][data_types_index] < self.config.threshold_view_required_data:
+                            self.view_required_data[edge_view_index][vehicle_index][data_types_index] = 1
+                        else:
+                            self.view_required_data[edge_view_index][vehicle_index][data_types_index] = 0
+                    else:
+                        self.view_required_data[edge_view_index][vehicle_index][data_types_index] = 0
 
         """Trajectories and data in edge node"""
 
@@ -160,20 +163,14 @@ class VehicularNetworkEnv(gym.Env):
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation
 
     def init_experiences_global_trajectory(self):
-        # print("*" * 64)
-        # print("init_experiences_global_trajectory")
         self.global_trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number),
                                             dtype=np.float)
 
         df = pd.read_csv(self.trajectories_file_name, names=['vehicle_id', 'time', 'longitude', 'latitude'], header=0)
 
         max_vehicle_id = df['vehicle_id'].max()
-        # print(max_vehicle_id)
-        # print(type(max_vehicle_id))
 
         random_vehicle_id = np.random.choice(int(max_vehicle_id), self.config.vehicle_number, replace=False)
-        # print("random_vehicle_id")
-        # print(random_vehicle_id)
 
         new_vehicle_id = 0
         for vehicle_id in random_vehicle_id:
@@ -182,10 +179,7 @@ class VehicularNetworkEnv(gym.Env):
                 time = getattr(row, 'time')
                 x = getattr(row, 'longitude')
                 y = getattr(row, 'latitude')
-                # print("time: ", time, "    x: ", x, "   y: ", y)
                 distance = np.sqrt((x - self.config.edge_node_x) ** 2 + (y - self.config.edge_node_y) ** 2)
-                # if distance == 0:
-                # print("x:", x, "    y:", y)
                 self.global_trajectories[new_vehicle_id][int(time)] = distance
             new_vehicle_id += 1
 

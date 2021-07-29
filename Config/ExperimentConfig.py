@@ -99,7 +99,7 @@ class ExperimentConfig(object):
                max_episode_length=300,
 
                vehicle_number=10,
-               data_types_number=5,
+               data_types_number=10,
                edge_views_number=10,
 
                threshold_data_types_in_vehicles=0.3,
@@ -107,8 +107,8 @@ class ExperimentConfig(object):
                data_size_up_bound=5 * 1024 * 1024,  # Bytes
 
                edge_view_required_start_time=10,
-               threshold_edge_views_in_edge_node=0.3,
-               threshold_view_required_data=0.3,
+               threshold_edge_views_in_edge_node=0.15,
+               threshold_view_required_data=0.6,
 
                arrival_rate_low_bound=None,
                arrival_rate_up_bound=None,
