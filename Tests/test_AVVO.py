@@ -5,6 +5,7 @@
 @Author  ：Neardws
 @Date    ：7/27/21 3:12 下午 
 """
+import yaml
 import numpy as np
 import torch
 from Agents.HMAIMD import HMAIMD_Agent
@@ -16,6 +17,24 @@ from Agents.Trainer import Trainer
 
 np.set_printoptions(threshold=np.inf)
 torch.set_printoptions(threshold=np.inf)
+
+
+def test_SNR():
+    experiment_config = ExperimentConfig()
+    experiment_config.config()
+
+    vehicularNetworkEnv = VehicularNetworkEnv(experiment_config)
+    vehicularNetworkEnv.reset()
+
+    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=500))
+    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=1000))
+    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=1250))
+    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=1500))
+    a = np.random.uniform(low=vehicularNetworkEnv.config.noise_uncertainty_low_bound,
+                          high=vehicularNetworkEnv.config.noise_uncertainty_up_bound)
+    print(a)
+    print(vehicularNetworkEnv.computer_SNR_wall_by_noise_uncertainty(noise_uncertainty=a))
+    vehicularNetworkEnv.get_mean_and_second_moment_service_time_of_types()
 
 
 def test_init():
@@ -31,21 +50,120 @@ def test_init():
     vehicularNetworkEnv = VehicularNetworkEnv(experiment_config)
     vehicularNetworkEnv.reset()
 
-    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=500))
-    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=1000))
-    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=1250))
-    print(vehicularNetworkEnv.compute_SNR_by_distance(distance=1500))
-    a = np.random.uniform(low=vehicularNetworkEnv.config.noise_uncertainty_low_bound,
-                          high=vehicularNetworkEnv.config.noise_uncertainty_up_bound)
-    print(a)
-    print(vehicularNetworkEnv.computer_SNR_wall_by_noise_uncertainty(noise_uncertainty=a))
-    # vehicularNetworkEnv.get_mean_and_second_moment_service_time_of_types()
-
     # for item in vehicularNetworkEnv.__dict__:
     #     print(item)
     #     print(vehicularNetworkEnv.__getattribute__(item))
     #     print(type(vehicularNetworkEnv.__getattribute__(item)))
     #     print()
+
+    agent_config = AgentConfig()
+
+    hyperparameters = {
+        # Builds a NN with 2 output heads. The first output heads has data_types_number hidden units and
+        # uses a softmax activation function and the second output head has data_types_number hidden units and
+        # uses a softmax activation function
+
+        "Actor_of_Sensor": {
+            "learning_rate": 0.001,
+            "linear_hidden_units":
+                [int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
+                 int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
+                 int(vehicularNetworkEnv.get_sensor_observation_size())],
+            "final_layer_activation": ["softmax", "softmax"],
+            "batch_norm": False,
+            "tau": 0.01,
+            "gradient_clipping_norm": 5,
+            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+            "mu": 0.0,
+            "theta": 0.15,
+            "sigma": 0.25
+        },
+
+        "Critic_of_Sensor": {
+            "learning_rate": 0.01,
+            "linear_hidden_units":
+                [int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_sensor())],
+            "final_layer_activation": None,
+            "batch_norm": False,
+            "tau": 0.01,
+            "gradient_clipping_norm": 5
+        },
+
+        "Actor_of_Edge": {
+            "learning_rate": 0.001,
+            "linear_hidden_units":
+                [int(vehicularNetworkEnv.get_actor_input_size_for_edge() * 1.5),
+                 int(vehicularNetworkEnv.get_actor_input_size_for_edge() * 1.5),
+                 int(vehicularNetworkEnv.get_actor_input_size_for_edge())],
+            "final_layer_activation": "softmax",
+            "batch_norm": False,
+            "tau": 0.01,
+            "gradient_clipping_norm": 5,
+            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+            "mu": 0.0,
+            "theta": 0.15,
+            "sigma": 0.25
+        },
+
+        "Critic_of_Edge": {
+            "learning_rate": 0.01,
+            "linear_hidden_units":
+                [int(vehicularNetworkEnv.get_critic_size_for_edge() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_edge() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_edge())],
+            "final_layer_activation": None,
+            "batch_norm": False,
+            "tau": 0.01,
+            "gradient_clipping_norm": 5
+        },
+
+        "Actor_of_Reward": {
+            "learning_rate": 0.001,
+            "linear_hidden_units":
+                [int(vehicularNetworkEnv.get_actor_input_size_for_reward() * 1.5),
+                 int(vehicularNetworkEnv.get_actor_input_size_for_reward() * 1.5),
+                 int(vehicularNetworkEnv.get_actor_input_size_for_reward())],
+            "final_layer_activation": "softmax",
+            "batch_norm": False,
+            "tau": 0.01,
+            "gradient_clipping_norm": 5,
+            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+            "mu": 0.0,
+            "theta": 0.15,
+            "sigma": 0.25
+        },
+
+        "Critic_of_Reward": {
+            "learning_rate": 0.01,
+            "linear_hidden_units":
+                [int(vehicularNetworkEnv.get_critic_size_for_reward() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_reward() * 1.5),
+                 int(vehicularNetworkEnv.get_critic_size_for_reward())],
+            "final_layer_activation": None,
+            "batch_norm": False,
+            "tau": 0.01,
+            "gradient_clipping_norm": 5
+        },
+
+        "discount_rate": 0.9,
+        "update_every_n_steps": 10,
+        "learning_updates_per_learning_session": 10,
+        "clip_rewards": False}
+
+    agent_config.config(hyperparameters=hyperparameters)
+
+    for item in agent_config.__dict__:
+        if isinstance(agent_config.__getattribute__(item), dict):
+            print(item)
+            print(yaml.dump(agent_config.__getattribute__(item), sort_keys=False, default_flow_style=False))
+            print()
+        else:
+            print(item)
+            print(agent_config.__getattribute__(item))
+            print(type(agent_config.__getattribute__(item)))
+            print()
 
 
 if __name__ == '__main__':
