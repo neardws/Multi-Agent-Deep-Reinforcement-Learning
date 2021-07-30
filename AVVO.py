@@ -12,6 +12,7 @@ from Config.AgentConfig import AgentConfig
 from Config.ExperimentConfig import ExperimentConfig
 from Agents.Trainer import Trainer
 
+
 if __name__ == '__main__':
     experiment_config = ExperimentConfig()
     experiment_config.config()
