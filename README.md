@@ -33,3 +33,4 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] sensor_nodes_observations dimensions have some issues，need add unit testing 2021-07-26
 - [x] Code review 2021-07-27
 - [x] bug found on global trajectory process with zero values, and view required data maybe all zero in one view which means it may require no data 2021-07-29
+- [x] Unit testing finished in VehicularNetworkEnv.py 2021-07-30

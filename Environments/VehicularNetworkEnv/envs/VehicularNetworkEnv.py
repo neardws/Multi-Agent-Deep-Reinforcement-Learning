@@ -43,6 +43,8 @@ class VehicularNetworkEnv(gym.Env):
         self.config = experiment_config
         assert self.config is not None
 
+        self.get_mean_and_second_moment_service_time_of_types()
+
         """Experiment Setup"""
         self.episode_number = self.config.episode_number
         self.max_episode_length = self.config.max_episode_length
@@ -84,7 +86,8 @@ class VehicularNetworkEnv(gym.Env):
             for vehicle_index in range(self.config.vehicle_number):
                 for data_types_index in range(self.config.data_types_number):
                     if self.data_types_in_vehicles[vehicle_index][data_types_index] == 1:
-                        if self.view_required_data[edge_view_index][vehicle_index][data_types_index] < self.config.threshold_view_required_data:
+                        if self.view_required_data[edge_view_index][vehicle_index][data_types_index] \
+                                < self.config.threshold_view_required_data:
                             self.view_required_data[edge_view_index][vehicle_index][data_types_index] = 1
                         else:
                             self.view_required_data[edge_view_index][vehicle_index][data_types_index] = 0
@@ -98,6 +101,7 @@ class VehicularNetworkEnv(gym.Env):
         -----------------------Parameters for Reinforcement Learning
         --------------------------------------------------------------------------------------------
         """
+
         """float parameters"""
         self.reward = None  # external reward
         self.done = None
@@ -131,7 +135,8 @@ class VehicularNetworkEnv(gym.Env):
 
         """Parameters for Reinforcement Learning"""
         self.episode_step = 0
-        self.trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.time_slots_number), dtype=np.float)
+        self.trajectories = np.zeros(shape=(self.config.vehicle_number, self.config.trajectories_predicted_time),
+                                     dtype=np.float)
         self.init_trajectory()
 
         self.waiting_time_in_queue = np.zeros(shape=(self.config.vehicle_number, self.config.data_types_number))
@@ -185,16 +190,17 @@ class VehicularNetworkEnv(gym.Env):
 
     def init_trajectory(self):
         for vehicle_index in range(self.config.vehicle_number):
-            for time_slot_index in range(self.config.time_slots_number):
-                if time_slot_index < self.config.trajectories_predicted_time:
-                    self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][
-                        time_slot_index]
+            for time_slot_index in range(self.episode_step,
+                                         self.episode_step + self.config.trajectories_predicted_time):
+                self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][
+                    time_slot_index]
 
     def update_trajectories(self):
-        if self.episode_step >= self.config.trajectories_predicted_time:
-            for vehicle_index in range(self.config.vehicle_number):
-                self.trajectories[vehicle_index][self.episode_step] = self.global_trajectories[vehicle_index][
-                    self.episode_step]
+        for vehicle_index in range(self.config.vehicle_number):
+            for time_slot_index in range(self.episode_step,
+                                         self.episode_step + self.config.trajectories_predicted_time):
+                self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][
+                    time_slot_index]
 
     """
        /*________________________________________________________________
@@ -239,7 +245,6 @@ class VehicularNetworkEnv(gym.Env):
 
     def get_sensor_observation_size(self):
         """
-        # TODO Simplify the observation, may not necessary
         :return
             Observation state input to neural network
                     [
@@ -295,7 +300,8 @@ class VehicularNetworkEnv(gym.Env):
             + int(
                 self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles
             # in edge node
-            + int(self.config.vehicle_number * self.config.time_slots_number)  # predicted trajectories of all vehicles
+            + int(
+                self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
             + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
             + int(self.config.edge_views_number * self.config.time_slots_number)  # required edge view in edge node
             + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)
@@ -344,7 +350,8 @@ class VehicularNetworkEnv(gym.Env):
             + int(
                 self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles
             # in edge node
-            + int(self.config.vehicle_number * self.config.time_slots_number)  # predicted trajectories of all vehicles
+            + int(
+                self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
             + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
             + int(self.config.edge_views_number * self.config.time_slots_number)  # required edge view in edge node
             + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)
@@ -447,7 +454,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
-            for time_index in range(self.config.time_slots_number):
+            for time_index in range(self.config.trajectories_predicted_time):
                 observation[index_start] = float(
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
@@ -488,7 +495,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
-            for time_index in range(self.config.time_slots_number):
+            for time_index in range(self.config.trajectories_predicted_time):
                 observation[index_start] = float(
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
@@ -560,19 +567,21 @@ class VehicularNetworkEnv(gym.Env):
                     if index != 0:
                         for i in range(index):
                             work_load_before_type += vehicle_action[i]['arrival_rate'] * \
-                                                     self.config.mean_service_time_of_types[
+                                                     self.config.mean_service_time_of_types[vehicle_index][
                                                          vehicle_action[i]['data_type']]
                             mu_before_type += vehicle_action[i]['arrival_rate'] * \
-                                self.config.second_moment_service_time_of_types[vehicle_action[i]['data_type']]
+                                self.config.second_moment_service_time_of_types[vehicle_index][
+                                vehicle_action[i]['data_type']]
+
                     average_sojourn_time = 1 / (1 - work_load_before_type + values['arrival_rate'] *
-                                                self.config.mean_service_time_of_types[data_type_index])
+                                                self.config.mean_service_time_of_types[vehicle_index][data_type_index])
                     if index != 0:
                         average_sojourn_time *= self.config.mean_service_time_of_types[data_type_index] + \
                                                 (mu_before_type / (2 * (1 - work_load_before_type)))
                     else:
-                        average_sojourn_time *= self.config.mean_service_time_of_types[data_type_index]
+                        average_sojourn_time *= self.config.mean_service_time_of_types[vehicle_index][data_type_index]
 
-                    average_waiting_time = average_sojourn_time - self.config.mean_service_time_of_types[
+                    average_waiting_time = average_sojourn_time - self.config.mean_service_time_of_types[vehicle_index][
                         data_type_index]
 
                     """Update the waiting time in queue"""
@@ -636,7 +645,8 @@ class VehicularNetworkEnv(gym.Env):
                     for data_type_index in range(self.config.data_types_number):
                         if (self.view_required_data[vehicle_index][data_type_index][edge_view_index] == 1) and (
                                 self.data_in_edge_node[vehicle_index][data_type_index] > 0):
-                            consistence += np.abs(self.action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
+                            consistence += np.abs(
+                                self.action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
                 if required_data_number == 0 or received_data_number == 0:
                     completeness = 0
                 else:
@@ -666,7 +676,7 @@ class VehicularNetworkEnv(gym.Env):
         self.update_reward_observation()
 
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation, \
-            self.reward, self.done
+               self.reward, self.done
 
     """
     /*——————————————————————————————————————————————————————————————
@@ -704,7 +714,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
-            for time_index in range(self.config.time_slots_number):
+            for time_index in range(self.config.trajectories_predicted_time):
                 self.edge_node_observation[index_start] = float(
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
@@ -725,7 +735,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
-            for time_index in range(self.config.time_slots_number):
+            for time_index in range(self.config.trajectories_predicted_time):
                 self.reward_observation[index_start] = float(
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
@@ -748,7 +758,16 @@ class VehicularNetworkEnv(gym.Env):
                                                scale=self.config.second_moment_channel_fading_gain)
         distance = self.trajectories[vehicle_index][time_slot]
         SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
-            np.power(distance, -self.config.path_loss_exponent) * \
+            1 / (np.power(distance, self.config.path_loss_exponent)) * \
+            VehicularNetworkEnv.cover_mW_to_W(self.config.transmission_power)
+        return SNR
+
+    def compute_SNR_by_distance(self, distance):
+        white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(self.config.additive_white_gaussian_noise)
+        channel_fading_gain = np.random.normal(loc=self.config.mean_channel_fading_gain,
+                                               scale=self.config.second_moment_channel_fading_gain)
+        SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
+            1 / (np.power(distance, self.config.path_loss_exponent)) * \
             VehicularNetworkEnv.cover_mW_to_W(self.config.transmission_power)
         return SNR
 
@@ -793,6 +812,50 @@ class VehicularNetworkEnv(gym.Env):
     @staticmethod
     def cover_mW_to_W(mW):
         return mW / 1000
+
+    def get_mean_and_second_moment_service_time_of_types(self):
+        mean_service_time_of_types = np.zeros(shape=(self.config.vehicle_number,
+                                                     self.config.data_types_number),
+                                              dtype=np.float)
+        second_moment_service_time_of_types = np.zeros(shape=(self.config.vehicle_number,
+                                                              self.config.data_types_number),
+                                                       dtype=np.float)
+
+        white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(self.config.additive_white_gaussian_noise)
+
+        data_type_index = 0
+        for data_size in self.data_size_of_types:
+            speed_time = []
+            vehicle_index = 0
+            for vehicle_distance in self.global_trajectories:
+                for distance in vehicle_distance:
+                    channel_fading_gain = np.random.normal(loc=self.config.mean_channel_fading_gain,
+                                                           scale=self.config.second_moment_channel_fading_gain)
+                    SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
+                        np.power(distance, -self.config.path_loss_exponent) * \
+                        VehicularNetworkEnv.cover_mW_to_W(self.config.transmission_power)
+                    bandwidth = self.config.bandwidth * np.random.rand()
+                    speed_time.append(data_size / self.compute_transmission_rate(SNR, bandwidth))
+                array_speed_time = np.array(speed_time)
+                mean_service_time = array_speed_time.mean()
+                second_moment_service_time = array_speed_time.var()
+                mean_service_time_of_types[vehicle_index][data_type_index] = mean_service_time
+                second_moment_service_time_of_types[vehicle_index][data_type_index] = second_moment_service_time
+                vehicle_index += 1
+            data_type_index += 1
+
+        self.config.config(
+            mean_service_time_of_types=mean_service_time_of_types,
+            second_moment_service_time_of_types=second_moment_service_time_of_types)
+
+    # def get_arrival_rate_bounds(self):
+    #     mean_service_time_of_types = self.config.mean_service_time_of_types
+    #     second_moment_service_time_of_types = self.config.second_moment_service_time_of_types
+    #
+    #     for vehicle_index in range(self.config.vehicle_number):
+    #         for data_type in range(self.config.data_types_number):
+    #             if
+    #     pass
 
     def render(self, mode='human', close=False):
         """
