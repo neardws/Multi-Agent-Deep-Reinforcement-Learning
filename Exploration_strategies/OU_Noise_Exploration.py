@@ -6,15 +6,13 @@
 @Date    ：7/2/21 2:29 下午 
 """
 from Utilities.OU_Noise import OU_Noise
-from Exploration_strategies.BaseExplorationStrategy import BaseExplorationStrategy
 
 
 # noinspection PyPep8Naming
-class OU_Noise_Exploration(BaseExplorationStrategy):
+class OU_Noise_Exploration():
     """Ornstein-Uhlenbeck noise process exploration strategy"""
 
     def __init__(self, size, hyperparameters, key_to_use=None):
-        super().__init__()
         self.noise = OU_Noise(size,
                               hyperparameters[key_to_use]['noise_seed'],
                               hyperparameters[key_to_use]['mu'],
@@ -29,7 +27,8 @@ class OU_Noise_Exploration(BaseExplorationStrategy):
 
     def add_exploration_rewards(self, reward_info):
         """Actions intrinsic rewards to encourage exploration"""
-        raise ValueError("Must be implemented")
+        # raise ValueError("Must be implemented")
+        pass
 
     def reset(self):
         """Resets the noise process"""

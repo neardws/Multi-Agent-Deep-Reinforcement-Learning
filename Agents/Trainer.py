@@ -6,7 +6,7 @@
 @Date    ：7/1/21 10:11 上午 
 """
 import pickle
-from Utilities.Data_structures.Config import AgentConfig
+from Config.AgentConfig import AgentConfig
 from Agents.HMAIMD import HMAIMD_Agent
 
 

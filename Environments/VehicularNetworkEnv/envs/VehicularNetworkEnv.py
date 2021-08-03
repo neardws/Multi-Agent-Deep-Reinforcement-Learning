@@ -431,11 +431,12 @@ class VehicularNetworkEnv(gym.Env):
             observation = Tensor(observation)
             sensor_nodes_observation_list.append(observation)
 
-        sensor_nodes_observation = torch.cat((sensor_nodes_observation_list[0], sensor_nodes_observation_list[1]),
+        sensor_nodes_observation = torch.cat((sensor_nodes_observation_list[0].unsqueeze(0), sensor_nodes_observation_list[1].unsqueeze(0)),
                                              dim=0)
+
         for index, values in enumerate(sensor_nodes_observation_list):
             if index > 1:
-                sensor_nodes_observation = torch.cat((sensor_nodes_observation, values), dim=0)
+                sensor_nodes_observation = torch.cat((sensor_nodes_observation, values.unsqueeze(0)), dim=0)
 
         return sensor_nodes_observation
 

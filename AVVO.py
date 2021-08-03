@@ -18,6 +18,7 @@ if __name__ == '__main__':
     experiment_config.config()
 
     vehicularNetworkEnv = VehicularNetworkEnv(experiment_config)
+    vehicularNetworkEnv.reset()
 
     agent_config = AgentConfig()
 
@@ -29,9 +30,13 @@ if __name__ == '__main__':
         "Actor_of_Sensor": {
             "learning_rate": 0.001,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
-                 int(vehicularNetworkEnv.get_sensor_observation_size() * 1.5),
-                 int(vehicularNetworkEnv.get_sensor_observation_size())],
+                [int(0.75 * (
+                            vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
+                 int(0.5 * (
+                             vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
+                 int(0.25 * (
+                             vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
+                 ],
             "final_layer_activation": ["softmax", "softmax"],
             "batch_norm": False,
             "tau": 0.01,
@@ -45,9 +50,9 @@ if __name__ == '__main__':
         "Critic_of_Sensor": {
             "learning_rate": 0.01,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
-                 int(vehicularNetworkEnv.get_critic_size_for_sensor() * 1.5),
-                 int(vehicularNetworkEnv.get_critic_size_for_sensor())],
+                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
+                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.01,
@@ -57,9 +62,12 @@ if __name__ == '__main__':
         "Actor_of_Edge": {
             "learning_rate": 0.001,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_actor_input_size_for_edge() * 1.5),
-                 int(vehicularNetworkEnv.get_actor_input_size_for_edge() * 1.5),
-                 int(vehicularNetworkEnv.get_actor_input_size_for_edge())],
+                [int(0.75 * (
+                            vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
+                 int(0.5 * (
+                             vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
+                 int(0.25 * (
+                             vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
             "tau": 0.01,
@@ -73,9 +81,9 @@ if __name__ == '__main__':
         "Critic_of_Edge": {
             "learning_rate": 0.01,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_critic_size_for_edge() * 1.5),
-                 int(vehicularNetworkEnv.get_critic_size_for_edge() * 1.5),
-                 int(vehicularNetworkEnv.get_critic_size_for_edge())],
+                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
+                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.01,
@@ -85,9 +93,12 @@ if __name__ == '__main__':
         "Actor_of_Reward": {
             "learning_rate": 0.001,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_actor_input_size_for_reward() * 1.5),
-                 int(vehicularNetworkEnv.get_actor_input_size_for_reward() * 1.5),
-                 int(vehicularNetworkEnv.get_actor_input_size_for_reward())],
+                [int(0.75 * (
+                            vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
+                 int(0.5 * (
+                             vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
+                 int(0.25 * (
+                             vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
             "tau": 0.01,
@@ -101,9 +112,9 @@ if __name__ == '__main__':
         "Critic_of_Reward": {
             "learning_rate": 0.01,
             "linear_hidden_units":
-                [int(vehicularNetworkEnv.get_critic_size_for_reward() * 1.5),
-                 int(vehicularNetworkEnv.get_critic_size_for_reward() * 1.5),
-                 int(vehicularNetworkEnv.get_critic_size_for_reward())],
+                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
+                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.01,
@@ -119,5 +130,5 @@ if __name__ == '__main__':
 
     agent = HMAIMD_Agent(agent_config=agent_config, environment=vehicularNetworkEnv)
 
-    trainer = Trainer(experiment_config, agent)
+    trainer = Trainer(agent_config, agent)
     trainer.run_games_for_agent()

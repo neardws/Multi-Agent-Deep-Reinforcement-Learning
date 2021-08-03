@@ -120,15 +120,15 @@ class HMAIMD_Agent(object):
 
         """Exploration Strategy"""
         self.sensor_exploration_strategy = OU_Noise_Exploration(size=self.sensor_action_size,
-                                                                hyperparameters=self.config,
+                                                                hyperparameters=self.hyperparameters,
                                                                 key_to_use="Actor_of_Sensor")
 
         self.edge_exploration_strategy = OU_Noise_Exploration(size=self.edge_action_size,
-                                                              hyperparameters=self.config,
+                                                              hyperparameters=self.hyperparameters,
                                                               key_to_use="Actor_of_Edge")
 
         self.reward_exploration_strategy = OU_Noise_Exploration(size=self.reward_action_size,
-                                                                hyperparameters=self.config,
+                                                                hyperparameters=self.hyperparameters,
                                                                 key_to_use="Actor_of_Reward")
 
         """
@@ -521,7 +521,10 @@ class HMAIMD_Agent(object):
         """Picks an action using the actor network of each sensor node
         and then adds some noise to it to ensure exploration"""
         for sensor_node_index in range(self.environment.config.vehicle_number):
-            if self.environment.state["action_time"][sensor_node_index][self.episode_step] == 1:
+            if self.environment.state["action_time"][sensor_node_index] == self.episode_step:
+                x = self.sensor_nodes_observation
+                print(x)
+                print(x.shape)
                 sensor_node_observation = self.sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)
                 self.actor_local_of_sensor_nodes[sensor_node_index].eval()  # set the model to evaluation state
                 with torch.no_grad():  # do not compute the gradient
@@ -847,7 +850,7 @@ class HMAIMD_Agent(object):
     def run_n_episodes(self, num_episodes=None):
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
         if num_episodes is None:
-            num_episodes = self.environment.config.num_episodes_to_run
+            num_episodes = self.environment.config.episode_number
         start = time.time()
         while self.episode_index < num_episodes:
             self.reset_game()
@@ -895,6 +898,10 @@ class HMAIMD_Agent(object):
         self.next_reward_observation = None
 
         self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation = self.environment.reset()
+        # assert self.sensor_nodes_observation.shape[0] == self.environment.config.vehicle_number\
+        #     and self.sensor_nodes_observation.shape[1] == self.environment.get_sensor_observation_size(), "sensor_nodes_observation is not same"
+        # assert self.edge_node_observation.shape[0] == self.environment.get_edge_observation_size(), "edge_node_observation is not same"
+        # assert self.reward_observation.shape[0] == self.environment.get_global_state_size(), "reward_observation is not same"
 
         self.total_episode_score_so_far = 0
         self.episode_step = 0
