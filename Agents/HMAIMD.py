@@ -10,6 +10,7 @@ import time
 import numpy as np
 import torch
 import torch.nn.functional as functional
+import yaml
 from nn_builder.pytorch.NN import NN  # construct a neural network via PyTorch
 from torch import Tensor
 from torch import optim
@@ -83,7 +84,7 @@ class HMAIMD_Agent(object):
         self.max_episode_score_seen = float("-inf")  # max score in whole episodes
         self.episode_index = 0  # episode index in whole episodes
         self.episode_step = 0  # step index in one episode
-        self.device = "cuda" if self.config.use_gpu else "cpu"
+        self.device = "cuda" if self.environment.config.use_gpu else "cpu"
 
         """
         ______________________________________________________________________________________________________________
@@ -490,7 +491,8 @@ class HMAIMD_Agent(object):
                                                              sensor_nodes_rewards=sensor_nodes_rewards,
                                                              edge_node_rewards=edge_node_rewards,
                                                              next_sensor_nodes_observations=next_sensor_nodes_observations,
-                                                             next_edge_node_observations=next_edge_node_observations)
+                                                             next_edge_node_observations=next_edge_node_observations,
+                                                             dones=dones)
 
             if self.time_for_critic_and_actor_of_reward_function_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
@@ -520,36 +522,40 @@ class HMAIMD_Agent(object):
     def sensor_nodes_pick_actions(self):
         """Picks an action using the actor network of each sensor node
         and then adds some noise to it to ensure exploration"""
+        self.sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.config.vehicle_number,
+                                                                    self.sensor_action_size),
+                                                             dtype=np.float)).float().to(self.device)
         for sensor_node_index in range(self.environment.config.vehicle_number):
             if self.environment.state["action_time"][sensor_node_index] == self.episode_step:
-                x = self.sensor_nodes_observation
-                print(x)
-                print(x.shape)
-                sensor_node_observation = self.sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)
+                sensor_node_observation = self.sensor_nodes_observation[sensor_node_index, :].unsqueeze(0).to(self.device)
+
                 self.actor_local_of_sensor_nodes[sensor_node_index].eval()  # set the model to evaluation state
                 with torch.no_grad():  # do not compute the gradient
                     sensor_action = self.actor_local_of_sensor_nodes[sensor_node_index](sensor_node_observation)
                 self.actor_local_of_sensor_nodes[sensor_node_index].train()  # set the model to training state
-                sensor_action = self.sensor_exploration_strategy.perturb_action_for_exploration_purposes(
-                    {"action": sensor_action.numpy()})
+                # sensor_action = self.sensor_exploration_strategy.perturb_action_for_exploration_purposes(
+                #     {"action": sensor_action.cpu().data.numpy()})
                 for action_index in range(self.sensor_action_size):
                     self.sensor_nodes_action[sensor_node_index, action_index] = \
-                        torch.from_numpy(sensor_action)[action_index]
+                        sensor_action[0][action_index]
 
     def edge_node_pick_action(self):
-        edge_node_state = torch.cat((self.edge_node_observation,
-                                     torch.flatten(self.sensor_nodes_action)), 1).unsqueeze(0)
+        edge_node_state = torch.cat((self.edge_node_observation.unsqueeze(0),
+                                     torch.flatten(self.sensor_nodes_action).unsqueeze(0)),
+                                    dim=1).float().to(self.device)
+
         self.actor_local_of_edge_node.eval()
         with torch.no_grad():
             edge_action = self.actor_local_of_edge_node(edge_node_state)
         self.actor_local_of_edge_node.train()
-        self.edge_node_action = torch.from_numpy(
-            self.edge_exploration_strategy.perturb_action_for_exploration_purposes({"action": edge_action.numpy()})
-        )
+        # self.edge_node_action = torch.from_numpy(
+        #     self.edge_exploration_strategy.perturb_action_for_exploration_purposes({"action": edge_action.cpu().data.numpy()})
+        # ).to(self.device)
+        self.edge_node_action = edge_action
 
     def combined_action(self):
 
-        self.global_action = torch.cat((torch.flatten(self.sensor_nodes_action), self.edge_node_action), dim=1)
+        self.global_action = torch.cat((torch.flatten(self.sensor_nodes_action).unsqueeze(0), self.edge_node_action), dim=1).to(self.device)
 
         priority = np.zeros(shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number),
                             dtype=np.float)
@@ -559,22 +565,25 @@ class HMAIMD_Agent(object):
         for sensor_node_index in range(self.environment.config.vehicle_number):
             sensor_node_action = self.sensor_nodes_action[sensor_node_index, :]
             sensor_node_action_of_priority = \
-                sensor_node_action[0:self.environment.config.data_types_number - 1]  # first data types are priority
+                sensor_node_action[0:self.environment.config.data_types_number]  # first data types are priority
             sensor_node_action_of_arrival_rate = \
                 sensor_node_action[
-                    self.environment.config.data_types_number:-1]  # second data types number are arrival rate
+                    self.environment.config.data_types_number:]  # second data types number are arrival rate
+
             for data_type_index in range(self.environment.config.data_types_number):
                 if self.environment.state["data_types"][sensor_node_index][data_type_index] == 1:
                     priority[sensor_node_index][data_type_index] = sensor_node_action_of_priority[data_type_index]
+                    # print(sensor_node_action_of_arrival_rate)
+                    # print(self.environment.config.mean_service_time_of_types)
                     arrival_rate[sensor_node_index][data_type_index] = \
                         float(sensor_node_action_of_arrival_rate[data_type_index]) / \
-                        self.environment.config.mean_service_time_of_types[data_type_index]
+                        self.environment.config.mean_service_time_of_types[sensor_node_index][data_type_index]
 
-        edge_nodes_bandwidth = self.edge_node_action.numpy() * self.environment.config.bandwidth
+        edge_nodes_bandwidth = self.edge_node_action.cpu().data.numpy() * self.environment.config.bandwidth
 
         self.action = {"priority": priority,
                        "arrival_rate": arrival_rate,
-                       "edge_nodes_bandwidth": edge_nodes_bandwidth}
+                       "bandwidth": edge_nodes_bandwidth}
 
     def conduct_action(self):
         """Conducts an action in the environment"""
@@ -583,15 +592,15 @@ class HMAIMD_Agent(object):
         self.total_episode_score_so_far += self.reward
 
     def reward_function_pick_action(self):
-        reward_function_state = torch.cat((self.reward_observation, self.global_action), 1).unsqueeze(0)
+        reward_function_state = torch.cat((self.reward_observation.unsqueeze(0), self.global_action), dim=1).float().to(self.device)
         self.actor_local_of_reward_function.eval()
         with torch.no_grad():
             reward_function_action = self.actor_local_of_reward_function(reward_function_state)
         self.actor_local_of_reward_function.train()
         self.reward_action = torch.from_numpy(
             self.reward_exploration_strategy.perturb_action_for_exploration_purposes(
-                {"action": reward_function_action.numpy()})
-        )
+                {"action": reward_function_action.cpu().data.numpy()})
+        ).to(self.device)
         self.sensor_nodes_reward = self.reward * self.reward_action[:self.environment.config.vehicle_number - 1]
         self.edge_node_reward = self.reward * self.reward_action[-1]
 
@@ -656,7 +665,7 @@ class HMAIMD_Agent(object):
                         (next_sensor_node_observations_tensor, values[sensor_node_index, :]), dim=0)
 
             next_sensor_node_observations_list.append(next_sensor_node_observations_tensor)
-
+            # TODO: AssertionError: X should be a 2-dimensional tensor: torch.Size([33792])
             sensor_node_action_next = self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_node_observations_tensor)
             sensor_nodes_actions_next_list.append(sensor_node_action_next)
 
@@ -691,7 +700,7 @@ class HMAIMD_Agent(object):
                     sensor_node_rewards = torch.cat(
                         (sensor_node_rewards, sensor_nodes_reward[sensor_node_index, :]), dim=0)
 
-            next_sensor_node_observations = next_sensor_node_observations_list[sensor_node_index]
+            next_sensor_node_observations: Tensor = next_sensor_node_observations_list[sensor_node_index]
 
             """Runs a learning iteration for the critic"""
             """Computes the loss for the critic"""

@@ -73,16 +73,16 @@ class RewardReplayBuffer(object):
         :param experiences: Input
         :return:/
         """
-        last_reward_observations = torch.from_numpy(np.vstack([e.last_reward_observation for e in experiences if e is not None]))\
+        last_reward_observations = torch.from_numpy(np.vstack([e.last_reward_observation.cpu().data for e in experiences if e is not None]))\
             .float().to(self.device)
-        last_global_actions = torch.from_numpy(np.vstack([e.last_global_action for e in experiences if e is not None]))\
+        last_global_actions = torch.from_numpy(np.vstack([e.last_global_action.cpu().data for e in experiences if e is not None]))\
             .float().to(self.device)
-        last_reward_actions = torch.from_numpy(np.vstack([e.last_reward_action for e in experiences if e is not None]))\
+        last_reward_actions = torch.from_numpy(np.vstack([e.last_reward_action.cpu().data for e in experiences if e is not None]))\
             .float().to(self.device)
-        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
-        reward_observations = torch.from_numpy(np.vstack([int(e.reward_observation) for e in experiences if e is not None]))\
+        rewards = torch.from_numpy(np.vstack([e.reward.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        reward_observations = torch.from_numpy(np.vstack([e.reward_observation.cpu().data for e in experiences if e is not None]))\
             .float().to(self.device)
-        global_actions = torch.from_numpy(np.vstack([e.global_action for e in experiences if e is not None])).float()\
+        global_actions = torch.from_numpy(np.vstack([e.global_action.cpu().data for e in experiences if e is not None])).float()\
             .to(self.device)
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
 

@@ -34,8 +34,6 @@ class AgentConfig(object):
         self.reward_replay_buffer_batch_size = None
         self.reward_replay_buffer_seed = None
 
-        self.use_gpu = None
-
         self.nn_seed = None
 
         self.environment_seed = None
@@ -51,7 +49,6 @@ class AgentConfig(object):
                reward_replay_buffer_buffer_size=30000,
                reward_replay_buffer_batch_size=256,
                reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               use_gpu=True,
                nn_seed=np.random.randint(0, 2 ** 32 - 2),
                environment_seed=np.random.randint(0, 2 ** 32 - 2),
                hyperparameters=None,
@@ -62,7 +59,6 @@ class AgentConfig(object):
         self.reward_replay_buffer_buffer_size = reward_replay_buffer_buffer_size
         self.reward_replay_buffer_batch_size = reward_replay_buffer_batch_size
         self.reward_replay_buffer_seed = reward_replay_buffer_seed
-        self.use_gpu = use_gpu
         self.nn_seed = nn_seed
         self.environment_seed = environment_seed
         self.hyperparameters = hyperparameters

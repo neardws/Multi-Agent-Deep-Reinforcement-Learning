@@ -86,6 +86,8 @@ class ExperimentConfig(object):
         self.edge_node_x = None
         self.edge_node_y = None
 
+        self.use_gpu = None
+
     def config(self,
 
                longitude_min=104.04565967220308,  # 104.05089219802858
@@ -130,7 +132,9 @@ class ExperimentConfig(object):
                rolling_score_window=100,
 
                edge_node_x=1500,
-               edge_node_y=1500
+               edge_node_y=1500,
+
+               use_gpu=True
                ):
         """Map"""
         self.longitude_min = longitude_min
@@ -190,3 +194,5 @@ class ExperimentConfig(object):
 
         self.edge_node_x = edge_node_x
         self.edge_node_y = edge_node_y
+
+        self.use_gpu = use_gpu
