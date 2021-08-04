@@ -43,6 +43,8 @@ class VehicularNetworkEnv(gym.Env):
         self.config = experiment_config
         assert self.config is not None
 
+        self.device = "cuda" if self.config.use_gpu else "cpu"
+
         """Experiment Setup"""
         self.episode_number = self.config.episode_number
         self.max_episode_length = self.config.max_episode_length
@@ -197,10 +199,12 @@ class VehicularNetworkEnv(gym.Env):
 
     def update_trajectories(self):
         for vehicle_index in range(self.config.vehicle_number):
+            index = 0
             for time_slot_index in range(self.episode_step,
                                          self.episode_step + self.config.trajectories_predicted_time):
-                self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][
+                self.trajectories[vehicle_index][index] = self.global_trajectories[vehicle_index][
                     time_slot_index]
+                index += 1
 
     """
        /*________________________________________________________________
@@ -438,7 +442,7 @@ class VehicularNetworkEnv(gym.Env):
             if index > 1:
                 sensor_nodes_observation = torch.cat((sensor_nodes_observation, values.unsqueeze(0)), dim=0)
 
-        return sensor_nodes_observation
+        return sensor_nodes_observation.to(self.device)
 
     def init_edge_observation(self):
         observation = np.zeros(shape=self.get_edge_observation_size(),
@@ -474,7 +478,7 @@ class VehicularNetworkEnv(gym.Env):
                     observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
                     index_start += 1
 
-        return Tensor(observation)
+        return torch.from_numpy(observation).to(self.device)
 
     def init_reward_observation(self):
         observation = np.zeros(shape=self.get_global_state_size(),
@@ -514,7 +518,7 @@ class VehicularNetworkEnv(gym.Env):
                     observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
                     index_start += 1
 
-        return Tensor(observation)
+        return torch.from_numpy(observation).to(self.device)
 
     """
     /*——————————————————————————————————————————————————————————————
@@ -574,7 +578,7 @@ class VehicularNetworkEnv(gym.Env):
                     average_sojourn_time = 1 / (1 - work_load_before_type + values['arrival_rate'] *
                                                 self.config.mean_service_time_of_types[vehicle_index][data_type_index])
                     if index != 0:
-                        average_sojourn_time *= self.config.mean_service_time_of_types[data_type_index] + \
+                        average_sojourn_time *= self.config.mean_service_time_of_types[vehicle_index][data_type_index] + \
                                                 (mu_before_type / (2 * (1 - work_load_before_type)))
                     else:
                         average_sojourn_time *= self.config.mean_service_time_of_types[vehicle_index][data_type_index]
@@ -583,7 +587,15 @@ class VehicularNetworkEnv(gym.Env):
                         data_type_index]
 
                     """Update the waiting time in queue"""
-                    self.waiting_time_in_queue[vehicle_index][data_type_index] = average_waiting_time
+                    try:
+                        self.waiting_time_in_queue[vehicle_index][data_type_index] = average_waiting_time
+                    except ValueError:
+                        print(vehicle_index)
+                        print(data_type_index)
+                        print(self.waiting_time_in_queue[vehicle_index][data_type_index])
+                        print(average_waiting_time)
+                        print(average_sojourn_time)
+                        print(self.config.mean_service_time_of_types[vehicle_index][data_type_index])
 
                     if average_waiting_time > max_average_waiting_time:
                         max_average_waiting_time = average_waiting_time
@@ -609,7 +621,7 @@ class VehicularNetworkEnv(gym.Env):
                             self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] = 0
                             self.data_in_edge_node[vehicle_index][data_type_index] = 0
 
-                        bandwidth = self.action['bandwidth'][vehicle_index]
+                        bandwidth = self.action['bandwidth'][0][vehicle_index]
                         transmission_bytes = self.compute_transmission_rate(SNR, bandwidth) * 1
                         self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][
                             data_type_index] -= transmission_bytes
@@ -638,7 +650,15 @@ class VehicularNetworkEnv(gym.Env):
                                 timeliness += (intel_arrival_time + self.data_in_edge_node[vehicle_index][
                                     data_type_index] - self.action_time_of_sensor_nodes[vehicle_index])
                                 average_generation_time += self.action_time_of_sensor_nodes[vehicle_index]
-                average_generation_time /= received_data_number
+                # TODO: may raise error divided by zero
+                try:
+                    average_generation_time /= received_data_number
+                except ZeroDivisionError:
+                    print("Error in VehicularNetworkEnv line 655")
+                    print(required_data_number)
+                    print(received_data_number)
+                    print(average_generation_time)
+
                 for vehicle_index in range(self.config.vehicle_number):
                     for data_type_index in range(self.config.data_types_number):
                         if (self.view_required_data[vehicle_index][data_type_index][edge_view_index] == 1) and (
@@ -674,7 +694,7 @@ class VehicularNetworkEnv(gym.Env):
         self.update_reward_observation()
 
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation, \
-               self.reward, self.done
+            self.reward, self.done
 
     """
     /*——————————————————————————————————————————————————————————————
@@ -701,7 +721,7 @@ class VehicularNetworkEnv(gym.Env):
                 index_start += 1
 
             for edge_index in range(self.config.edge_views_number):
-                self.sensor_nodes_observation[index_start] = self.state['edge_view'][edge_index][int(self.state['time'])]
+                self.sensor_nodes_observation[vehicle_index][index_start] = self.state['edge_view'][edge_index][int(self.state['time'])]
                 index_start += 1
 
     def update_edge_observation(self):
@@ -766,7 +786,7 @@ class VehicularNetworkEnv(gym.Env):
         white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(self.config.additive_white_gaussian_noise)
         channel_fading_gain = np.random.normal(loc=self.config.mean_channel_fading_gain,
                                                scale=self.config.second_moment_channel_fading_gain)
-        distance = self.trajectories[vehicle_index][time_slot]
+        distance = self.global_trajectories[vehicle_index][time_slot]
         SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
             1 / (np.power(distance, self.config.path_loss_exponent)) * \
             VehicularNetworkEnv.cover_mW_to_W(self.config.transmission_power)
