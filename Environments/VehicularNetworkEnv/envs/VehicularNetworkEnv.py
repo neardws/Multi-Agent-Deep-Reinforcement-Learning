@@ -646,7 +646,10 @@ class VehicularNetworkEnv(gym.Env):
                             required_data_number += 1
                             if self.data_in_edge_node[vehicle_index][data_type_index] > 0:
                                 received_data_number += 1
-                                intel_arrival_time = 1 / self.action["arrival_rate"][vehicle_index][data_type_index]
+                                try:
+                                    intel_arrival_time = 1 / self.action["arrival_rate"][vehicle_index][data_type_index]
+                                except ZeroDivisionError:
+                                    intel_arrival_time = 0
                                 timeliness += (intel_arrival_time + self.data_in_edge_node[vehicle_index][
                                     data_type_index] - self.action_time_of_sensor_nodes[vehicle_index])
                                 average_generation_time += self.action_time_of_sensor_nodes[vehicle_index]
@@ -654,10 +657,11 @@ class VehicularNetworkEnv(gym.Env):
                 try:
                     average_generation_time /= received_data_number
                 except ZeroDivisionError:
-                    print("Error in VehicularNetworkEnv line 655")
-                    print(required_data_number)
-                    print(received_data_number)
-                    print(average_generation_time)
+                    average_generation_time = 0
+                    # print("Error in VehicularNetworkEnv line 655")
+                    # print(required_data_number)
+                    # print(received_data_number)
+                    # print(average_generation_time)
 
                 for vehicle_index in range(self.config.vehicle_number):
                     for data_type_index in range(self.config.data_types_number):

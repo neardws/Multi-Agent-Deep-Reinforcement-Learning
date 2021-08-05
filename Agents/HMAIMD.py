@@ -41,6 +41,9 @@ class HMAIMD_Agent(object):
     """
 
     def __init__(self, agent_config: AgentConfig, environment: VehicularNetworkEnv):
+
+        torch.autograd.set_detect_anomaly(True)
+
         self.config = agent_config
         self.environment = environment
         self.hyperparameters = self.config.hyperparameters
@@ -601,8 +604,18 @@ class HMAIMD_Agent(object):
             self.reward_exploration_strategy.perturb_action_for_exploration_purposes(
                 {"action": reward_function_action.cpu().data.numpy()})
         ).to(self.device)
-        self.sensor_nodes_reward = self.reward * self.reward_action[:self.environment.config.vehicle_number - 1]
-        self.edge_node_reward = self.reward * self.reward_action[-1]
+        self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.config.vehicle_number]
+        self.edge_node_reward = self.reward * self.reward_action[0][-1]
+
+        self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
+        self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
+        # print("%" * 64)
+        # print(self.reward)
+        # print(self.reward_action)
+        # print(self.sensor_nodes_reward)
+        # print(self.sensor_nodes_reward.shape)
+        # print(self.edge_node_reward)
+        # print(self.edge_node_reward.shape)
 
     def save_experience(self):
         """
@@ -658,64 +671,108 @@ class HMAIMD_Agent(object):
         next_sensor_node_observations_list = []
         for sensor_node_index in range(self.environment.config.vehicle_number):
             next_sensor_node_observations_tensor = torch.cat(
-                (next_sensor_nodes_observations[0][sensor_node_index, :], next_sensor_nodes_observations[1][sensor_node_index, :]), dim=0)
+                (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
+                 next_sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
             for index, values in enumerate(next_sensor_nodes_observations):
                 if index > 1:
                     next_sensor_node_observations_tensor = torch.cat(
-                        (next_sensor_node_observations_tensor, values[sensor_node_index, :]), dim=0)
+                        (next_sensor_node_observations_tensor, values[sensor_node_index, :].unsqueeze(0)), dim=0)
 
             next_sensor_node_observations_list.append(next_sensor_node_observations_tensor)
-            # TODO: AssertionError: X should be a 2-dimensional tensor: torch.Size([33792])
-            sensor_node_action_next = self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_node_observations_tensor)
+            sensor_node_action_next = self.actor_target_of_sensor_nodes[sensor_node_index](next_sensor_node_observations_tensor.float().to(self.device))
             sensor_nodes_actions_next_list.append(sensor_node_action_next)
 
+        new_sensor_nodes_actions_next_list = []
+        for tensor_index in range(sensor_nodes_actions_next_list[0].shape[0]):  # need 256 batch number
+            new_sensor_nodes_actions_next_tensor = torch.cat(
+                (sensor_nodes_actions_next_list[0][tensor_index, :].unsqueeze(0),
+                 sensor_nodes_actions_next_list[1][tensor_index, :].unsqueeze(0)),
+                dim=1
+            )
+            for index, sensor_nodes_actions_next in enumerate(sensor_nodes_actions_next_list):
+                if index > 1:
+                    new_sensor_nodes_actions_next_tensor = torch.cat(
+                        (new_sensor_nodes_actions_next_tensor, sensor_nodes_actions_next[tensor_index].unsqueeze(0)),
+                        dim=1
+                    )
+            new_sensor_nodes_actions_next_list.append(new_sensor_nodes_actions_next_tensor)
         sensor_nodes_actions_next_tensor = torch.cat(
-            (sensor_nodes_actions_next_list[0], sensor_nodes_actions_next_list[1]), dim=1)
-        for index, sensor_nodes_actions_next in enumerate(sensor_nodes_actions_next_list):
+            (new_sensor_nodes_actions_next_list[0], new_sensor_nodes_actions_next_list[1]), dim=0)
+        for index, sensor_nodes_actions_next in enumerate(new_sensor_nodes_actions_next_list):
             if index > 1:
                 sensor_nodes_actions_next_tensor = torch.cat(
-                    (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=1)
+                    (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=0)
+
+        # print(" * " * 64)
+        # # print(len(sensor_nodes_actions_next_list))
+        # print(sensor_nodes_actions_next_tensor.shape)
 
         sensor_nodes_actions_tensor = torch.cat(
-            (torch.flatten(sensor_nodes_actions[0]), torch.flatten(sensor_nodes_actions[1])), dim=0
+            (torch.flatten(sensor_nodes_actions[0]).unsqueeze(0), torch.flatten(sensor_nodes_actions[1]).unsqueeze(0)), dim=0
         )
         for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
             if index > 1:
                 sensor_nodes_actions_tensor = torch.cat(
-                    (sensor_nodes_actions_tensor, torch.flatten(sensor_nodes_action)), dim=0
+                    (sensor_nodes_actions_tensor, torch.flatten(sensor_nodes_action).unsqueeze(0)), dim=0
                 )
+        sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
 
         for sensor_node_index in range(self.environment.config.vehicle_number):
+            # print("&" * 64)
+            # # print(sensor_nodes_observations[0])
+            # print(sensor_nodes_observations[0].shape)
+            # print(sensor_nodes_observations[0][sensor_node_index, :])
             sensor_node_observations = torch.cat(
-                (sensor_nodes_observations[0][sensor_node_index, :], sensor_nodes_observations[1][sensor_node_index, :]), dim=0)
+                (sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0), sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
             for index, sensor_nodes_observation in enumerate(sensor_nodes_observations):
                 if index > 1:
                     sensor_node_observations = torch.cat(
-                        (sensor_node_observations, sensor_nodes_observation[sensor_node_index, :]), dim=0)
-
+                        (sensor_node_observations, sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)), dim=0)
+            sensor_node_observations = sensor_node_observations.to(self.device)
+            # print("#" * 64)
+            # print(len(sensor_nodes_rewards))
+            # print(sensor_nodes_rewards[0])
+            # # print(sensor_nodes_rewards[0][0, sensor_node_index])
+            # print("#" * 64)
             sensor_node_rewards = torch.cat(
-                (sensor_nodes_rewards[0][sensor_node_index, :], sensor_nodes_rewards[1][sensor_node_index, :]), dim=0)
+                (sensor_nodes_rewards[0][0, sensor_node_index].unsqueeze(0).unsqueeze(0), sensor_nodes_rewards[1][0, sensor_node_index].unsqueeze(0).unsqueeze(0)), dim=0)
             for index, sensor_nodes_reward in enumerate(sensor_nodes_rewards):
                 if index > 1:
                     sensor_node_rewards = torch.cat(
-                        (sensor_node_rewards, sensor_nodes_reward[sensor_node_index, :]), dim=0)
-
+                        (sensor_node_rewards, sensor_nodes_reward[0, sensor_node_index].unsqueeze(0).unsqueeze(0)), dim=0)
+            sensor_node_rewards = sensor_node_rewards.to(self.device)
+            # print("#" * 64)
+            # print(sensor_node_rewards.shape)
+            # print("#" * 64)
             next_sensor_node_observations: Tensor = next_sensor_node_observations_list[sensor_node_index]
 
             """Runs a learning iteration for the critic"""
             """Computes the loss for the critic"""
             with torch.no_grad():
+                # print("*" * 64)
+                # print(next_sensor_node_observations.shape)
+                # print(sensor_nodes_actions_next_tensor.shape)
+                # print(torch.cat((next_sensor_node_observations.to(self.device), sensor_nodes_actions_next_tensor.to(self.device)),
+                #                 dim=1).shape)
                 critic_targets_next_of_sensor_node = self.critic_target_of_sensor_nodes[sensor_node_index](
-                    torch.cat(next_sensor_node_observations, sensor_nodes_actions_next_tensor),
-                    dim=1)  # dim=1 indicate joint as row
+                    torch.cat((next_sensor_node_observations.float().to(self.device),
+                               sensor_nodes_actions_next_tensor.float().to(self.device)),
+                              dim=1))  # dim=1 indicate joint as row
+                # print("*" * 64)
+                # print(sensor_node_rewards.type())
+                # print(critic_targets_next_of_sensor_node.type())
+                # print(dones.type())
                 critic_targets_of_sensor_node = sensor_node_rewards + (
                         self.hyperparameters["discount_rate"] * critic_targets_next_of_sensor_node * (1.0 - dones))
+            # print(sensor_node_observations.shape)
+            # print(sensor_nodes_actions_tensor.shape)
             critic_expected_of_sensor_node = self.critic_local_of_sensor_nodes[sensor_node_index](
-                torch.cat((sensor_node_observations, sensor_nodes_actions_tensor), dim=1))
+                torch.cat((sensor_node_observations, sensor_nodes_actions_tensor), dim=1).float().to(self.device))
             critic_loss_of_sensor_node: Tensor = functional.mse_loss(critic_expected_of_sensor_node,
-                                                                     critic_targets_of_sensor_node)
+                                                                     critic_targets_of_sensor_node.float().to(self.device))
 
             """Update target critic networks"""
+
             self.take_optimisation_step(self.critic_optimizer_of_sensor_nodes[sensor_node_index],
                                         self.critic_local_of_sensor_nodes[sensor_node_index],
                                         critic_loss_of_sensor_node,
@@ -729,6 +786,8 @@ class HMAIMD_Agent(object):
             """Calculates the loss for the actor"""
             actions_predicted_of_sensor_node = self.actor_local_of_sensor_nodes[sensor_node_index](
                 sensor_node_observations)
+            # print("*" * 64)
+            # print(actions_predicted_of_sensor_node.shape)
 
             sensor_nodes_actions_add_actions_pred = []
             for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
@@ -736,21 +795,25 @@ class HMAIMD_Agent(object):
                 sensor_nodes_actions_add_actions_pred.append(torch.flatten(sensor_nodes_action))
 
             sensor_nodes_actions_add_actions_pred_tensor = torch.cat(
-                (sensor_nodes_actions_add_actions_pred[0], sensor_nodes_actions_add_actions_pred[1]), dim=0
+                (sensor_nodes_actions_add_actions_pred[0].unsqueeze(0), sensor_nodes_actions_add_actions_pred[1].unsqueeze(0)), dim=0
             )
             for index, values in enumerate(sensor_nodes_actions_add_actions_pred):
                 if index > 1:
                     sensor_nodes_actions_add_actions_pred_tensor = torch.cat(
-                        (sensor_nodes_actions_add_actions_pred_tensor, values), dim=0
+                        (sensor_nodes_actions_add_actions_pred_tensor, values.unsqueeze(0)), dim=0
                     )
+            sensor_nodes_actions_add_actions_pred_tensor = sensor_nodes_actions_add_actions_pred_tensor.to(self.device)
 
             actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
                 torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred_tensor), dim=1)).mean()
 
-            self.take_optimisation_step(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
-                                        self.actor_local_of_sensor_nodes[sensor_node_index],
-                                        actor_loss_of_sensor_node,
-                                        self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
+            print("*" * 64)
+            print(actor_loss_of_sensor_node)
+            print(actor_loss_of_sensor_node.shape)
+            self.take_optimisation_step_when_two_outputs(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
+                                                         self.actor_local_of_sensor_nodes[sensor_node_index],
+                                                         actor_loss_of_sensor_node,
+                                                         self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
             self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
                                                self.actor_target_of_sensor_nodes[sensor_node_index],
                                                self.hyperparameters["Actor_of_Sensor"]["tau"])
@@ -769,12 +832,26 @@ class HMAIMD_Agent(object):
 
         critic_expected_of_edge_node = self.critic_local_of_edge_node(
             torch.cat((edge_node_observations, sensor_nodes_actions_tensor, edge_node_actions), dim=1))
+        # print(edge_node_rewards.shape)
+        # print(critic_targets_next_of_edge_node.shape)
+        # print(dones.shape)
+        #
+        # print(edge_node_observations.shape)
+        # print(sensor_nodes_actions_tensor.shape)
+        # print(edge_node_actions.shape)
+        #
+        # print(critic_expected_of_edge_node.shape)
+        # print(critic_targets_of_edge_node.shape)
+
         loss_of_edge_node = functional.mse_loss(critic_expected_of_edge_node, critic_targets_of_edge_node)
 
         self.take_optimisation_step(self.critic_optimizer_of_edge_node,
                                     self.critic_local_of_edge_node,
                                     loss_of_edge_node,
                                     self.hyperparameters["Critic_of_Edge"]["gradient_clipping_norm"])
+        # print("*" * 64)
+        # print("take_optimisation_step of edge")
+
         self.soft_update_of_target_network(self.critic_local_of_edge_node, self.critic_target_of_edge_node,
                                            self.hyperparameters["Critic_of_Edge"]["tau"])
 
@@ -786,7 +863,8 @@ class HMAIMD_Agent(object):
         actor_loss_of_edge_node = -self.critic_local_of_edge_node(
             torch.cat((edge_node_observations, sensor_nodes_actions_tensor, actions_predicted_of_edge_node), dim=1)).mean()
 
-        self.take_optimisation_step(self.actor_optimizer_of_edge_node, self.actor_local_of_edge_node,
+        self.take_optimisation_step(self.actor_optimizer_of_edge_node,
+                                    self.actor_local_of_edge_node,
                                     actor_loss_of_edge_node,
                                     self.hyperparameters["Actor_of_Edge"]["gradient_clipping_norm"])
         self.soft_update_of_target_network(self.actor_local_of_edge_node, self.actor_target_of_edge_node,
@@ -824,7 +902,8 @@ class HMAIMD_Agent(object):
             torch.cat((last_reward_observations, last_global_actions), dim=1))
         actor_loss = -self.critic_local_of_reward_function(
             torch.cat((last_reward_observations, last_global_actions, actions_predicted), dim=1)).mean()
-        self.take_optimisation_step(self.actor_optimizer_of_reward_function, self.actor_local_of_reward_function,
+        self.take_optimisation_step(self.actor_optimizer_of_reward_function,
+                                    self.actor_local_of_reward_function,
                                     actor_loss,
                                     self.hyperparameters["Actor_of_Reward"]["gradient_clipping_norm"])
         self.soft_update_of_target_network(self.actor_local_of_reward_function, self.actor_target_of_reward_function,
@@ -837,6 +916,19 @@ class HMAIMD_Agent(object):
             network = [network]
         optimizer.zero_grad()  # reset gradients to 0
         loss.backward(retain_graph=retain_graph)  # this calculates the gradients
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm_(net.parameters(),
+                                               clipping_norm)  # clip gradients to help stabilise training
+        optimizer.step()  # this applies the gradients
+
+    @staticmethod
+    def take_optimisation_step_when_two_outputs(optimizer, network, loss, clipping_norm=None, retain_graph=True):
+        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
+        if not isinstance(network, list):
+            network = [network]
+        optimizer.zero_grad()  # reset gradients to 0
+        loss.backward(retain_graph=True)  # this calculates the gradients
         if clipping_norm is not None:
             for net in network:
                 torch.nn.utils.clip_grad_norm_(net.parameters(),
