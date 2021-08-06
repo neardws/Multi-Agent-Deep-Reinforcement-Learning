@@ -609,13 +609,6 @@ class HMAIMD_Agent(object):
 
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
         self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
-        # print("%" * 64)
-        # print(self.reward)
-        # print(self.reward_action)
-        # print(self.sensor_nodes_reward)
-        # print(self.sensor_nodes_reward.shape)
-        # print(self.edge_node_reward)
-        # print(self.edge_node_reward.shape)
 
     def save_experience(self):
         """
