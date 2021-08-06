@@ -9,6 +9,7 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 ### TODO
 
 - [ ] Unit testing
+- [ ] Add multi outputs heads in Actor of Sensor node
 
 ### Done
 
