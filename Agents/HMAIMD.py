@@ -152,7 +152,7 @@ class HMAIMD_Agent(object):
         self.actor_local_of_sensor_nodes = [
             self.create_nn(
                 input_dim=self.sensor_observation_size,
-                output_dim=[self.environment.config.data_types_number, self.environment.config.data_types_number],
+                output_dim=self.sensor_action_size,
                 key_to_use="Actor_of_Sensor"
             ) for _ in range(self.environment.config.vehicle_number)
         ]
@@ -160,7 +160,7 @@ class HMAIMD_Agent(object):
         self.actor_target_of_sensor_nodes = [
             self.create_nn(
                 input_dim=self.sensor_observation_size,
-                output_dim=[self.environment.config.data_types_number, self.environment.config.data_types_number],
+                output_dim=self.sensor_action_size,
                 key_to_use="Actor_of_Sensor"
             ) for _ in range(self.environment.config.vehicle_number)
         ]
@@ -667,8 +667,11 @@ class HMAIMD_Agent(object):
                                             dones: Tensor):
 
         """Runs a learning iteration for the critic of sensor nodes"""
-        sensor_nodes_actions_next_list = []
-        next_sensor_node_observations_list = []
+        sensor_nodes_actions_next_list = []     # next action of sensor nodes according to next_sensor_nodes_observations
+        next_sensor_node_observations_list = []     # next observation of single sensor node, Reorganized by next_sensor_nodes_observations
+
+        print(next_sensor_nodes_observations[0])
+
         for sensor_node_index in range(self.environment.config.vehicle_number):
             next_sensor_node_observations_tensor = torch.cat(
                 (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
@@ -703,10 +706,6 @@ class HMAIMD_Agent(object):
                 sensor_nodes_actions_next_tensor = torch.cat(
                     (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=0)
 
-        # print(" * " * 64)
-        # # print(len(sensor_nodes_actions_next_list))
-        # print(sensor_nodes_actions_next_tensor.shape)
-
         sensor_nodes_actions_tensor = torch.cat(
             (torch.flatten(sensor_nodes_actions[0]).unsqueeze(0), torch.flatten(sensor_nodes_actions[1]).unsqueeze(0)), dim=0
         )
@@ -718,10 +717,7 @@ class HMAIMD_Agent(object):
         sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
 
         for sensor_node_index in range(self.environment.config.vehicle_number):
-            # print("&" * 64)
-            # # print(sensor_nodes_observations[0])
-            # print(sensor_nodes_observations[0].shape)
-            # print(sensor_nodes_observations[0][sensor_node_index, :])
+
             sensor_node_observations = torch.cat(
                 (sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0), sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
             for index, sensor_nodes_observation in enumerate(sensor_nodes_observations):
@@ -729,11 +725,7 @@ class HMAIMD_Agent(object):
                     sensor_node_observations = torch.cat(
                         (sensor_node_observations, sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)), dim=0)
             sensor_node_observations = sensor_node_observations.to(self.device)
-            # print("#" * 64)
-            # print(len(sensor_nodes_rewards))
-            # print(sensor_nodes_rewards[0])
-            # # print(sensor_nodes_rewards[0][0, sensor_node_index])
-            # print("#" * 64)
+
             sensor_node_rewards = torch.cat(
                 (sensor_nodes_rewards[0][0, sensor_node_index].unsqueeze(0).unsqueeze(0), sensor_nodes_rewards[1][0, sensor_node_index].unsqueeze(0).unsqueeze(0)), dim=0)
             for index, sensor_nodes_reward in enumerate(sensor_nodes_rewards):
@@ -741,31 +733,21 @@ class HMAIMD_Agent(object):
                     sensor_node_rewards = torch.cat(
                         (sensor_node_rewards, sensor_nodes_reward[0, sensor_node_index].unsqueeze(0).unsqueeze(0)), dim=0)
             sensor_node_rewards = sensor_node_rewards.to(self.device)
-            # print("#" * 64)
-            # print(sensor_node_rewards.shape)
-            # print("#" * 64)
+
             next_sensor_node_observations: Tensor = next_sensor_node_observations_list[sensor_node_index]
 
             """Runs a learning iteration for the critic"""
             """Computes the loss for the critic"""
             with torch.no_grad():
-                # print("*" * 64)
-                # print(next_sensor_node_observations.shape)
-                # print(sensor_nodes_actions_next_tensor.shape)
-                # print(torch.cat((next_sensor_node_observations.to(self.device), sensor_nodes_actions_next_tensor.to(self.device)),
-                #                 dim=1).shape)
+
                 critic_targets_next_of_sensor_node = self.critic_target_of_sensor_nodes[sensor_node_index](
                     torch.cat((next_sensor_node_observations.float().to(self.device),
                                sensor_nodes_actions_next_tensor.float().to(self.device)),
                               dim=1))  # dim=1 indicate joint as row
-                # print("*" * 64)
-                # print(sensor_node_rewards.type())
-                # print(critic_targets_next_of_sensor_node.type())
-                # print(dones.type())
+
                 critic_targets_of_sensor_node = sensor_node_rewards + (
                         self.hyperparameters["discount_rate"] * critic_targets_next_of_sensor_node * (1.0 - dones))
-            # print(sensor_node_observations.shape)
-            # print(sensor_nodes_actions_tensor.shape)
+
             critic_expected_of_sensor_node = self.critic_local_of_sensor_nodes[sensor_node_index](
                 torch.cat((sensor_node_observations, sensor_nodes_actions_tensor), dim=1).float().to(self.device))
             critic_loss_of_sensor_node: Tensor = functional.mse_loss(critic_expected_of_sensor_node,
@@ -786,11 +768,13 @@ class HMAIMD_Agent(object):
             """Calculates the loss for the actor"""
             actions_predicted_of_sensor_node = self.actor_local_of_sensor_nodes[sensor_node_index](
                 sensor_node_observations)
-            # print("*" * 64)
-            # print(actions_predicted_of_sensor_node.shape)
 
             sensor_nodes_actions_add_actions_pred = []
             for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
+                print("*" * 64)
+                print(sensor_nodes_action)
+                print(sensor_nodes_action[sensor_node_index, :])
+                print(actions_predicted_of_sensor_node[index])
                 sensor_nodes_action[sensor_node_index, :] = actions_predicted_of_sensor_node[index]
                 sensor_nodes_actions_add_actions_pred.append(torch.flatten(sensor_nodes_action))
 
@@ -832,16 +816,6 @@ class HMAIMD_Agent(object):
 
         critic_expected_of_edge_node = self.critic_local_of_edge_node(
             torch.cat((edge_node_observations, sensor_nodes_actions_tensor, edge_node_actions), dim=1))
-        # print(edge_node_rewards.shape)
-        # print(critic_targets_next_of_edge_node.shape)
-        # print(dones.shape)
-        #
-        # print(edge_node_observations.shape)
-        # print(sensor_nodes_actions_tensor.shape)
-        # print(edge_node_actions.shape)
-        #
-        # print(critic_expected_of_edge_node.shape)
-        # print(critic_targets_of_edge_node.shape)
 
         loss_of_edge_node = functional.mse_loss(critic_expected_of_edge_node, critic_targets_of_edge_node)
 
@@ -849,8 +823,6 @@ class HMAIMD_Agent(object):
                                     self.critic_local_of_edge_node,
                                     loss_of_edge_node,
                                     self.hyperparameters["Critic_of_Edge"]["gradient_clipping_norm"])
-        # print("*" * 64)
-        # print("take_optimisation_step of edge")
 
         self.soft_update_of_target_network(self.critic_local_of_edge_node, self.critic_target_of_edge_node,
                                            self.hyperparameters["Critic_of_Edge"]["tau"])
@@ -928,7 +900,7 @@ class HMAIMD_Agent(object):
         if not isinstance(network, list):
             network = [network]
         optimizer.zero_grad()  # reset gradients to 0
-        loss.backward(retain_graph=True)  # this calculates the gradients
+        loss.backward(retain_graph=False)  # this calculates the gradients
         if clipping_norm is not None:
             for net in network:
                 torch.nn.utils.clip_grad_norm_(net.parameters(),
