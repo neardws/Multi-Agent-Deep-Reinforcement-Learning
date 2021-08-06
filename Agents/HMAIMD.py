@@ -474,6 +474,7 @@ class HMAIMD_Agent(object):
     def step(self):
         """Runs a step in the game"""
         while not self.done:  # when the episode is not over
+            print(self.environment.episode_step)
             self.sensor_nodes_pick_actions()
             self.edge_node_pick_action()
             self.combined_action()
@@ -662,7 +663,7 @@ class HMAIMD_Agent(object):
     def time_for_critic_and_actor_of_reward_function_to_learn(self):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        return len(self.experience_replay_buffer) > self.config.reward_replay_buffer_batch_size and \
+        return len(self.reward_replay_buffer) > self.config.reward_replay_buffer_batch_size and \
             self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
 
     def sensor_nodes_and_edge_node_to_learn(self,
@@ -794,13 +795,10 @@ class HMAIMD_Agent(object):
                         (sensor_nodes_actions_add_actions_pred_tensor, values.unsqueeze(0)), dim=0
                     )
             sensor_nodes_actions_add_actions_pred_tensor = sensor_nodes_actions_add_actions_pred_tensor.float().to(self.device)
-            print(sensor_nodes_actions_add_actions_pred_tensor.shape)
-            print(torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred_tensor), dim=1).shape)
 
             actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
                 torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred_tensor), dim=1)).mean()
 
-            print(actor_loss_of_sensor_node)
             self.take_optimisation_step_when_two_outputs(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
                                                          self.actor_local_of_sensor_nodes[sensor_node_index],
                                                          actor_loss_of_sensor_node,
@@ -933,6 +931,8 @@ class HMAIMD_Agent(object):
             num_episodes = self.environment.config.episode_number
         start = time.time()
         while self.environment.episode_index < num_episodes:
+            print("*" * 64)
+            print(self.environment.episode_index)
             self.reset_game()
             self.step()
 
