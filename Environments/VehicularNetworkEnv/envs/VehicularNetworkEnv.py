@@ -113,7 +113,8 @@ class VehicularNetworkEnv(gym.Env):
         self.sensor_nodes_observation = None  # individually observation state for sensor nodes
         self.edge_node_observation = None  # individually observation state for edge node
         """other parameters"""
-        self.episode_step = None
+        self.episode_index = 0   # in which episode of whole episode number
+        self.episode_step = None    # in which step of whole one episode
         self.global_trajectories = None
 
         self.trajectories_file_name = "~/Documents/pyProject_hrl/CSV/vehicle.csv"
@@ -411,7 +412,7 @@ class VehicularNetworkEnv(gym.Env):
             observation[index_start] = float(self.state['time']) / self.config.time_slots_number
 
             index_start = 1
-            observation[index_start] = self.state['action_time'][vehicle_index]
+            observation[index_start] = self.state['action_time'][vehicle_index] / self.config.time_slots_number
             index_start += 1
 
             for data_type_index in range(self.config.data_types_number):
@@ -488,7 +489,7 @@ class VehicularNetworkEnv(gym.Env):
 
         index_start = 1
         for vehicle_index in range(self.config.vehicle_number):
-            observation[index_start] = self.state['action_time'][vehicle_index]
+            observation[index_start] = self.state['action_time'][vehicle_index] / self.config.time_slots_number
             index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
@@ -536,6 +537,7 @@ class VehicularNetworkEnv(gym.Env):
         self.action = action
 
         if self.episode_step == self.config.max_episode_length:
+            self.episode_index = self.episode_index + 1
             self.done = True
         else:
             self.done = False
@@ -642,10 +644,12 @@ class VehicularNetworkEnv(gym.Env):
                 consistence = 0
                 for vehicle_index in range(self.config.vehicle_number):
                     for data_type_index in range(self.config.data_types_number):
-                        if self.view_required_data[vehicle_index][data_type_index][edge_view_index] == 1:
+                        if self.view_required_data[edge_view_index][vehicle_index][data_type_index] == 1:
                             required_data_number += 1
                             if self.data_in_edge_node[vehicle_index][data_type_index] > 0:
                                 received_data_number += 1
+                                if self.action["arrival_rate"][vehicle_index][data_type_index] == 0:
+                                    print("arrival_rate is zeros")
                                 try:
                                     intel_arrival_time = 1 / self.action["arrival_rate"][vehicle_index][data_type_index]
                                 except ZeroDivisionError:
@@ -665,7 +669,7 @@ class VehicularNetworkEnv(gym.Env):
 
                 for vehicle_index in range(self.config.vehicle_number):
                     for data_type_index in range(self.config.data_types_number):
-                        if (self.view_required_data[vehicle_index][data_type_index][edge_view_index] == 1) and (
+                        if (self.view_required_data[edge_view_index][vehicle_index][data_type_index] == 1) and (
                                 self.data_in_edge_node[vehicle_index][data_type_index] > 0):
                             consistence += np.abs(
                                 self.action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
@@ -716,7 +720,7 @@ class VehicularNetworkEnv(gym.Env):
                 self.state['time']) / self.config.time_slots_number
 
             index_start = 1
-            self.sensor_nodes_observation[vehicle_index][index_start] = self.state['action_time'][vehicle_index]
+            self.sensor_nodes_observation[vehicle_index][index_start] = self.state['action_time'][vehicle_index] / self.config.time_slots_number
             index_start += 1
 
             for data_type_index in range(self.config.data_types_number):
@@ -755,7 +759,7 @@ class VehicularNetworkEnv(gym.Env):
 
         index_start = 1
         for vehicle_index in range(self.config.vehicle_number):
-            self.reward_observation[index_start] = self.state['action_time'][vehicle_index]
+            self.reward_observation[index_start] = self.state['action_time'][vehicle_index] / self.config.time_slots_number
             index_start += 1
 
         for vehicle_index in range(self.config.vehicle_number):
