@@ -37,7 +37,7 @@ if __name__ == '__main__':
                  int(0.25 * (
                              vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
                  ],
-            "final_layer_activation": ["softmax", "softmax"],
+            "final_layer_activation": "softmax",
             "batch_norm": False,
             "tau": 0.01,
             "gradient_clipping_norm": 5,
