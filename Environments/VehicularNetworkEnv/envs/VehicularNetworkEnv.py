@@ -199,13 +199,14 @@ class VehicularNetworkEnv(gym.Env):
                     time_slot_index]
 
     def update_trajectories(self):
-        for vehicle_index in range(self.config.vehicle_number):
-            index = 0
-            for time_slot_index in range(self.episode_step,
-                                         self.episode_step + self.config.trajectories_predicted_time):
-                self.trajectories[vehicle_index][index] = self.global_trajectories[vehicle_index][
-                    time_slot_index]
-                index += 1
+        if self.episode_step <= 290:
+            for vehicle_index in range(self.config.vehicle_number):
+                index = 0
+                for time_slot_index in range(self.episode_step,
+                                             self.episode_step + self.config.trajectories_predicted_time):
+                    self.trajectories[vehicle_index][index] = self.global_trajectories[vehicle_index][
+                        time_slot_index]
+                    index += 1
 
     """
        /*________________________________________________________________
@@ -303,14 +304,12 @@ class VehicularNetworkEnv(gym.Env):
         return int(
             1  # time_slots_index
             + int(
-                self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles
-            # in edge node
+                self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles in edge node
             + int(
                 self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
             + int(self.config.edge_views_number)  # required edge view in edge node
             + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
-            + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)
-            # view required data
+            + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)   # view required data
         )
 
     def get_actor_input_size_for_edge(self):
@@ -536,7 +535,7 @@ class VehicularNetworkEnv(gym.Env):
         """
         self.action = action
 
-        if self.episode_step == self.config.max_episode_length:
+        if self.episode_step == (self.config.max_episode_length - 1):
             self.episode_index = self.episode_index + 1
             self.done = True
         else:
@@ -604,7 +603,11 @@ class VehicularNetworkEnv(gym.Env):
 
                 """Update the action time"""
                 self.action_time_of_sensor_nodes[vehicle_index] = self.next_action_time_of_sensor_nodes[vehicle_index]
-                self.next_action_time_of_sensor_nodes[vehicle_index] += int(max_average_waiting_time)
+                """may raise OverflowError: cannot convert float infinity to integer"""
+                try:
+                    self.next_action_time_of_sensor_nodes[vehicle_index] += int(max_average_waiting_time)
+                except OverflowError:
+                    self.next_action_time_of_sensor_nodes[vehicle_index] += 1
         """
         Update data_in_edge_node
         """
@@ -657,7 +660,6 @@ class VehicularNetworkEnv(gym.Env):
                                 timeliness += (intel_arrival_time + self.data_in_edge_node[vehicle_index][
                                     data_type_index] - self.action_time_of_sensor_nodes[vehicle_index])
                                 average_generation_time += self.action_time_of_sensor_nodes[vehicle_index]
-                # TODO: may raise error divided by zero
                 try:
                     average_generation_time /= received_data_number
                 except ZeroDivisionError:
@@ -688,7 +690,6 @@ class VehicularNetworkEnv(gym.Env):
             self.reward = sum_age_of_view / view_required_number
 
         """Update state and other observations"""
-        self.episode_step += 1
 
         self.update_trajectories()
 
@@ -700,6 +701,8 @@ class VehicularNetworkEnv(gym.Env):
         self.update_sensor_observation()
         self.update_edge_observation()
         self.update_reward_observation()
+
+        self.episode_step += 1
 
         return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation, \
             self.reward, self.done
