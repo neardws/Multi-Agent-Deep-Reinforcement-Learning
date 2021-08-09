@@ -31,11 +31,7 @@ if __name__ == '__main__':
             "learning_rate": 0.001,
             "linear_hidden_units":
                 [int(0.75 * (
-                            vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
-                 int(0.5 * (
-                             vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
-                 int(0.25 * (
-                             vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
+                            vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
                  ],
             "final_layer_activation": ["softmax", "softmax"],
             "batch_norm": False,
@@ -51,8 +47,7 @@ if __name__ == '__main__':
             "learning_rate": 0.01,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
-                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
-                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.01,
@@ -63,11 +58,7 @@ if __name__ == '__main__':
             "learning_rate": 0.001,
             "linear_hidden_units":
                 [int(0.75 * (
-                            vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
-                 int(0.5 * (
-                             vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
-                 int(0.25 * (
-                             vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))],
+                            vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
             "tau": 0.01,
@@ -82,8 +73,7 @@ if __name__ == '__main__':
             "learning_rate": 0.01,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
-                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
-                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.01,
@@ -96,8 +86,6 @@ if __name__ == '__main__':
                 [int(0.75 * (
                             vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
                  int(0.5 * (
-                             vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
-                 int(0.25 * (
                              vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
@@ -113,8 +101,7 @@ if __name__ == '__main__':
             "learning_rate": 0.01,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
-                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
-                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.01,
