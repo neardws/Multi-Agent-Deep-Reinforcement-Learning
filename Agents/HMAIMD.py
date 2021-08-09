@@ -6,6 +6,7 @@
 @Date    ：7/1/21 9:49 上午 
 """
 import time
+from tqdm import tqdm
 from torchsummary import summary
 import numpy as np
 import torch
@@ -488,53 +489,56 @@ class HMAIMD_Agent(object):
 
     def step(self):
         """Runs a step in the game"""
-        while not self.done:  # when the episode is not over
-            # print(self.environment.episode_step)
-            self.sensor_nodes_pick_actions()
-            self.edge_node_pick_action()
-            self.combined_action()
-            self.conduct_action()
-            self.reward_function_pick_action()
-            self.save_experience()
-            self.save_reward_experience()
+        with tqdm(total=300) as my_bar:
+            while not self.done:    # when the episode is not over
+                # print(self.environment.episode_step)
+                self.sensor_nodes_pick_actions()
+                self.edge_node_pick_action()
+                self.combined_action()
+                self.conduct_action()
+                self.reward_function_pick_action()
+                self.save_experience()
+                self.save_reward_experience()
 
-            if self.time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn():
-                for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
-                    sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
-                        sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, \
-                        next_edge_node_observations, dones = self.experience_replay_buffer.sample()
+                if self.time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn():
+                    for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                        sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
+                            sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, \
+                            next_edge_node_observations, dones = self.experience_replay_buffer.sample()
 
-                    self.sensor_nodes_and_edge_node_to_learn(sensor_nodes_observations=sensor_nodes_observations,
-                                                             edge_node_observations=edge_node_observations,
-                                                             sensor_nodes_actions=sensor_nodes_actions,
-                                                             edge_node_actions=edge_node_actions,
-                                                             sensor_nodes_rewards=sensor_nodes_rewards,
-                                                             edge_node_rewards=edge_node_rewards,
-                                                             next_sensor_nodes_observations=next_sensor_nodes_observations,
-                                                             next_edge_node_observations=next_edge_node_observations,
-                                                             dones=dones)
+                        self.sensor_nodes_and_edge_node_to_learn(sensor_nodes_observations=sensor_nodes_observations,
+                                                                 edge_node_observations=edge_node_observations,
+                                                                 sensor_nodes_actions=sensor_nodes_actions,
+                                                                 edge_node_actions=edge_node_actions,
+                                                                 sensor_nodes_rewards=sensor_nodes_rewards,
+                                                                 edge_node_rewards=edge_node_rewards,
+                                                                 next_sensor_nodes_observations=next_sensor_nodes_observations,
+                                                                 next_edge_node_observations=next_edge_node_observations,
+                                                                 dones=dones)
 
-            if self.time_for_critic_and_actor_of_reward_function_to_learn():
-                for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
-                    last_reward_observations, last_global_actions, last_reward_actions, rewards, reward_observations, \
-                    global_actions, dones = self.reward_replay_buffer.sample()
-                    self.reward_function_to_learn(last_reward_observations=last_reward_observations,
-                                                  last_global_actions=last_global_actions,
-                                                  last_reward_actions=last_reward_actions,
-                                                  rewards=rewards,
-                                                  reward_observations=reward_observations,
-                                                  global_actions=global_actions,
-                                                  dones=dones)
+                if self.time_for_critic_and_actor_of_reward_function_to_learn():
+                    for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                        last_reward_observations, last_global_actions, last_reward_actions, rewards, reward_observations, \
+                        global_actions, dones = self.reward_replay_buffer.sample()
+                        self.reward_function_to_learn(last_reward_observations=last_reward_observations,
+                                                      last_global_actions=last_global_actions,
+                                                      last_reward_actions=last_reward_actions,
+                                                      rewards=rewards,
+                                                      reward_observations=reward_observations,
+                                                      global_actions=global_actions,
+                                                      dones=dones)
 
-            """Renew by reward function"""
-            self.last_reward_observation = self.reward_observation.clone().detach()
-            self.last_global_action = self.global_action.clone().detach()
-            self.last_reward_action = self.reward_action.clone().detach()
+                """Renew by reward function"""
+                self.last_reward_observation = self.reward_observation.clone().detach()
+                self.last_global_action = self.global_action.clone().detach()
+                self.last_reward_action = self.reward_action.clone().detach()
 
-            """Renew by environment"""
-            self.sensor_nodes_observation = self.next_sensor_nodes_observation.clone().detach()
-            self.edge_node_observation = self.next_edge_node_observation.clone().detach()
-            self.reward_observation = self.next_reward_observation.clone().detach()
+                """Renew by environment"""
+                self.sensor_nodes_observation = self.next_sensor_nodes_observation.clone().detach()
+                self.edge_node_observation = self.next_edge_node_observation.clone().detach()
+                self.reward_observation = self.next_reward_observation.clone().detach()
+
+                my_bar.update(n=1)
 
     def sensor_nodes_pick_actions(self):
         """Picks an action using the actor network of each sensor node
@@ -603,6 +607,7 @@ class HMAIMD_Agent(object):
         """Conducts an action in the environment"""
         self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_observation, \
             self.reward, self.done = self.environment.step(self.action)
+        # print(self.reward)
         self.total_episode_score_so_far += self.reward
 
     def reward_function_pick_action(self):
@@ -934,10 +939,12 @@ class HMAIMD_Agent(object):
         start = time.time()
         while self.environment.episode_index < num_episodes:
             print("*" * 64)
-            print(self.environment.episode_index)
-            print(time.time() - start)
+            print("Episode index: ", self.environment.episode_index)
+
             self.reset_game()
             self.step()
+            print("Total reward: ", self.total_episode_score_so_far)
+            print("Time taken: ", time.time() - start)
 
             """Saves the result of an episode of the game"""
             self.game_full_episode_scores.append(self.total_episode_score_so_far)

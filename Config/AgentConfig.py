@@ -42,10 +42,10 @@ class AgentConfig(object):
 
     def config(self,
                experience_replay_buffer_buffer_size=30000,
-               experience_replay_buffer_batch_size=256,
+               experience_replay_buffer_batch_size=128,
                experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
                reward_replay_buffer_buffer_size=30000,
-               reward_replay_buffer_batch_size=256,
+               reward_replay_buffer_batch_size=128,
                reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
                nn_seed=np.random.randint(0, 2 ** 32 - 2),
                hyperparameters=None,
