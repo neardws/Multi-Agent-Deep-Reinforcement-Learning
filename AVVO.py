@@ -109,8 +109,8 @@ if __name__ == '__main__':
         },
 
         "discount_rate": 0.9,
-        "update_every_n_steps": 10,
-        "learning_updates_per_learning_session": 10,
+        "update_every_n_steps": 50,
+        "learning_updates_per_learning_session": 1,
         "clip_rewards": False}
 
     agent_config.config(hyperparameters=hyperparameters)
