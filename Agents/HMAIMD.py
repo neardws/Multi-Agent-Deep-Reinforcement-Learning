@@ -147,13 +147,14 @@ class HMAIMD_Agent(object):
         Actor network and Critic network
         ______________________________________________________________________________________________________________
         """
+        parameters_number = 0
 
         """Actor Network of Sensor Nodes"""
 
         self.actor_local_of_sensor_nodes = [
             self.create_nn(
                 input_dim=self.sensor_observation_size,
-                output_dim=self.sensor_action_size,
+                output_dim=[self.environment.config.data_types_number, self.environment.config.data_types_number],
                 key_to_use="Actor_of_Sensor"
             ) for _ in range(self.environment.config.vehicle_number)
         ]
@@ -161,7 +162,7 @@ class HMAIMD_Agent(object):
         self.actor_target_of_sensor_nodes = [
             self.create_nn(
                 input_dim=self.sensor_observation_size,
-                output_dim=self.sensor_action_size,
+                output_dim=[self.environment.config.data_types_number, self.environment.config.data_types_number],
                 key_to_use="Actor_of_Sensor"
             ) for _ in range(self.environment.config.vehicle_number)
         ]
@@ -169,6 +170,15 @@ class HMAIMD_Agent(object):
         for vehicle_index in range(self.environment.config.vehicle_number):
             HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
                                          to_model=self.actor_target_of_sensor_nodes[vehicle_index])
+
+        linear_hidden_units = self.hyperparameters["Actor_of_Sensor"]["linear_hidden_units"]
+        for _ in self.actor_local_of_sensor_nodes:
+            """parameters_number for actor_local_of_sensor_nodes"""
+            parameters_number += self.sensor_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
+                linear_hidden_units[2] * self.sensor_action_size
+            """parameters_number for actor_target_of_sensor_nodes"""
+            parameters_number += self.sensor_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
+                linear_hidden_units[2] * self.sensor_action_size
 
         """
         optim.Adam()
@@ -254,6 +264,15 @@ class HMAIMD_Agent(object):
                                                  factor=0.1, patience=10, verbose=False, threshold=0.0001,
                                                  threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 
+        linear_hidden_units = self.hyperparameters["Critic_of_Sensor"]["linear_hidden_units"]
+        for _ in self.critic_local_of_sensor_nodes:
+            """parameters_number for critic_local_of_sensor_nodes"""
+            parameters_number += self.critic_size_for_sensor * linear_hidden_units[0] * linear_hidden_units[1] * \
+                linear_hidden_units[2] * 1
+            """parameters_number for critic_target_of_sensor_nodes"""
+            parameters_number += self.critic_size_for_sensor * linear_hidden_units[0] * linear_hidden_units[1] * \
+                linear_hidden_units[2] * 1
+
         """Actor Network for Edge Node"""
 
         self.actor_local_of_edge_node = self.create_nn(
@@ -280,6 +299,14 @@ class HMAIMD_Agent(object):
         optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_edge_node, mode='min', factor=0.1,
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
+
+        linear_hidden_units = self.hyperparameters["Actor_of_Edge"]["linear_hidden_units"]
+        """parameters_number for actor_local_of_edge_node"""
+        parameters_number += self.edge_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * self.edge_action_size
+        """parameters_number for actor_target_of_edge_node"""
+        parameters_number += self.edge_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * self.edge_action_size
 
         """Critic Network for Edge Node"""
 
@@ -308,6 +335,14 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
+        linear_hidden_units = self.hyperparameters["Critic_of_Edge"]["linear_hidden_units"]
+        """parameters_number for critic_local_of_edge_node"""
+        parameters_number += self.critic_size_for_edge * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * 1
+        """parameters_number for critic_target_of_edge_node"""
+        parameters_number += self.critic_size_for_edge * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * 1
+
         """Actor Network for Reward Function"""
 
         self.actor_local_of_reward_function = self.create_nn(
@@ -334,6 +369,14 @@ class HMAIMD_Agent(object):
         optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_reward_function, mode='min', factor=0.1,
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
+
+        linear_hidden_units = self.hyperparameters["Actor_of_Reward"]["linear_hidden_units"]
+        """parameters_number for actor_local_of_reward_function"""
+        parameters_number += self.reward_state_size * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * self.reward_action_size
+        """parameters_number for actor_target_of_reward_function"""
+        parameters_number += self.reward_state_size * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * self.reward_action_size
 
         """Critic Network for Reward Function"""
 
@@ -362,6 +405,16 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
+        linear_hidden_units = self.hyperparameters["Critic_of_Reward"]["linear_hidden_units"]
+        """parameters_number for critic_local_of_reward_function"""
+        parameters_number += self.critic_size_for_reward * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * 1
+        """parameters_number for critic_target_of_reward_function"""
+        parameters_number += self.critic_size_for_reward * linear_hidden_units[0] * linear_hidden_units[1] * \
+            linear_hidden_units[2] * 1
+
+        print("Actor network and Critic network End")
+        print("Number of sum parameters is ", parameters_number)
         """
         ______________________________________________________________________________________________________________
         Actor network and Critic network End
@@ -474,7 +527,7 @@ class HMAIMD_Agent(object):
     def step(self):
         """Runs a step in the game"""
         while not self.done:  # when the episode is not over
-            print(self.environment.episode_step)
+            # print(self.environment.episode_step)
             self.sensor_nodes_pick_actions()
             self.edge_node_pick_action()
             self.combined_action()
@@ -799,10 +852,10 @@ class HMAIMD_Agent(object):
             actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
                 torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred_tensor), dim=1)).mean()
 
-            self.take_optimisation_step_when_two_outputs(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
-                                                         self.actor_local_of_sensor_nodes[sensor_node_index],
-                                                         actor_loss_of_sensor_node,
-                                                         self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
+            self.take_optimisation_step(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
+                                        self.actor_local_of_sensor_nodes[sensor_node_index],
+                                        actor_loss_of_sensor_node,
+                                        self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
             self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
                                                self.actor_target_of_sensor_nodes[sensor_node_index],
                                                self.hyperparameters["Actor_of_Sensor"]["tau"])
@@ -900,19 +953,6 @@ class HMAIMD_Agent(object):
         optimizer.step()  # this applies the gradients
 
     @staticmethod
-    def take_optimisation_step_when_two_outputs(optimizer, network, loss, clipping_norm=None, retain_graph=True):
-        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
-        if not isinstance(network, list):
-            network = [network]
-        optimizer.zero_grad()  # reset gradients to 0
-        loss.backward(retain_graph=False)  # this calculates the gradients
-        if clipping_norm is not None:
-            for net in network:
-                torch.nn.utils.clip_grad_norm_(net.parameters(),
-                                               clipping_norm)  # clip gradients to help stabilise training
-        optimizer.step()  # this applies the gradients
-
-    @staticmethod
     def soft_update_of_target_network(local_model, target_model, tau):
         """
         Updates the target network in the direction of the local network but by taking a step size
@@ -933,6 +973,7 @@ class HMAIMD_Agent(object):
         while self.environment.episode_index < num_episodes:
             print("*" * 64)
             print(self.environment.episode_index)
+            print(time.time() - start)
             self.reset_game()
             self.step()
 
@@ -953,9 +994,6 @@ class HMAIMD_Agent(object):
         return self.game_full_episode_scores, self.rolling_results, time_taken
 
     def reset_game(self):
-        """Resets the game information so we are ready to play a new episode"""
-        self.environment.seed(self.config.environment_seed)
-
         """float parameters"""
         self.reward = None
         self.done = None  # 1 or 0 indicate is episode finished
@@ -979,6 +1017,7 @@ class HMAIMD_Agent(object):
         self.next_edge_node_observation = None
         self.next_reward_observation = None
 
+        """Resets the game information so we are ready to play a new episode"""
         self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation = self.environment.reset()
         # assert self.sensor_nodes_observation.shape[0] == self.environment.config.vehicle_number\
         #     and self.sensor_nodes_observation.shape[1] == self.environment.get_sensor_observation_size(), "sensor_nodes_observation is not same"

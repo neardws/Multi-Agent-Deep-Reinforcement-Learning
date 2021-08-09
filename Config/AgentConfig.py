@@ -36,8 +36,6 @@ class AgentConfig(object):
 
         self.nn_seed = None
 
-        self.environment_seed = None
-
         self.hyperparameters = None
 
         self.file_to_save_data_results = None
@@ -50,7 +48,6 @@ class AgentConfig(object):
                reward_replay_buffer_batch_size=256,
                reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
                nn_seed=np.random.randint(0, 2 ** 32 - 2),
-               environment_seed=np.random.randint(0, 2 ** 32 - 2),
                hyperparameters=None,
                file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
         self.experience_replay_buffer_buffer_size = experience_replay_buffer_buffer_size
@@ -60,6 +57,5 @@ class AgentConfig(object):
         self.reward_replay_buffer_batch_size = reward_replay_buffer_batch_size
         self.reward_replay_buffer_seed = reward_replay_buffer_seed
         self.nn_seed = nn_seed
-        self.environment_seed = environment_seed
         self.hyperparameters = hyperparameters
         self.file_to_save_data_results = file_to_save_data_results
