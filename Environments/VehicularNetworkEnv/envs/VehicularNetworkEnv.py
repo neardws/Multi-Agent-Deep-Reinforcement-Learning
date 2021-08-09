@@ -266,9 +266,10 @@ class VehicularNetworkEnv(gym.Env):
             1  # time_slots_index, changeable with time
             + 1  # action_time_of_vehicle, changeable with action of vehicle
             + int(self.config.data_types_number)  # data_in_edge, changeable with action of vehicle
-            + int(self.config.edge_views_number)  # edge_view_in_edge_node
-            + int(self.config.data_types_number)  # data_types_in_vehicle, unchangeable
-            + int(self.config.data_types_number * self.config.edge_views_number)  # view_required_data, unchangeable
+            + int(self.config.data_types_number)  # required data of the vehicle according to edge view in edge
+            # + int(self.config.edge_views_number)  # edge_view_in_edge_node
+            # + int(self.config.data_types_number)  # data_types_in_vehicle, unchangeable
+            # + int(self.config.data_types_number * self.config.edge_views_number)  # view_required_data, unchangeable
         )
 
     def get_sensor_action_size(self):
@@ -303,13 +304,12 @@ class VehicularNetworkEnv(gym.Env):
         """
         return int(
             1  # time_slots_index
-            + int(
-                self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles in edge node
-            + int(
-                self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
-            + int(self.config.edge_views_number)  # required edge view in edge node
-            + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
-            + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)   # view required data
+            + int(self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles in edge node
+            + int(self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
+            + int(self.config.vehicle_number * self.config.data_types_number)  # required data in all vehicles according to edge view
+            # + int(self.config.edge_views_number)  # required edge view in edge node
+            # + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
+            # + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)   # view required data
         )
 
     def get_actor_input_size_for_edge(self):
@@ -351,15 +351,12 @@ class VehicularNetworkEnv(gym.Env):
         return int(
             1  # time_slots_index
             + int(self.config.vehicle_number)  # action time of sensor nodes
-            + int(
-                self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles
-            # in edge node
-            + int(
-                self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
-            + int(self.config.edge_views_number)  # required edge view in edge node
-            + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
-            + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)
-            # view required data
+            + int(self.config.vehicle_number * self.config.data_types_number)  # owned data types of all vehicles in edge node
+            + int(self.config.vehicle_number * self.config.trajectories_predicted_time)  # predicted trajectories of all vehicles
+            + int(self.config.vehicle_number * self.config.data_types_number)   # required data in all vehicles according to edge view
+            # + int(self.config.edge_views_number)  # required edge view in edge node
+            # + int(self.config.vehicle_number * self.config.data_types_number)  # data types of all vehicles
+            # + int(self.config.vehicle_number * self.config.data_types_number * self.config.edge_views_number)   # view required data
         )
 
     def get_global_action_size(self):
@@ -419,18 +416,13 @@ class VehicularNetworkEnv(gym.Env):
                     self.state['data_in_edge'][vehicle_index][data_type_index]) / self.config.time_slots_number
                 index_start += 1
 
-            for edge_index in range(self.config.edge_views_number):
-                observation[index_start] = self.state['edge_view'][edge_index][0]
-                index_start += 1
-
             for data_type_index in range(self.config.data_types_number):
-                observation[index_start] = self.state['data_types'][vehicle_index][data_type_index]
+                if self.state['data_types'][vehicle_index][data_type_index] == 1:   # vehicle holds the data type
+                    for edge_view_index in range(self.config.edge_views_number):
+                        if self.state['edge_view'][edge_view_index][0] == 1:  # required edge view index at time slot 0
+                            if self.state['view'][vehicle_index][data_type_index][edge_view_index] == 1:
+                                observation[index_start] = 1
                 index_start += 1
-
-            for data_type_index in range(self.config.data_types_number):
-                for edge_index in range(self.config.edge_views_number):
-                    observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
-                    index_start += 1
 
             observation = Tensor(observation)
             sensor_nodes_observation_list.append(observation)
@@ -463,20 +455,14 @@ class VehicularNetworkEnv(gym.Env):
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
 
-        for edge_index in range(self.config.edge_views_number):
-            observation[index_start] = self.state['edge_view'][edge_index][0]
-            index_start += 1
-
         for vehicle_index in range(self.config.vehicle_number):
             for data_type_index in range(self.config.data_types_number):
-                observation[index_start] = self.state['data_types'][vehicle_index][data_type_index]
+                if self.state['data_types'][vehicle_index][data_type_index] == 1:  # vehicle holds the data type
+                    for edge_view_index in range(self.config.edge_views_number):
+                        if self.state['edge_view'][edge_view_index][0] == 1:  # required edge view index at time slot 0
+                            if self.state['view'][vehicle_index][data_type_index][edge_view_index] == 1:
+                                observation[index_start] = 1
                 index_start += 1
-
-        for vehicle_index in range(self.config.vehicle_number):
-            for data_type_index in range(self.config.data_types_number):
-                for edge_index in range(self.config.edge_views_number):
-                    observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
-                    index_start += 1
 
         return torch.from_numpy(observation).to(self.device)
 
@@ -503,20 +489,14 @@ class VehicularNetworkEnv(gym.Env):
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
 
-        for edge_index in range(self.config.edge_views_number):
-            observation[index_start] = self.state['edge_view'][edge_index][0]
-            index_start += 1
-
         for vehicle_index in range(self.config.vehicle_number):
             for data_type_index in range(self.config.data_types_number):
-                observation[index_start] = self.state['data_types'][vehicle_index][data_type_index]
+                if self.state['data_types'][vehicle_index][data_type_index] == 1:  # vehicle holds the data type
+                    for edge_view_index in range(self.config.edge_views_number):
+                        if self.state['edge_view'][edge_view_index][0] == 1:  # required edge view index at time slot 0
+                            if self.state['view'][vehicle_index][data_type_index][edge_view_index] == 1:
+                                observation[index_start] = 1
                 index_start += 1
-
-        for vehicle_index in range(self.config.vehicle_number):
-            for data_type_index in range(self.config.data_types_number):
-                for edge_index in range(self.config.edge_views_number):
-                    observation[index_start] = self.state['view'][vehicle_index][data_type_index][edge_index]
-                    index_start += 1
 
         return torch.from_numpy(observation).to(self.device)
 
@@ -731,8 +711,12 @@ class VehicularNetworkEnv(gym.Env):
                     self.state['data_in_edge'][vehicle_index][data_type_index]) / self.config.time_slots_number
                 index_start += 1
 
-            for edge_index in range(self.config.edge_views_number):
-                self.sensor_nodes_observation[vehicle_index][index_start] = self.state['edge_view'][edge_index][int(self.state['time'])]
+            for data_type_index in range(self.config.data_types_number):
+                if self.state['data_types'][vehicle_index][data_type_index] == 1:   # vehicle holds the data type
+                    for edge_view_index in range(self.config.edge_views_number):
+                        if self.state['edge_view'][edge_view_index][int(self.state['time'])] == 1:  # required edge view index at time slot 0
+                            if self.state['view'][vehicle_index][data_type_index][edge_view_index] == 1:
+                                self.sensor_nodes_observation[vehicle_index][index_start] = 1
                 index_start += 1
 
     def update_edge_observation(self):
@@ -752,9 +736,14 @@ class VehicularNetworkEnv(gym.Env):
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
 
-        for edge_index in range(self.config.edge_views_number):
-            self.edge_node_observation[index_start] = self.state['edge_view'][edge_index][int(self.state['time'])]
-            index_start += 1
+        for vehicle_index in range(self.config.vehicle_number):
+            for data_type_index in range(self.config.data_types_number):
+                if self.state['data_types'][vehicle_index][data_type_index] == 1:  # vehicle holds the data type
+                    for edge_view_index in range(self.config.edge_views_number):
+                        if self.state['edge_view'][edge_view_index][int(self.state['time'])] == 1:  # required edge view index at time slot 0
+                            if self.state['view'][vehicle_index][data_type_index][edge_view_index] == 1:
+                                self.edge_node_observation[index_start] = 1
+                index_start += 1
 
     def update_reward_observation(self):
         index_start = 0
@@ -777,9 +766,14 @@ class VehicularNetworkEnv(gym.Env):
                     self.state['trajectories'][vehicle_index][time_index]) / self.config.communication_range
                 index_start += 1
 
-        for edge_index in range(self.config.edge_views_number):
-            self.reward_observation[index_start] = self.state['edge_view'][edge_index][int(self.state['time'])]
-            index_start += 1
+        for vehicle_index in range(self.config.vehicle_number):
+            for data_type_index in range(self.config.data_types_number):
+                if self.state['data_types'][vehicle_index][data_type_index] == 1:  # vehicle holds the data type
+                    for edge_view_index in range(self.config.edge_views_number):
+                        if self.state['edge_view'][edge_view_index][int(self.state['time'])] == 1:  # required edge view index at time slot 0
+                            if self.state['view'][vehicle_index][data_type_index][edge_view_index] == 1:
+                                self.reward_observation[index_start] = 1
+                index_start += 1
 
     """
     /*——————————————————————————————————————————————————————————————

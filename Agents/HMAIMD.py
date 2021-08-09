@@ -6,7 +6,7 @@
 @Date    ：7/1/21 9:49 上午 
 """
 import time
-
+from torchsummary import summary
 import numpy as np
 import torch
 import torch.nn.functional as functional
@@ -147,7 +147,6 @@ class HMAIMD_Agent(object):
         Actor network and Critic network
         ______________________________________________________________________________________________________________
         """
-        parameters_number = 0
 
         """Actor Network of Sensor Nodes"""
 
@@ -171,14 +170,9 @@ class HMAIMD_Agent(object):
             HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
                                          to_model=self.actor_target_of_sensor_nodes[vehicle_index])
 
-        linear_hidden_units = self.hyperparameters["Actor_of_Sensor"]["linear_hidden_units"]
         for _ in self.actor_local_of_sensor_nodes:
-            """parameters_number for actor_local_of_sensor_nodes"""
-            parameters_number += self.sensor_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
-                linear_hidden_units[2] * self.sensor_action_size
-            """parameters_number for actor_target_of_sensor_nodes"""
-            parameters_number += self.sensor_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
-                linear_hidden_units[2] * self.sensor_action_size
+            print(summary(_, input_size=(self.sensor_observation_size,)))
+
 
         """
         optim.Adam()
@@ -264,14 +258,8 @@ class HMAIMD_Agent(object):
                                                  factor=0.1, patience=10, verbose=False, threshold=0.0001,
                                                  threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 
-        linear_hidden_units = self.hyperparameters["Critic_of_Sensor"]["linear_hidden_units"]
         for _ in self.critic_local_of_sensor_nodes:
-            """parameters_number for critic_local_of_sensor_nodes"""
-            parameters_number += self.critic_size_for_sensor * linear_hidden_units[0] * linear_hidden_units[1] * \
-                linear_hidden_units[2] * 1
-            """parameters_number for critic_target_of_sensor_nodes"""
-            parameters_number += self.critic_size_for_sensor * linear_hidden_units[0] * linear_hidden_units[1] * \
-                linear_hidden_units[2] * 1
+            print(summary(_, input_size=(self.critic_size_for_sensor,)))
 
         """Actor Network for Edge Node"""
 
@@ -300,13 +288,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        linear_hidden_units = self.hyperparameters["Actor_of_Edge"]["linear_hidden_units"]
-        """parameters_number for actor_local_of_edge_node"""
-        parameters_number += self.edge_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * self.edge_action_size
-        """parameters_number for actor_target_of_edge_node"""
-        parameters_number += self.edge_observation_size * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * self.edge_action_size
+        print(summary(self.actor_local_of_edge_node, input_size=(self.edge_observation_size,)))
 
         """Critic Network for Edge Node"""
 
@@ -335,13 +317,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        linear_hidden_units = self.hyperparameters["Critic_of_Edge"]["linear_hidden_units"]
-        """parameters_number for critic_local_of_edge_node"""
-        parameters_number += self.critic_size_for_edge * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * 1
-        """parameters_number for critic_target_of_edge_node"""
-        parameters_number += self.critic_size_for_edge * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * 1
+        print(summary(self.critic_local_of_edge_node, input_size=(self.critic_size_for_edge,)))
 
         """Actor Network for Reward Function"""
 
@@ -370,13 +346,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        linear_hidden_units = self.hyperparameters["Actor_of_Reward"]["linear_hidden_units"]
-        """parameters_number for actor_local_of_reward_function"""
-        parameters_number += self.reward_state_size * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * self.reward_action_size
-        """parameters_number for actor_target_of_reward_function"""
-        parameters_number += self.reward_state_size * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * self.reward_action_size
+        print(summary(self.actor_local_of_reward_function, input_size=(self.reward_state_size,)))
 
         """Critic Network for Reward Function"""
 
@@ -405,16 +375,8 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        linear_hidden_units = self.hyperparameters["Critic_of_Reward"]["linear_hidden_units"]
-        """parameters_number for critic_local_of_reward_function"""
-        parameters_number += self.critic_size_for_reward * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * 1
-        """parameters_number for critic_target_of_reward_function"""
-        parameters_number += self.critic_size_for_reward * linear_hidden_units[0] * linear_hidden_units[1] * \
-            linear_hidden_units[2] * 1
+        print(summary(self.critic_local_of_reward_function, input_size=(self.critic_size_for_reward,)))
 
-        print("Actor network and Critic network End")
-        print("Number of sum parameters is ", parameters_number)
         """
         ______________________________________________________________________________________________________________
         Actor network and Critic network End
