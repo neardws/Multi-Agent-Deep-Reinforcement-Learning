@@ -11,16 +11,17 @@ from torchsummary import summary
 import numpy as np
 import torch
 import torch.nn.functional as functional
-import yaml
 from nn_builder.pytorch.NN import NN  # construct a neural network via PyTorch
 from torch import Tensor
 from torch import optim
-
+import pandas as pd
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 from Exploration_strategies.OU_Noise_Exploration import OU_Noise_Exploration
 from Config.AgentConfig import AgentConfig
 from Utilities.Data_structures.ExperienceReplayBuffer import ExperienceReplayBuffer
 from Utilities.Data_structures.RewardReplayBuffer import RewardReplayBuffer
+from Utilities.FileSaver import save_obj
+from Utilities.FileSaver import load_obj
 
 np.set_printoptions(threshold=np.inf)
 torch.set_printoptions(threshold=np.inf)
@@ -171,8 +172,8 @@ class HMAIMD_Agent(object):
             HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
                                          to_model=self.actor_target_of_sensor_nodes[vehicle_index])
 
-        for _ in self.actor_local_of_sensor_nodes:
-            print(summary(_, input_size=(self.sensor_observation_size,)))
+        # for _ in self.actor_local_of_sensor_nodes:
+        #     print(summary(_, input_size=(self.sensor_observation_size,)))
 
 
         """
@@ -259,8 +260,8 @@ class HMAIMD_Agent(object):
                                                  factor=0.1, patience=10, verbose=False, threshold=0.0001,
                                                  threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 
-        for _ in self.critic_local_of_sensor_nodes:
-            print(summary(_, input_size=(self.critic_size_for_sensor,)))
+        # for _ in self.critic_local_of_sensor_nodes:
+        #     print(summary(_, input_size=(self.critic_size_for_sensor,)))
 
         """Actor Network for Edge Node"""
 
@@ -289,7 +290,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        print(summary(self.actor_local_of_edge_node, input_size=(self.edge_observation_size,)))
+        # print(summary(self.actor_local_of_edge_node, input_size=(self.edge_observation_size,)))
 
         """Critic Network for Edge Node"""
 
@@ -318,7 +319,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        print(summary(self.critic_local_of_edge_node, input_size=(self.critic_size_for_edge,)))
+        # print(summary(self.critic_local_of_edge_node, input_size=(self.critic_size_for_edge,)))
 
         """Actor Network for Reward Function"""
 
@@ -347,7 +348,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        print(summary(self.actor_local_of_reward_function, input_size=(self.reward_state_size,)))
+        # print(summary(self.actor_local_of_reward_function, input_size=(self.reward_state_size,)))
 
         """Critic Network for Reward Function"""
 
@@ -376,7 +377,7 @@ class HMAIMD_Agent(object):
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
 
-        print(summary(self.critic_local_of_reward_function, input_size=(self.critic_size_for_reward,)))
+        # print(summary(self.critic_local_of_reward_function, input_size=(self.critic_size_for_reward,)))
 
         """
         ______________________________________________________________________________________________________________
@@ -932,19 +933,36 @@ class HMAIMD_Agent(object):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
-    def run_n_episodes(self, num_episodes=None):
+    def run_n_episodes(self, num_episodes=None, temple_agent_config_name=None, temple_agent_name=None, temple_result_name=None):
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
         if num_episodes is None:
             num_episodes = self.environment.config.episode_number
-        start = time.time()
+
+        try:
+            result_data = pd.read_csv(temple_result_name, names=["Epoch index","Total reward","Time taken"], header=0)
+        except FileNotFoundError:
+            result_data = pd.DataFrame(data=None,columns={"Epoch index":"","Total reward":"","Time taken":""},index=[0])
+
         while self.environment.episode_index < num_episodes:
             print("*" * 64)
-            print("Episode index: ", self.environment.episode_index)
-
+            start = time.time()
             self.reset_game()
             self.step()
+            time_taken = time.time() - start
+            print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
-            print("Time taken: ", time.time() - start)
+            print("Time taken: ", time_taken)
+            new_line_in_result = pd.DataFrame({"Epoch index":str(self.environment.episode_index),"Total reward":str(self.total_episode_score_so_far),"Time taken":str(time_taken)}, index=["0"])
+            result_data = result_data.append(new_line_in_result, ignore_index=True)
+            # for i in self.actor_target_of_sensor_nodes[0].named_parameters():
+            #     print(i)
+            if self.environment.episode_index == 1:
+                result_data = result_data.drop(result_data.index[[0]])
+
+            if self.environment.episode_index % 2 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                result_data.to_csv(temple_result_name)
 
             """Saves the result of an episode of the game"""
             self.game_full_episode_scores.append(self.total_episode_score_so_far)

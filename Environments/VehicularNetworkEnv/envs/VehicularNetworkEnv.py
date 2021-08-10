@@ -35,7 +35,7 @@ class VehicularNetworkEnv(gym.Env):
 
     def __init__(self, experiment_config: ExperimentConfig):
         """
-        init the environment via Experiment_Config
+        first the environment via Experiment_Config
         :param experiment_config:
         """
         super(VehicularNetworkEnv, self).__init__()

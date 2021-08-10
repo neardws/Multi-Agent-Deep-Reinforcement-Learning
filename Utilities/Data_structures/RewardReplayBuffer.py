@@ -14,6 +14,12 @@ import numpy as np
 class RewardReplayBuffer(object):
     """Replay buffer to store past reward experiences that the agent can then use for training data"""
 
+    # module-level type definition
+    experience = namedtuple("Experience", field_names=["last_reward_observation", "last_global_action",
+                                                       "last_reward_action", "reward", "reward_observation",
+                                                       "global_action", "done"])
+    experience.__qualname__ = 'RewardReplayBuffer.experience'
+
     def __init__(self, buffer_size, batch_size, seed, device=None):
         """
         Init Replay_buffer
@@ -24,9 +30,7 @@ class RewardReplayBuffer(object):
         """
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["last_reward_observation", "last_global_action",
-                                                                "last_reward_action", "reward", "reward_observation",
-                                                                "global_action", "done"])
+
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
         if device:
