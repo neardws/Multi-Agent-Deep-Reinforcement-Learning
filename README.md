@@ -10,9 +10,6 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 
 - [ ] Unit testing
 - [ ] Add some comparison algorithm
-- [ ] Add draw results
-- [ ] Remove noise in action
-- [ ] Test Replay Buffer
 
 ### Done
 
@@ -42,3 +39,6 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Add predicted trajectories into global trajectory 2021-08-07
 - [x] Save configuration and others to recurring results 2021-08-10
 - [x] Interruption and recovery the training process 2021-08-10
+- [x] Add draw results 2021-08-11
+- [x] Remove noise in action 2021-08-11
+- [x] Test Replay Buffer 2021-08-11

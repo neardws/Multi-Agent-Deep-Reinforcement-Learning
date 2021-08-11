@@ -617,10 +617,11 @@ class HMAIMD_Agent(object):
         with torch.no_grad():
             reward_function_action = self.actor_local_of_reward_function(reward_function_state)
         self.actor_local_of_reward_function.train()
-        self.reward_action = torch.from_numpy(
-            self.reward_exploration_strategy.perturb_action_for_exploration_purposes(
-                {"action": reward_function_action.cpu().data.numpy()})
-        ).to(self.device)
+        self.reward_action = reward_function_action
+        # self.reward_action = torch.from_numpy(
+        #     self.reward_exploration_strategy.perturb_action_for_exploration_purposes(
+        #         {"action": reward_function_action.cpu().data.numpy()})
+        # ).to(self.device)
         self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.config.vehicle_number]
         self.edge_node_reward = self.reward * self.reward_action[0][-1]
 
