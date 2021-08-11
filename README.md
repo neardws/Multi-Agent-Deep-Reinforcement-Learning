@@ -10,6 +10,9 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 
 - [ ] Unit testing
 - [ ] Add some comparison algorithm
+- [ ] Add draw results
+- [ ] Remove noise in action
+- [ ] Test Replay Buffer
 
 ### Done
 

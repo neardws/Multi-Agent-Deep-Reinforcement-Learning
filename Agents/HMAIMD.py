@@ -25,7 +25,7 @@ from Utilities.FileSaver import load_obj
 
 np.set_printoptions(threshold=np.inf)
 torch.set_printoptions(threshold=np.inf)
-
+pd.set_option('display.max_rows', None)
 
 class HMAIMD_Agent(object):
     """
@@ -954,6 +954,8 @@ class HMAIMD_Agent(object):
             print("Time taken: ", time_taken)
             new_line_in_result = pd.DataFrame({"Epoch index":str(self.environment.episode_index),"Total reward":str(self.total_episode_score_so_far),"Time taken":str(time_taken)}, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
+            if self.environment.episode_index % 10 == 0:
+                print(result_data)
             # for i in self.actor_target_of_sensor_nodes[0].named_parameters():
             #     print(i)
             if self.environment.episode_index == 1:

@@ -194,6 +194,6 @@ def run(first=False, rerun=False, given_list_file_name=None):
 
 
 if __name__ == '__main__':
-    run(first=True)
+    # run(first=True)
     # run(rerun=True, given_list_file_name='2021-08-10-10-19-22-list_file_name.pkl')
-    # run(given_list_file_name='2021-08-10-10-42-50-list_file_name.pkl')
+    run(given_list_file_name='2021-08-10-10-42-50-list_file_name.pkl')
