@@ -97,7 +97,7 @@ class ExperimentConfig(object):
 
                time_start=1479031200,
 
-               episode_number=1000,
+               episode_number=3000,
                max_episode_length=300,
 
                vehicle_number=10,

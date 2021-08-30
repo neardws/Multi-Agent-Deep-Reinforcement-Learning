@@ -20,12 +20,12 @@ from Exploration_strategies.OU_Noise_Exploration import OU_Noise_Exploration
 from Config.AgentConfig import AgentConfig
 from Utilities.Data_structures.ExperienceReplayBuffer import ExperienceReplayBuffer
 from Utilities.Data_structures.RewardReplayBuffer import RewardReplayBuffer
-from Utilities.FileSaver import save_obj
-from Utilities.FileSaver import load_obj
+from Utilities.FileOperator import save_obj
 
 np.set_printoptions(threshold=np.inf)
 torch.set_printoptions(threshold=np.inf)
 pd.set_option('display.max_rows', None)
+
 
 class HMAIMD_Agent(object):
     """
@@ -188,6 +188,7 @@ class HMAIMD_Agent(object):
         On the Convergence of Adam and Beyond (default: False)
         """
         self.actor_optimizer_of_sensor_nodes = [
+
             optim.Adam(params=self.actor_local_of_sensor_nodes[vehicle_index].parameters(),
                        lr=self.hyperparameters["Actor_of_Sensor"]["learning_rate"],
                        eps=1e-4
@@ -418,7 +419,7 @@ class HMAIMD_Agent(object):
 
         default_hyperparameter_choices = {"output_activation": None,
                                           "hidden_activations": "relu",
-                                          "dropout": 0.0,
+                                          "dropout": 0.1,
                                           "initialiser": "default",
                                           "batch_norm": False,
                                           "columns_of_data_to_be_embedded": [],
@@ -556,7 +557,8 @@ class HMAIMD_Agent(object):
                 #     {"action": sensor_action.cpu().data.numpy()})
                 for action_index in range(self.sensor_action_size):
                     self.sensor_nodes_action[sensor_node_index, action_index] = \
-                        sensor_action[0][action_index]
+                        torch.cuda.FloatTensor([sensor_action[0][action_index]])
+                # print(self.sensor_nodes_action)
 
     def edge_node_pick_action(self):
         edge_node_state = torch.cat((self.edge_node_observation.unsqueeze(0),
@@ -940,10 +942,11 @@ class HMAIMD_Agent(object):
             num_episodes = self.environment.config.episode_number
 
         try:
-            result_data = pd.read_csv(temple_result_name, names=["Epoch index","Total reward","Time taken"], header=0)
+            result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None,columns={"Epoch index":"","Total reward":"","Time taken":""},index=[0])
+            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "Total reward": "", "Time taken": ""}, index=[0])
 
+        start = time.time()
         while self.environment.episode_index < num_episodes:
             print("*" * 64)
             start = time.time()
@@ -962,10 +965,11 @@ class HMAIMD_Agent(object):
             if self.environment.episode_index == 1:
                 result_data = result_data.drop(result_data.index[[0]])
 
-            if self.environment.episode_index % 2 == 0:
+            if self.environment.episode_index % 1 == 0:
                 save_obj(obj=self.config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
                 result_data.to_csv(temple_result_name)
+                print("save result data successful")
 
             """Saves the result of an episode of the game"""
             self.game_full_episode_scores.append(self.total_episode_score_so_far)

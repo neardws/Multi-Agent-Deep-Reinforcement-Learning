@@ -29,8 +29,8 @@ class ExperienceReplayBuffer(object):
         :param seed: seed of random number
         :param device: GPU or CPU
         """
+        # self.memory = deque()
         self.memory = deque()
-        # self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
 
         random.seed(seed)  # setup random number seed

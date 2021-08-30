@@ -30,7 +30,7 @@ class RewardReplayBuffer(object):
         """
         self.memory = deque()
         # self.memory = deque(maxlen=buffer_size)
-        self.batch_size = batch_size
+        # self.batch_size = batch_size
 
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
