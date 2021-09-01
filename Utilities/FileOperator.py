@@ -9,7 +9,7 @@ import pickle
 import uuid
 import os
 import datetime
-from file_name import project_dir
+from File_Name import project_dir, data
 
 
 def save_obj(obj, name):
@@ -38,12 +38,12 @@ def load_obj(name):
 def init_file_name():
     dayTime = datetime.datetime.now().strftime('%Y-%m-%d')
     hourTime = datetime.datetime.now().strftime('%H-%M-%S')
-    pwd = project_dir + '/Data/' + dayTime + '-' + hourTime
+    pwd = project_dir + data + dayTime + '-' + hourTime
 
     if not os.path.exists(pwd):
         os.makedirs(pwd)
 
-    list_file_name = project_dir + '/Data/' + dayTime + '-' + hourTime + '-' + 'list_file_name.pkl'
+    list_file_name = project_dir + data + dayTime + '-' + hourTime + '-' + 'list_file_name.pkl'
 
     uuid_str = uuid.uuid4().hex
     init_experiment_config_name = pwd + '/' + 'init_experiment_config_%s.pkl' % uuid_str

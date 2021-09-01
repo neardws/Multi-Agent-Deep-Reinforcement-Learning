@@ -30,8 +30,9 @@ class ExperienceReplayBuffer(object):
         :param device: GPU or CPU
         """
         # self.memory = deque()
-        self.memory = deque()
         self.batch_size = batch_size
+        self.memory = deque(maxlen=buffer_size)
+
 
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu

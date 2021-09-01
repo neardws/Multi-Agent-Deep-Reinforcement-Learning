@@ -28,9 +28,8 @@ class RewardReplayBuffer(object):
         :param seed: seed of random number
         :param device: GPU or CPU
         """
-        self.memory = deque()
-        # self.memory = deque(maxlen=buffer_size)
-        # self.batch_size = batch_size
+        self.batch_size = batch_size
+        self.memory = deque(maxlen=buffer_size)
 
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
@@ -84,7 +83,7 @@ class RewardReplayBuffer(object):
             .float().to(self.device)
         last_reward_actions = torch.from_numpy(np.vstack([e.last_reward_action.cpu().data for e in experiences if e is not None]))\
             .float().to(self.device)
-        rewards = torch.from_numpy(np.vstack([e.reward.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
         reward_observations = torch.from_numpy(np.vstack([e.reward_observation.cpu().data for e in experiences if e is not None]))\
             .float().to(self.device)
         global_actions = torch.from_numpy(np.vstack([e.global_action.cpu().data for e in experiences if e is not None])).float()\

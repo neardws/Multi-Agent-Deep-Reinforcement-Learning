@@ -26,11 +26,12 @@ class Trainer(object):
         print("-----------------------------------------------------------------------------------")
         print(" ")
 
-    def run_games_for_agent(self, temple_agent_config_name, temple_agent_name, temple_result_name):
+    def run_games_for_agent(self, temple_agent_config_name, temple_agent_name, temple_result_name, temple_loss_name):
 
         game_scores, rolling_scores, time_taken = self.agent.run_n_episodes(temple_agent_config_name=temple_agent_config_name,
                                                                             temple_agent_name=temple_agent_name,
-                                                                            temple_result_name=temple_result_name)
+                                                                            temple_result_name=temple_result_name,
+                                                                            temple_loss_name=temple_loss_name)
         print("Time taken: {}".format(time_taken), flush=True)
 
         self.print_two_empty_lines()

@@ -6,8 +6,7 @@
 @Date    ：7/11/21 3:25 下午 
 """
 import numpy as np
-
-from file_name import project_dir
+from File_Name import project_dir, data
 from Utilities.FileOperator import load_obj
 from Utilities.FileOperator import init_file_name
 from Utilities.FileOperator import save_init_files
@@ -120,8 +119,8 @@ def init():
         },
 
         "discount_rate": 0.9,
-        "update_every_n_steps": 300,  # 30 times in one episode
-        "learning_updates_per_learning_session": 10,
+        "update_every_n_steps": 15,  # 30 times in one episode
+        "learning_updates_per_learning_session": 8,
         "clip_rewards": False}
 
     agent_config.config(hyperparameters=hyperparameters)
@@ -137,11 +136,11 @@ def run(first=False, rerun=False, given_list_file_name=None):
         trainer = Trainer(agent_config, agent)
         trainer.run_games_for_agent(temple_agent_config_name=load_name(list_file_name, 'temple_agent_config_name'),
                                     temple_agent_name=load_name(list_file_name, 'temple_agent_name'),
-                                    temple_result_name=load_name(list_file_name, 'temple_result_name'))
-
+                                    temple_result_name=load_name(list_file_name, 'temple_result_name'),
+                                    temple_loss_name=load_name(list_file_name, 'temple_loss_name'))
     else:
         if rerun:
-            correct_list_file_name = project_dir + '/Data/' + given_list_file_name
+            correct_list_file_name = project_dir + data + given_list_file_name
             list_file = load_obj(name=correct_list_file_name)
             # init_experiment_config = load_obj(load_name(list_file, 'init_experiment_config_name'))
             # init_agent_config = load_obj(load_name(list_file, 'init_agent_config_name'))
@@ -153,16 +152,18 @@ def run(first=False, rerun=False, given_list_file_name=None):
             trainer = Trainer(agent_config, agent)
             trainer.run_games_for_agent(temple_agent_config_name=load_name(new_list_file_name, 'temple_agent_config_name'),
                                         temple_agent_name=load_name(new_list_file_name, 'temple_agent_name'),
-                                        temple_result_name=load_name(new_list_file_name, 'temple_result_name'))
+                                        temple_result_name=load_name(new_list_file_name, 'temple_result_name'),
+                                        temple_loss_name=load_name(new_list_file_name, 'temple_loss_name'))
         else:
-            correct_list_file_name = project_dir + '/Data/' + given_list_file_name
+            correct_list_file_name = project_dir + data + given_list_file_name
             list_file = load_obj(name=correct_list_file_name)
             temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
             temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
             trainer = Trainer(temple_agent_config, temple_agent)
             trainer.run_games_for_agent(temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
                                         temple_agent_name=load_name(list_file, 'temple_agent_name'),
-                                        temple_result_name=load_name(list_file, 'temple_result_name'))
+                                        temple_result_name=load_name(list_file, 'temple_result_name'),
+                                        temple_loss_name=load_name(list_file, 'temple_loss_name'))
 
 
 if __name__ == '__main__':
@@ -175,7 +176,13 @@ if __name__ == '__main__':
 
     # run(given_list_file_name='2021-08-30-02-18-29-list_file_name.pkl')
 
-    run(given_list_file_name='2021-08-30-02-32-49-list_file_name.pkl')
+    # run(given_list_file_name='2021-08-30-02-32-49-list_file_name.pkl')
 
+    # run(given_list_file_name='2021-08-30-04-01-44-list_file_name.pkl')
+
+    # run(rerun=True, given_list_file_name='2021-08-30-04-45-25-list_file_name.pkl')
+    # run(given_list_file_name='2021-08-30-04-45-25-list_file_name.pkl')
+
+    run(given_list_file_name='2021-08-31-07-23-38-list_file_name.pkl')
 
 
