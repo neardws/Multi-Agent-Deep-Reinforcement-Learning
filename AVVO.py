@@ -7,7 +7,7 @@
 """
 import numpy as np
 from File_Name import project_dir, data
-from Utilities.FileOperator import load_obj
+from Utilities.FileOperator import load_obj, save_obj
 from Utilities.FileOperator import init_file_name
 from Utilities.FileOperator import save_init_files
 from Utilities.FileOperator import load_name
@@ -33,7 +33,7 @@ def init():
         # uses a softmax activation function
 
         "Actor_of_Sensor": {
-            "learning_rate": 0.0001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
@@ -42,7 +42,7 @@ def init():
                  ],
             "final_layer_activation": ["softmax", "softmax"],
             "batch_norm": False,
-            "tau": 0.01,
+            "tau": 0.001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
@@ -51,13 +51,13 @@ def init():
         },
 
         "Critic_of_Sensor": {
-            "learning_rate": 0.001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
-            "tau": 0.01,
+            "tau": 0.001,
             "gradient_clipping_norm": 5
         },
 
@@ -71,7 +71,7 @@ def init():
                  ],
             "final_layer_activation": "softmax",
             "batch_norm": False,
-            "tau": 0.01,
+            "tau": 0.001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
@@ -80,18 +80,18 @@ def init():
         },
 
         "Critic_of_Edge": {
-            "learning_rate": 0.001,
+            "learning_rate": 0.0001,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
-            "tau": 0.01,
+            "tau": 0.001,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 0.0001,
+            "learning_rate": 0.001,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
@@ -99,7 +99,7 @@ def init():
                          vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
-            "tau": 0.01,
+            "tau": 0.001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
@@ -114,13 +114,13 @@ def init():
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
             "final_layer_activation": None,
             "batch_norm": False,
-            "tau": 0.01,
+            "tau": 0.001,
             "gradient_clipping_norm": 5
         },
 
-        "discount_rate": 0.9,
-        "update_every_n_steps": 15,  # 30 times in one episode
-        "learning_updates_per_learning_session": 8,
+        "discount_rate": 0.996,
+        "update_every_n_steps": 300,  # 30 times in one episode
+        "learning_updates_per_learning_session": 10,
         "clip_rewards": False}
 
     agent_config.config(hyperparameters=hyperparameters)
@@ -130,9 +130,15 @@ def init():
 def run(first=False, rerun=False, given_list_file_name=None):
     if first:  # run in the first time
         experiment_config, agent_config, vehicularNetworkEnv = init()
+
+        # correct_list_file_name = project_dir + data + '2021-09-01-03-58-12-list_file_name.pkl'
+        # list_file = load_obj(name=correct_list_file_name)
+        # vehicularNetworkEnv = load_obj(name=load_name(list_file, 'init_environment_name'))
+
         list_file_name = init_file_name()
         save_init_files(list_file_name, experiment_config, agent_config, vehicularNetworkEnv)
         agent = HMAIMD_Agent(agent_config=agent_config, environment=vehicularNetworkEnv)
+
         trainer = Trainer(agent_config, agent)
         trainer.run_games_for_agent(temple_agent_config_name=load_name(list_file_name, 'temple_agent_config_name'),
                                     temple_agent_name=load_name(list_file_name, 'temple_agent_name'),
@@ -183,6 +189,26 @@ if __name__ == '__main__':
     # run(rerun=True, given_list_file_name='2021-08-30-04-45-25-list_file_name.pkl')
     # run(given_list_file_name='2021-08-30-04-45-25-list_file_name.pkl')
 
-    run(given_list_file_name='2021-08-31-07-23-38-list_file_name.pkl')
+    # run(given_list_file_name='2021-08-31-07-23-38-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-00-58-25-list_file_name.pkl')
+
+    # run(rerun=True, given_list_file_name='2021-09-01-02-10-58-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-02-22-26-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-02-35-26-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-03-36-37-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-03-58-12-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-04-42-32-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-06-43-51-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-01-07-14-31-list_file_name.pkl')
+
+    run(given_list_file_name='2021-09-01-22-23-27-list_file_name.pkl')
 
 

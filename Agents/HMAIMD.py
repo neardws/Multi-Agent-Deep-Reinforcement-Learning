@@ -169,9 +169,9 @@ class HMAIMD_Agent(object):
             ) for _ in range(self.environment.config.vehicle_number)
         ]
 
-        for vehicle_index in range(self.environment.config.vehicle_number):
-            HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
-                                         to_model=self.actor_target_of_sensor_nodes[vehicle_index])
+        # for vehicle_index in range(self.environment.config.vehicle_number):
+        #     HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
+        #                                  to_model=self.actor_target_of_sensor_nodes[vehicle_index])
 
         # for _ in self.actor_local_of_sensor_nodes:
         #     print(summary(_, input_size=(self.sensor_observation_size,)))
@@ -246,9 +246,9 @@ class HMAIMD_Agent(object):
             ) for _ in range(self.environment.config.vehicle_number)
         ]
 
-        for vehicle_index in range(self.environment.config.vehicle_number):
-            HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[vehicle_index],
-                                         to_model=self.critic_target_of_sensor_nodes[vehicle_index])
+        # for vehicle_index in range(self.environment.config.vehicle_number):
+        #     HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[vehicle_index],
+        #                                  to_model=self.critic_target_of_sensor_nodes[vehicle_index])
 
         self.critic_optimizer_of_sensor_nodes = [
             optim.Adam(params=self.critic_local_of_sensor_nodes[vehicle_index].parameters(),
@@ -279,8 +279,8 @@ class HMAIMD_Agent(object):
             key_to_use="Actor_of_Edge"
         )
 
-        HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_edge_node,
-                                     to_model=self.actor_target_of_edge_node)
+        # HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_edge_node,
+        #                              to_model=self.actor_target_of_edge_node)
 
         self.actor_optimizer_of_edge_node = optim.Adam(
             params=self.actor_local_of_edge_node.parameters(),
@@ -308,8 +308,8 @@ class HMAIMD_Agent(object):
             key_to_use="Critic_of_Edge"
         )
 
-        HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_edge_node,
-                                     to_model=self.critic_target_of_edge_node)
+        # HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_edge_node,
+        #                              to_model=self.critic_target_of_edge_node)
 
         self.critic_optimizer_of_edge_node = optim.Adam(
             params=self.critic_local_of_edge_node.parameters(),
@@ -337,8 +337,8 @@ class HMAIMD_Agent(object):
             key_to_use="Actor_of_Reward"
         )
 
-        HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_reward_function,
-                                     to_model=self.actor_target_of_reward_function)
+        # HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_reward_function,
+        #                              to_model=self.actor_target_of_reward_function)
 
         self.actor_optimizer_of_reward_function = optim.Adam(
             params=self.actor_local_of_reward_function.parameters(),
@@ -366,8 +366,8 @@ class HMAIMD_Agent(object):
             key_to_use="Critic_of_Reward"
         )
 
-        HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_reward_function,
-                                     to_model=self.critic_target_of_reward_function)
+        # HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_reward_function,
+        #                              to_model=self.critic_target_of_reward_function)
 
         self.critic_optimizer_of_reward_function = optim.Adam(
             params=self.critic_local_of_reward_function.parameters(),
@@ -420,7 +420,7 @@ class HMAIMD_Agent(object):
 
         default_hyperparameter_choices = {"output_activation": None,
                                           "hidden_activations": "relu",
-                                          "dropout": 0.1,
+                                          "dropout": 0.5,
                                           "initialiser": "default",
                                           "batch_norm": False,
                                           "columns_of_data_to_be_embedded": [],
@@ -754,28 +754,6 @@ class HMAIMD_Agent(object):
                                                      reward_observation=self.reward_observation.clone().detach(),
                                                      global_action=self.global_action.clone().detach(),
                                                      done=self.done)
-        # except AttributeError:
-        #     print("AttributeError")
-        #     print(AttributeError)
-        #     print(type(self.last_reward_observation))
-        #     print(type(self.last_global_action))
-        #     print(type(self.last_reward_action))
-        #     print(type(self.reward))
-        #     print(type(self.reward_observation))
-        #     print(type(self.global_action))
-        #     print(type(self.done))
-            # if self.last_reward_observation is None:
-            #     print("self.last_reward_observation is None")
-            # if self.last_global_action is None:
-            #     print("self.last_global_action is None")
-            # if self.last_reward_action is None:
-            #     print("self.last_reward_action is None")
-            # if self.reward is None:
-            #     print("self.reward is None")
-            # if self.reward_observation is None:
-            #     print("self.reward_observation is None")
-            # if self.global_action is None:
-            #     print("self.global_action is None")
 
     def time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn(self):
         """Returns boolean indicating whether there are enough experiences to learn from
@@ -890,7 +868,7 @@ class HMAIMD_Agent(object):
             """
             ________________________________________________________________
 
-            Calculates the actor loss of sensor nodes
+            Calculates the critic loss of sensor nodes
             ________________________________________________________________
             """
 
@@ -1198,7 +1176,7 @@ class HMAIMD_Agent(object):
                 result_data = result_data.drop(result_data.index[[0]])
                 loss_data = loss_data.drop(loss_data.index[[0]])
 
-            if self.environment.episode_index % 30 == 0:
+            if self.environment.episode_index % 20 == 0:
                 save_obj(obj=self.config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
                 result_data.to_csv(temple_result_name)
