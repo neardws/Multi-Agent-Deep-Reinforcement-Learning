@@ -193,7 +193,10 @@ if __name__ == '__main__':
     # draw_actor_loss_of_reward(given_list_file_name=file_name)
     # draw_critic_loss_of_reward(given_list_file_name=file_name)
 
-    file_name = '2021-09-01-22-23-27-list_file_name.pkl'
+    # file_name = '2021-09-01-22-23-27-list_file_name.pkl'
+    # file_name = '2021-09-02-03-20-11-list_file_name.pkl'
+    file_name = '2021-09-03-02-14-15-list_file_name.pkl'
+
     draw_results(file_name)
     draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
     draw_critic_loss_of_sensor_nodes(given_list_file_name=file_name)

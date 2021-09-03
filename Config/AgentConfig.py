@@ -41,10 +41,10 @@ class AgentConfig(object):
         self.file_to_save_data_results = None
 
     def config(self,
-               experience_replay_buffer_buffer_size=100000,
+               experience_replay_buffer_buffer_size=200000,
                experience_replay_buffer_batch_size=1024,
                experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               reward_replay_buffer_buffer_size=100000,
+               reward_replay_buffer_buffer_size=200000,
                reward_replay_buffer_batch_size=1024,
                reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
                nn_seed=np.random.randint(0, 2 ** 32 - 2),

@@ -9,7 +9,7 @@ from Utilities.OU_Noise import OU_Noise
 
 
 # noinspection PyPep8Naming
-class OU_Noise_Exploration():
+class OU_Noise_Exploration(object):
     """Ornstein-Uhlenbeck noise process exploration strategy"""
 
     def __init__(self, size, hyperparameters, key_to_use=None):

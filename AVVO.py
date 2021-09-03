@@ -33,65 +33,69 @@ def init():
         # uses a softmax activation function
 
         "Actor_of_Sensor": {
-            "learning_rate": 0.00001,
+            "learning_rate": 0.000001,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
                  int(0.5 * (
                          vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
                  ],
-            "final_layer_activation": ["softmax", "softmax"],
+            "final_layer_activation": "relu",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.00001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
             "theta": 0.15,
-            "sigma": 0.25
+            "sigma": 0.25,
+            "action_noise_std": 0.05,
+            "action_noise_clipping_range": 1.0
         },
 
         "Critic_of_Sensor": {
-            "learning_rate": 0.00001,
+            "learning_rate": 0.000001,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
-            "final_layer_activation": None,
+            "final_layer_activation": "relu",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.00001,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Edge": {
-            "learning_rate": 0.0001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
                  int(0.5 * (
                          vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))
                  ],
-            "final_layer_activation": "softmax",
+            "final_layer_activation": "relu",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
             "theta": 0.15,
-            "sigma": 0.25
+            "sigma": 0.25,
+            "action_noise_std": 0.05,
+            "action_noise_clipping_range": 1.0
         },
 
         "Critic_of_Edge": {
-            "learning_rate": 0.0001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
-            "final_layer_activation": None,
+            "final_layer_activation": "relu",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 0.001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
@@ -99,7 +103,7 @@ def init():
                          vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
@@ -108,18 +112,18 @@ def init():
         },
 
         "Critic_of_Reward": {
-            "learning_rate": 0.001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
-            "final_layer_activation": None,
+            "final_layer_activation": "relu",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5
         },
 
         "discount_rate": 0.996,
-        "update_every_n_steps": 300,  # 30 times in one episode
+        "update_every_n_steps": 30,  # 30 times in one episode
         "learning_updates_per_learning_session": 10,
         "clip_rewards": False}
 
@@ -173,7 +177,7 @@ def run(first=False, rerun=False, given_list_file_name=None):
 
 
 if __name__ == '__main__':
-    # run(first=True)
+    run(first=True)
     # run(rerun=True, given_list_file_name='2021-08-10-10-19-22-list_file_name.pkl')
 
     # run(rerun=True, given_list_file_name='2021-08-21-05-56-04-list_file_name.pkl')
@@ -209,6 +213,10 @@ if __name__ == '__main__':
 
     # run(given_list_file_name='2021-09-01-07-14-31-list_file_name.pkl')
 
-    run(given_list_file_name='2021-09-01-22-23-27-list_file_name.pkl')
+    # run(given_list_file_name='2021-09-01-22-23-27-list_file_name.pkl')
+
+    # run(given_list_file_name='2021-09-02-03-20-11-list_file_name.pkl')
+    # run(given_list_file_name='2021-09-03-03-34-00-list_file_name.pkl')
+
 
 
