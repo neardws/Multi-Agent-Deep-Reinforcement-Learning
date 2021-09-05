@@ -907,6 +907,7 @@ class HMAIMD_Agent(object):
                                         self.critic_local_of_sensor_nodes[sensor_node_index],
                                         critic_loss_of_sensor_node,
                                         self.hyperparameters["Critic_of_Sensor"]["gradient_clipping_norm"])
+
             self.soft_update_of_target_network(self.critic_local_of_sensor_nodes[sensor_node_index],
                                                self.critic_target_of_sensor_nodes[sensor_node_index],
                                                self.hyperparameters["Critic_of_Sensor"]["tau"])
@@ -1206,13 +1207,6 @@ class HMAIMD_Agent(object):
                 result_data = result_data.drop(result_data.index[[0]])
                 loss_data = loss_data.drop(loss_data.index[[0]])
 
-            if self.environment.episode_index % 20 == 0:
-                save_obj(obj=self.config, name=temple_agent_config_name)
-                save_obj(obj=self, name=temple_agent_name)
-                result_data.to_csv(temple_result_name)
-                loss_data.to_csv(temple_loss_name)
-                print("save result data successful")
-
             """Saves the result of an episode of the game"""
             self.game_full_episode_scores.append(self.total_episode_score_so_far)
             self.rolling_results.append(
@@ -1225,6 +1219,13 @@ class HMAIMD_Agent(object):
             if self.rolling_results[-1] > self.max_rolling_score_seen:
                 if len(self.rolling_results) > self.environment.config.rolling_score_window:
                     self.max_rolling_score_seen = self.rolling_results[-1]
+
+            if self.environment.episode_index % 20 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                result_data.to_csv(temple_result_name)
+                loss_data.to_csv(temple_loss_name)
+                print("save result data successful")
 
         writer.close()
         time_taken = time.time() - start
