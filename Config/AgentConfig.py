@@ -26,13 +26,21 @@ class AgentConfig(object):
     """
 
     def __init__(self):
-        self.experience_replay_buffer_buffer_size = None
-        self.experience_replay_buffer_batch_size = None
-        self.experience_replay_buffer_seed = None
+        self.actor_experience_replay_buffer_buffer_size = None
+        self.actor_experience_replay_buffer_batch_size = None
+        self.actor_experience_replay_buffer_seed = None
 
-        self.reward_replay_buffer_buffer_size = None
-        self.reward_replay_buffer_batch_size = None
-        self.reward_replay_buffer_seed = None
+        self.critic_experience_replay_buffer_buffer_size = None
+        self.critic_experience_replay_buffer_batch_size = None
+        self.critic_experience_replay_buffer_seed = None
+
+        self.actor_reward_replay_buffer_buffer_size = None
+        self.actor_reward_replay_buffer_batch_size = None
+        self.actor_reward_replay_buffer_seed = None
+
+        self.critic_reward_replay_buffer_buffer_size = None
+        self.critic_reward_replay_buffer_batch_size = None
+        self.critic_reward_replay_buffer_seed = None
 
         self.nn_seed = None
 
@@ -41,21 +49,33 @@ class AgentConfig(object):
         self.file_to_save_data_results = None
 
     def config(self,
-               experience_replay_buffer_buffer_size=51200,
-               experience_replay_buffer_batch_size=1024,
-               experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               reward_replay_buffer_buffer_size=51200,
-               reward_replay_buffer_batch_size=1024,
-               reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               actor_experience_replay_buffer_buffer_size=50000,
+               actor_experience_replay_buffer_batch_size=64,
+               actor_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               critic_experience_replay_buffer_buffer_size=100000,
+               critic_experience_replay_buffer_batch_size=64,
+               critic_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               actor_reward_replay_buffer_buffer_size=50000,
+               actor_reward_replay_buffer_batch_size=64,
+               actor_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               critic_replay_buffer_buffer_size=100000,
+               critic_replay_buffer_batch_size=64,
+               critic_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
                nn_seed=np.random.randint(0, 2 ** 32 - 2),
                hyperparameters=None,
                file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
-        self.experience_replay_buffer_buffer_size = experience_replay_buffer_buffer_size
-        self.experience_replay_buffer_batch_size = experience_replay_buffer_batch_size
-        self.experience_replay_buffer_seed = experience_replay_buffer_seed
-        self.reward_replay_buffer_buffer_size = reward_replay_buffer_buffer_size
-        self.reward_replay_buffer_batch_size = reward_replay_buffer_batch_size
-        self.reward_replay_buffer_seed = reward_replay_buffer_seed
+        self.actor_experience_replay_buffer_buffer_size = actor_experience_replay_buffer_buffer_size
+        self.actor_experience_replay_buffer_batch_size = actor_experience_replay_buffer_batch_size
+        self.actor_experience_replay_buffer_seed = actor_experience_replay_buffer_seed
+        self.critic_experience_replay_buffer_buffer_size = critic_experience_replay_buffer_buffer_size
+        self.critic_experience_replay_buffer_batch_size = critic_experience_replay_buffer_batch_size
+        self.critic_experience_replay_buffer_seed = critic_experience_replay_buffer_seed
+        self.actor_reward_replay_buffer_buffer_size = actor_reward_replay_buffer_buffer_size
+        self.actor_reward_replay_buffer_batch_size = actor_reward_replay_buffer_batch_size
+        self.actor_reward_replay_buffer_seed = actor_reward_replay_buffer_seed
+        self.critic_reward_replay_buffer_buffer_size = critic_replay_buffer_buffer_size
+        self.critic_reward_replay_buffer_batch_size = critic_replay_buffer_batch_size
+        self.critic_reward_replay_buffer_seed = critic_reward_replay_buffer_seed
         self.nn_seed = nn_seed
         self.hyperparameters = hyperparameters
         self.file_to_save_data_results = file_to_save_data_results

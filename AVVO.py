@@ -40,7 +40,7 @@ def init():
                  int(0.5 * (
                          vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
                  ],
-            "final_layer_activation": "relu",
+            "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5,
@@ -48,7 +48,7 @@ def init():
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25,
-            "action_noise_std": 0.05,
+            "action_noise_std": 0.005,
             "action_noise_clipping_range": 1.0
         },
 
@@ -57,7 +57,7 @@ def init():
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
-            "final_layer_activation": "relu",
+            "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5
@@ -71,7 +71,7 @@ def init():
                  int(0.5 * (
                          vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))
                  ],
-            "final_layer_activation": "relu",
+            "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5,
@@ -79,7 +79,7 @@ def init():
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25,
-            "action_noise_std": 0.05,
+            "action_noise_std": 0.005,
             "action_noise_clipping_range": 1.0
         },
 
@@ -88,7 +88,7 @@ def init():
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
-            "final_layer_activation": "relu",
+            "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5
@@ -116,7 +116,7 @@ def init():
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
-            "final_layer_activation": "relu",
+            "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.001,
             "gradient_clipping_norm": 5
@@ -124,7 +124,7 @@ def init():
 
         "discount_rate": 0.996,
         "update_every_n_steps": 300,  # 30 times in one episode
-        "learning_updates_per_learning_session": 10,
+        "learning_updates_per_learning_session": 32,
         "clip_rewards": False}
 
     agent_config.config(hyperparameters=hyperparameters)
@@ -218,8 +218,14 @@ if __name__ == '__main__':
     # run(given_list_file_name='2021-09-02-03-20-11-list_file_name.pkl')
 
     # run(given_list_file_name='2021-09-03-03-59-01-list_file_name.pkl')
+    #
+    # run(given_list_file_name='2021-09-04-09-37-24-list_file_name.pkl')
+    #
+    # run(given_list_file_name='2021-09-05-00-29-24-list_file_name.pkl')
+    #
+    #
+    run(given_list_file_name='2021-09-05-06-52-00-list_file_name.pkl')
 
-    run(given_list_file_name='2021-09-04-09-37-24-list_file_name.pkl')
 
 
 

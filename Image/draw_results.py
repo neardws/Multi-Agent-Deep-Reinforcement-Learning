@@ -44,7 +44,7 @@ def read_loss(given_list_file_name):
                                            "Critic of V10",
                                            "Actor of Edge", "Critic of Edge",
                                            "Actor of Reward", "Critic of Reward"], header=0)
-    df = df[df["Epoch index"] > 2000]
+    df = df[df["Epoch index"] > 100]
     return df
 
 
@@ -196,7 +196,8 @@ if __name__ == '__main__':
     # file_name = '2021-09-01-22-23-27-list_file_name.pkl'
     # file_name = '2021-09-02-03-20-11-list_file_name.pkl'
     # file_name = '2021-09-03-03-59-01-list_file_name.pkl'
-    file_name = '2021-09-04-09-37-24-list_file_name.pkl'
+    # file_name = '2021-09-04-09-37-24-list_file_name.pkl'
+    file_name = '2021-09-05-06-52-00-list_file_name.pkl'
 
     draw_results(file_name)
     draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)

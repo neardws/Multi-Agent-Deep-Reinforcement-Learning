@@ -19,7 +19,9 @@ from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularN
 from Exploration_strategies.Gaussian_Exploration import Gaussian_Exploration
 from Config.AgentConfig import AgentConfig
 from Utilities.Data_structures.ExperienceReplayBuffer import ExperienceReplayBuffer
+from Utilities.Data_structures.ActorExperienceReplayBuffer import ActorExperienceReplayBuffer
 from Utilities.Data_structures.RewardReplayBuffer import RewardReplayBuffer
+from Utilities.Data_structures.ActorRewardReplayBuffer import ActorRewardReplayBuffer
 from Utilities.FileOperator import save_obj
 
 np.set_printoptions(threshold=np.inf)
@@ -100,17 +102,29 @@ class HMAIMD_Agent(object):
         """
 
         """Experience Replay Buffer"""
-        self.experience_replay_buffer = ExperienceReplayBuffer(
-            buffer_size=self.config.experience_replay_buffer_buffer_size,
-            batch_size=self.config.experience_replay_buffer_batch_size,
-            seed=self.config.experience_replay_buffer_seed
+        self.actor_experience_replay_buffer = ActorExperienceReplayBuffer(
+            buffer_size=self.config.actor_experience_replay_buffer_buffer_size,
+            batch_size=self.config.actor_experience_replay_buffer_batch_size,
+            seed=self.config.actor_experience_replay_buffer_seed
+        )
+
+        self.critic_experience_replay_buffer = ExperienceReplayBuffer(
+            buffer_size=self.config.critic_experience_replay_buffer_buffer_size,
+            batch_size=self.config.critic_experience_replay_buffer_batch_size,
+            seed=self.config.critic_experience_replay_buffer_seed
         )
 
         """Reward Replay Buffer"""
-        self.reward_replay_buffer = RewardReplayBuffer(
-            buffer_size=self.config.reward_replay_buffer_buffer_size,
-            batch_size=self.config.reward_replay_buffer_batch_size,
-            seed=self.config.reward_replay_buffer_seed
+        self.actor_reward_replay_buffer = ActorRewardReplayBuffer(
+            buffer_size=self.config.actor_reward_replay_buffer_buffer_size,
+            batch_size=self.config.actor_reward_replay_buffer_batch_size,
+            seed=self.config.actor_reward_replay_buffer_seed
+        )
+
+        self.critic_reward_replay_buffer = RewardReplayBuffer(
+            buffer_size=self.config.critic_reward_replay_buffer_buffer_size,
+            batch_size=self.config.critic_reward_replay_buffer_batch_size,
+            seed=self.config.critic_reward_replay_buffer_seed
         )
 
         """Init input and output size of neural network"""
@@ -134,7 +148,6 @@ class HMAIMD_Agent(object):
         self.edge_exploration_strategy = Gaussian_Exploration(size=self.edge_action_size,
                                                               hyperparameters=self.hyperparameters,
                                                               key_to_use="Actor_of_Edge")
-
 
         """
         ______________________________________________________________________________________________________________
@@ -503,25 +516,55 @@ class HMAIMD_Agent(object):
                 self.combined_action()
                 self.conduct_action()
                 self.reward_function_pick_action()
-                self.save_experience()
-                self.save_reward_experience()
+                self.save_actor_experience()
+                self.save_critic_experience()
+                self.save_actor_reward_experience()
+                self.save_critic_reward_experience()
 
-                if self.time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn():
-
-                    # print("time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn")
+                if self.time_for_actor_of_sensor_nodes_and_edge_node_to_learn():
 
                     one_time_average_actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
-                    one_time_average_critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
                     one_time_average_actor_loss_of_edge_node = 0
+
+                    for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                        sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, next_sensor_nodes_observations = self.actor_experience_replay_buffer.sample()
+
+                        actor_loss_of_sensor_nodes, actor_loss_of_edge_node \
+                            = self.actor_sensor_nodes_and_edge_node_to_learn(
+                            sensor_nodes_observations=sensor_nodes_observations,
+                            edge_node_observations=edge_node_observations,
+                            sensor_nodes_actions=sensor_nodes_actions,
+                            next_sensor_nodes_observations=next_sensor_nodes_observations)
+
+                        for index in range(self.environment.config.vehicle_number):
+                            one_time_average_actor_loss_of_sensor_nodes[index] += actor_loss_of_sensor_nodes[index]
+
+                        one_time_average_actor_loss_of_edge_node += actor_loss_of_edge_node
+
+                    for index in range(self.environment.config.vehicle_number):
+                        one_time_average_actor_loss_of_sensor_nodes[index] /= self.hyperparameters[
+                            "learning_updates_per_learning_session"]
+
+                    one_time_average_actor_loss_of_edge_node /= self.hyperparameters[
+                        "learning_updates_per_learning_session"]
+
+                    for index in range(self.environment.config.vehicle_number):
+                        average_actor_loss_of_sensor_nodes[index] += one_time_average_actor_loss_of_sensor_nodes[index]
+
+                    average_actor_loss_of_edge_node += one_time_average_actor_loss_of_edge_node
+
+                if self.time_for_critic_of_sensor_nodes_and_edge_node_to_learn():
+
+                    one_time_average_critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
                     one_time_average_critic_loss_of_edge_node = 0
 
                     for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
                         sensor_nodes_observations, edge_node_observations, sensor_nodes_actions, edge_node_actions, \
                         sensor_nodes_rewards, edge_node_rewards, next_sensor_nodes_observations, \
-                        next_edge_node_observations, dones = self.experience_replay_buffer.sample()
+                        next_edge_node_observations, dones = self.critic_experience_replay_buffer.sample()
 
-                        actor_loss_of_sensor_nodes, critic_loss_of_sensor_nodes, actor_loss_of_edge_node, critic_loss_of_edge_node \
-                            = self.sensor_nodes_and_edge_node_to_learn(
+                        critic_loss_of_sensor_nodes, critic_loss_of_edge_node \
+                            = self.critic_sensor_nodes_and_edge_node_to_learn(
                             sensor_nodes_observations=sensor_nodes_observations,
                             edge_node_observations=edge_node_observations,
                             sensor_nodes_actions=sensor_nodes_actions,
@@ -532,55 +575,57 @@ class HMAIMD_Agent(object):
                             next_edge_node_observations=next_edge_node_observations,
                             dones=dones)
                         for index in range(self.environment.config.vehicle_number):
-                            one_time_average_actor_loss_of_sensor_nodes[index] += actor_loss_of_sensor_nodes[index]
                             one_time_average_critic_loss_of_sensor_nodes[index] += critic_loss_of_sensor_nodes[index]
-                        one_time_average_actor_loss_of_edge_node += actor_loss_of_edge_node
                         one_time_average_critic_loss_of_edge_node += critic_loss_of_edge_node
 
                     for index in range(self.environment.config.vehicle_number):
-                        one_time_average_actor_loss_of_sensor_nodes[index] /= self.hyperparameters[
-                            "learning_updates_per_learning_session"]
                         one_time_average_critic_loss_of_sensor_nodes[index] /= self.hyperparameters[
                             "learning_updates_per_learning_session"]
-                    one_time_average_actor_loss_of_edge_node /= self.hyperparameters[
-                        "learning_updates_per_learning_session"]
                     one_time_average_critic_loss_of_edge_node /= self.hyperparameters[
                         "learning_updates_per_learning_session"]
 
                     for index in range(self.environment.config.vehicle_number):
-                        average_actor_loss_of_sensor_nodes[index] += one_time_average_actor_loss_of_sensor_nodes[index]
                         average_critic_loss_of_sensor_nodes[index] += one_time_average_critic_loss_of_sensor_nodes[
                             index]
-                    average_actor_loss_of_edge_node += one_time_average_actor_loss_of_edge_node
                     average_critic_loss_of_edge_node += one_time_average_critic_loss_of_edge_node
 
-                if self.time_for_critic_and_actor_of_reward_function_to_learn():
-
-                    # print("time_for_critic_and_actor_of_reward_function_to_learn")
+                if self.time_for_actor_of_reward_function_to_learn():
 
                     one_time_average_actor_loss_of_reward_node = 0
+
+                    for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                        last_reward_observations, last_global_actions = self.actor_reward_replay_buffer.sample()
+                        actor_loss_of_reward_node = self.actor_reward_function_to_learn(
+                            last_reward_observations=last_reward_observations,
+                            last_global_actions=last_global_actions)
+
+                        one_time_average_actor_loss_of_reward_node += actor_loss_of_reward_node
+
+                    one_time_average_actor_loss_of_reward_node /= self.hyperparameters[
+                        "learning_updates_per_learning_session"]
+
+                    average_actor_loss_of_reward_node += one_time_average_actor_loss_of_reward_node
+
+                if self.time_for_critic_of_reward_function_to_learn():
                     one_time_average_critic_loss_of_reward_node = 0
 
                     for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
                         last_reward_observations, last_global_actions, last_reward_actions, rewards, reward_observations, \
-                        global_actions, dones = self.reward_replay_buffer.sample()
-                        actor_loss_of_reward_node, critic_loss_of_reward_node = \
-                            self.reward_function_to_learn(last_reward_observations=last_reward_observations,
-                                                          last_global_actions=last_global_actions,
-                                                          last_reward_actions=last_reward_actions,
-                                                          rewards=rewards,
-                                                          reward_observations=reward_observations,
-                                                          global_actions=global_actions,
-                                                          dones=dones)
-                        one_time_average_actor_loss_of_reward_node += actor_loss_of_reward_node
+                        global_actions, dones = self.critic_reward_replay_buffer.sample()
+                        critic_loss_of_reward_node = self.critic_reward_function_to_learn(
+                            last_reward_observations=last_reward_observations,
+                            last_global_actions=last_global_actions,
+                            last_reward_actions=last_reward_actions,
+                            rewards=rewards,
+                            reward_observations=reward_observations,
+                            global_actions=global_actions,
+                            dones=dones)
+
                         one_time_average_critic_loss_of_reward_node += critic_loss_of_reward_node
 
-                    one_time_average_actor_loss_of_reward_node /= self.hyperparameters[
-                        "learning_updates_per_learning_session"]
                     one_time_average_critic_loss_of_reward_node /= self.hyperparameters[
                         "learning_updates_per_learning_session"]
 
-                    average_actor_loss_of_reward_node += one_time_average_actor_loss_of_reward_node
                     average_critic_loss_of_reward_node += one_time_average_critic_loss_of_reward_node
 
                 """Renew by reward function"""
@@ -655,10 +700,11 @@ class HMAIMD_Agent(object):
                     {"action": sensor_action})
 
                 softmax = torch.nn.Softmax(dim=0)
-                sensor_action = torch.cat((softmax(sensor_action_add_noise[0][0:self.environment.config.data_types_number]),
-                                           softmax(sensor_action_add_noise[0][self.environment.config.data_types_number:
-                                                                              self.environment.config.data_types_number * 2])),
-                                          dim=-1).unsqueeze(0)
+                sensor_action = torch.cat(
+                    (softmax(sensor_action_add_noise[0][0:self.environment.config.data_types_number]),
+                     softmax(sensor_action_add_noise[0][self.environment.config.data_types_number:
+                                                        self.environment.config.data_types_number * 2])),
+                    dim=-1).unsqueeze(0)
 
                 for action_index in range(self.sensor_action_size):
                     self.sensor_nodes_action[sensor_node_index, action_index] = \
@@ -737,17 +783,33 @@ class HMAIMD_Agent(object):
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
         self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
 
-    def save_experience(self):
+    def save_actor_experience(self):
         """
         sensor_nodes_observations=torch.empty(), sensor_actions=torch.empty(),
                            sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty()
         Saves the recent experience to the experience replay buffer
         :return: None
         """
-        if self.experience_replay_buffer is None:
+        if self.actor_experience_replay_buffer is None:
             raise Exception("experience_replay_buffer is None, function save_experience at HMAIMD.py")
         """Save as torch.Tensor"""
-        self.experience_replay_buffer.add_experience(
+        self.actor_experience_replay_buffer.add_experience(
+            sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
+            edge_node_observation=self.edge_node_observation.clone().detach(),
+            sensor_nodes_action=self.sensor_nodes_action.clone().detach(),
+            next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach())
+
+    def save_critic_experience(self):
+        """
+        sensor_nodes_observations=torch.empty(), sensor_actions=torch.empty(),
+                           sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty()
+        Saves the recent experience to the experience replay buffer
+        :return: None
+        """
+        if self.critic_experience_replay_buffer is None:
+            raise Exception("experience_replay_buffer is None, function save_experience at HMAIMD.py")
+        """Save as torch.Tensor"""
+        self.critic_experience_replay_buffer.add_experience(
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
             edge_node_observation=self.edge_node_observation.clone().detach(),
             sensor_nodes_action=self.sensor_nodes_action.clone().detach(),
@@ -758,14 +820,25 @@ class HMAIMD_Agent(object):
             next_edge_node_observation=self.next_edge_node_observation.clone().detach(),
             done=self.done)
 
-    def save_reward_experience(self):
-        if self.reward_replay_buffer is None:
+    def save_actor_reward_experience(self):
+        if self.actor_reward_replay_buffer is None:
             raise Exception("reward_replay_buffer is None, function save_reward_experience at HMAIMD.py")
         """Save as torch.Tensor"""
         if self.last_reward_observation is None:
             pass
         else:
-            self.reward_replay_buffer.add_experience(
+            self.actor_reward_replay_buffer.add_experience(
+                last_reward_observation=self.last_reward_observation.clone().detach(),
+                last_global_action=self.last_global_action.clone().detach())
+
+    def save_critic_reward_experience(self):
+        if self.critic_reward_replay_buffer is None:
+            raise Exception("reward_replay_buffer is None, function save_reward_experience at HMAIMD.py")
+        """Save as torch.Tensor"""
+        if self.last_reward_observation is None:
+            pass
+        else:
+            self.critic_reward_replay_buffer.add_experience(
                 last_reward_observation=self.last_reward_observation.clone().detach(),
                 last_global_action=self.last_global_action.clone().detach(),
                 last_reward_action=self.last_reward_action.clone().detach(),
@@ -774,32 +847,190 @@ class HMAIMD_Agent(object):
                 global_action=self.global_action.clone().detach(),
                 done=self.done)
 
-    def time_for_critic_and_actor_of_sensor_nodes_and_edge_node_to_learn(self):
+    def time_for_actor_of_sensor_nodes_and_edge_node_to_learn(self):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        return len(self.experience_replay_buffer) > self.config.experience_replay_buffer_batch_size and \
+        return len(self.actor_experience_replay_buffer) > (
+                self.config.actor_experience_replay_buffer_batch_size * self.config.hyperparameters[
+            "learning_updates_per_learning_session"]) and \
                self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
 
-    def time_for_critic_and_actor_of_reward_function_to_learn(self):
+    def time_for_critic_of_sensor_nodes_and_edge_node_to_learn(self):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        return len(self.reward_replay_buffer) > self.config.reward_replay_buffer_batch_size and \
+        return len(self.critic_experience_replay_buffer) > (
+                self.config.critic_experience_replay_buffer_batch_size * self.config.hyperparameters[
+            "learning_updates_per_learning_session"]) and \
                self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
 
-    def sensor_nodes_and_edge_node_to_learn(self,
-                                            sensor_nodes_observations: list,
-                                            edge_node_observations: Tensor,
-                                            sensor_nodes_actions: list,
-                                            edge_node_actions: Tensor,
-                                            sensor_nodes_rewards: list,
-                                            edge_node_rewards: Tensor,
-                                            next_sensor_nodes_observations: list,
-                                            next_edge_node_observations: Tensor,
-                                            dones: Tensor):
+    def time_for_actor_of_reward_function_to_learn(self):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        return len(self.actor_reward_replay_buffer) > (
+                self.config.actor_reward_replay_buffer_batch_size * self.config.hyperparameters[
+            "learning_updates_per_learning_session"]) and \
+               self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
+
+    def time_for_critic_of_reward_function_to_learn(self):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        return len(self.critic_reward_replay_buffer) > (
+                self.config.critic_reward_replay_buffer_batch_size * self.config.hyperparameters[
+            "learning_updates_per_learning_session"]) and \
+               self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
+
+    def actor_sensor_nodes_and_edge_node_to_learn(self,
+                                                  sensor_nodes_observations: list,
+                                                  edge_node_observations: Tensor,
+                                                  sensor_nodes_actions: list,
+                                                  next_sensor_nodes_observations: list):
         actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
+
+        """Runs a learning iteration for the critic of sensor nodes"""
+        sensor_nodes_actions_next_list = []  # next action of sensor nodes according to next_sensor_nodes_observations
+        next_sensor_node_observations_list = []  # next observation of single sensor node, Reorganized by next_sensor_nodes_observations
+
+        for sensor_node_index in range(self.environment.config.vehicle_number):
+            next_sensor_node_observations_tensor = torch.cat(
+                (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
+                 next_sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
+            for index, values in enumerate(next_sensor_nodes_observations):
+                if index > 1:
+                    next_sensor_node_observations_tensor = torch.cat(
+                        (next_sensor_node_observations_tensor, values[sensor_node_index, :].unsqueeze(0)), dim=0)
+
+            next_sensor_node_observations_list.append(next_sensor_node_observations_tensor)
+            sensor_node_action_next = self.actor_target_of_sensor_nodes[sensor_node_index](
+                next_sensor_node_observations_tensor.float().to(self.device))
+            sensor_nodes_actions_next_list.append(sensor_node_action_next)
+
+        new_sensor_nodes_actions_next_list = []  # next action of sensor nodes at each batch
+        for tensor_index in range(sensor_nodes_actions_next_list[0].shape[0]):  # need 256 batch number
+            new_sensor_nodes_actions_next_tensor = torch.cat(
+                (sensor_nodes_actions_next_list[0][tensor_index, :].unsqueeze(0),
+                 sensor_nodes_actions_next_list[1][tensor_index, :].unsqueeze(0)),
+                dim=1
+            )
+            for index, sensor_nodes_actions_next in enumerate(sensor_nodes_actions_next_list):
+                if index > 1:
+                    new_sensor_nodes_actions_next_tensor = torch.cat(
+                        (new_sensor_nodes_actions_next_tensor, sensor_nodes_actions_next[tensor_index].unsqueeze(0)),
+                        dim=1
+                    )
+            new_sensor_nodes_actions_next_list.append(new_sensor_nodes_actions_next_tensor)
+        sensor_nodes_actions_next_tensor = torch.cat(
+            (new_sensor_nodes_actions_next_list[0], new_sensor_nodes_actions_next_list[1]), dim=0)
+        for index, sensor_nodes_actions_next in enumerate(new_sensor_nodes_actions_next_list):
+            if index > 1:
+                sensor_nodes_actions_next_tensor = torch.cat(
+                    (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=0)
+
+        sensor_nodes_actions_tensor = torch.cat(
+            (torch.flatten(sensor_nodes_actions[0]).unsqueeze(0), torch.flatten(sensor_nodes_actions[1]).unsqueeze(0)),
+            dim=0
+        )
+        for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
+            if index > 1:
+                sensor_nodes_actions_tensor = torch.cat(
+                    (sensor_nodes_actions_tensor, torch.flatten(sensor_nodes_action).unsqueeze(0)), dim=0
+                )
+        sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
+
+        for sensor_node_index in range(self.environment.config.vehicle_number):
+
+            sensor_node_observations = torch.cat(
+                (sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
+                 sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
+            for index, sensor_nodes_observation in enumerate(sensor_nodes_observations):
+                if index > 1:
+                    sensor_node_observations = torch.cat(
+                        (sensor_node_observations, sensor_nodes_observation[sensor_node_index, :].unsqueeze(0)), dim=0)
+            sensor_node_observations = sensor_node_observations.float().to(self.device)
+
+            """Runs a learning iteration for the actor"""
+
+            """Calculates the loss for the actor"""
+            actions_predicted_of_sensor_node = self.actor_local_of_sensor_nodes[sensor_node_index](
+                sensor_node_observations)
+
+            sensor_nodes_actions_add_actions_pred = []  # actions of other sensor node plus action that predicted by the sensor node
+
+            for index in range(len(sensor_nodes_actions)):
+                sensor_nodes_action = sensor_nodes_actions[index].clone().detach()
+                sensor_nodes_action[sensor_node_index, :] = actions_predicted_of_sensor_node[index]
+                sensor_nodes_actions_add_actions_pred.append(torch.flatten(sensor_nodes_action))
+
+            sensor_nodes_actions_add_actions_pred_tensor = torch.cat(
+                (sensor_nodes_actions_add_actions_pred[0].unsqueeze(0),
+                 sensor_nodes_actions_add_actions_pred[1].unsqueeze(0)), dim=0
+            )
+            for index, values in enumerate(sensor_nodes_actions_add_actions_pred):
+                if index > 1:
+                    sensor_nodes_actions_add_actions_pred_tensor = torch.cat(
+                        (sensor_nodes_actions_add_actions_pred_tensor, values.unsqueeze(0)), dim=0
+                    )
+            sensor_nodes_actions_add_actions_pred_tensor = sensor_nodes_actions_add_actions_pred_tensor.float().to(
+                self.device)
+
+            """
+            ________________________________________________________________
+            
+            Calculates the actor loss of sensor nodes
+            ________________________________________________________________
+            """
+
+            actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
+                torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred_tensor), dim=1)).mean()
+
+            actor_loss_of_sensor_nodes[sensor_node_index] = actor_loss_of_sensor_node.item()
+
+            self.take_optimisation_step(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
+                                        self.actor_local_of_sensor_nodes[sensor_node_index],
+                                        actor_loss_of_sensor_node,
+                                        self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
+            self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
+                                               self.actor_target_of_sensor_nodes[sensor_node_index],
+                                               self.hyperparameters["Actor_of_Sensor"]["tau"])
+
+        """Runs a learning iteration for the actor of edge node"""
+
+        """Calculates the loss for the actor"""
+        actions_predicted_of_edge_node = self.actor_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_nodes_actions_tensor), dim=1))
+
+        """
+        ________________________________________________________________
+
+        Calculates the actor loss of edge node
+        ________________________________________________________________
+        """
+
+        loss_of_edge_node = -self.critic_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_nodes_actions_tensor, actions_predicted_of_edge_node),
+                      dim=1)).mean()
+
+        actor_loss_of_edge_node = loss_of_edge_node.item()
+
+        self.take_optimisation_step(self.actor_optimizer_of_edge_node,
+                                    self.actor_local_of_edge_node,
+                                    loss_of_edge_node,
+                                    self.hyperparameters["Actor_of_Edge"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.actor_local_of_edge_node, self.actor_target_of_edge_node,
+                                           self.hyperparameters["Actor_of_Edge"]["tau"])
+
+        return actor_loss_of_sensor_nodes, actor_loss_of_edge_node
+
+    def critic_sensor_nodes_and_edge_node_to_learn(self,
+                                                   sensor_nodes_observations: list,
+                                                   edge_node_observations: Tensor,
+                                                   sensor_nodes_actions: list,
+                                                   edge_node_actions: Tensor,
+                                                   sensor_nodes_rewards: list,
+                                                   edge_node_rewards: Tensor,
+                                                   next_sensor_nodes_observations: list,
+                                                   next_edge_node_observations: Tensor,
+                                                   dones: Tensor):
         critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
-        # actor_loss_of_edge_node = 0
-        # critic_loss_of_edge_node = 0
 
         """Runs a learning iteration for the critic of sensor nodes"""
         sensor_nodes_actions_next_list = []  # next action of sensor nodes according to next_sensor_nodes_observations
@@ -912,51 +1143,6 @@ class HMAIMD_Agent(object):
                                                self.critic_target_of_sensor_nodes[sensor_node_index],
                                                self.hyperparameters["Critic_of_Sensor"]["tau"])
 
-            """Runs a learning iteration for the actor"""
-
-            """Calculates the loss for the actor"""
-            actions_predicted_of_sensor_node = self.actor_local_of_sensor_nodes[sensor_node_index](
-                sensor_node_observations)
-
-            sensor_nodes_actions_add_actions_pred = []  # actions of other sensor node plus action that predicted by the sensor node
-
-            for index in range(len(sensor_nodes_actions)):
-                sensor_nodes_action = sensor_nodes_actions[index].clone().detach()
-                sensor_nodes_action[sensor_node_index, :] = actions_predicted_of_sensor_node[index]
-                sensor_nodes_actions_add_actions_pred.append(torch.flatten(sensor_nodes_action))
-
-            sensor_nodes_actions_add_actions_pred_tensor = torch.cat(
-                (sensor_nodes_actions_add_actions_pred[0].unsqueeze(0),
-                 sensor_nodes_actions_add_actions_pred[1].unsqueeze(0)), dim=0
-            )
-            for index, values in enumerate(sensor_nodes_actions_add_actions_pred):
-                if index > 1:
-                    sensor_nodes_actions_add_actions_pred_tensor = torch.cat(
-                        (sensor_nodes_actions_add_actions_pred_tensor, values.unsqueeze(0)), dim=0
-                    )
-            sensor_nodes_actions_add_actions_pred_tensor = sensor_nodes_actions_add_actions_pred_tensor.float().to(
-                self.device)
-
-            """
-            ________________________________________________________________
-            
-            Calculates the actor loss of sensor nodes
-            ________________________________________________________________
-            """
-
-            actor_loss_of_sensor_node = -self.critic_local_of_sensor_nodes[sensor_node_index](
-                torch.cat((sensor_node_observations, sensor_nodes_actions_add_actions_pred_tensor), dim=1)).mean()
-
-            actor_loss_of_sensor_nodes[sensor_node_index] = actor_loss_of_sensor_node.item()
-
-            self.take_optimisation_step(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
-                                        self.actor_local_of_sensor_nodes[sensor_node_index],
-                                        actor_loss_of_sensor_node,
-                                        self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
-            self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
-                                               self.actor_target_of_sensor_nodes[sensor_node_index],
-                                               self.hyperparameters["Actor_of_Sensor"]["tau"])
-
         """Runs a learning iteration for the critic of edge node"""
         """Computes the loss for the critic"""
         with torch.no_grad():
@@ -990,42 +1176,45 @@ class HMAIMD_Agent(object):
         self.soft_update_of_target_network(self.critic_local_of_edge_node, self.critic_target_of_edge_node,
                                            self.hyperparameters["Critic_of_Edge"]["tau"])
 
-        """Runs a learning iteration for the actor of edge node"""
+        return critic_loss_of_sensor_nodes, critic_loss_of_edge_node
+
+    def actor_reward_function_to_learn(self,
+                                       last_reward_observations: Tensor,
+                                       last_global_actions: Tensor):
+
+        """Runs a learning iteration for the actor"""
 
         """Calculates the loss for the actor"""
-        actions_predicted_of_edge_node = self.actor_local_of_edge_node(
-            torch.cat((edge_node_observations, sensor_nodes_actions_tensor), dim=1))
+        actions_predicted = self.actor_local_of_reward_function(
+            torch.cat((last_reward_observations, last_global_actions), dim=1))
 
         """
         ________________________________________________________________
 
-        Calculates the actor loss of edge node
+        Calculates the actor loss of reward node
         ________________________________________________________________
         """
 
-        loss_of_edge_node = -self.critic_local_of_edge_node(
-            torch.cat((edge_node_observations, sensor_nodes_actions_tensor, actions_predicted_of_edge_node),
-                      dim=1)).mean()
+        actor_loss = -self.critic_local_of_reward_function(
+            torch.cat((last_reward_observations, last_global_actions, actions_predicted), dim=1)).mean()
 
-        actor_loss_of_edge_node = loss_of_edge_node.item()
+        self.take_optimisation_step(self.actor_optimizer_of_reward_function,
+                                    self.actor_local_of_reward_function,
+                                    actor_loss,
+                                    self.hyperparameters["Actor_of_Reward"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.actor_local_of_reward_function, self.actor_target_of_reward_function,
+                                           self.hyperparameters["Actor_of_Reward"]["tau"])
 
-        self.take_optimisation_step(self.actor_optimizer_of_edge_node,
-                                    self.actor_local_of_edge_node,
-                                    loss_of_edge_node,
-                                    self.hyperparameters["Actor_of_Edge"]["gradient_clipping_norm"])
-        self.soft_update_of_target_network(self.actor_local_of_edge_node, self.actor_target_of_edge_node,
-                                           self.hyperparameters["Actor_of_Edge"]["tau"])
+        return actor_loss.item()
 
-        return actor_loss_of_sensor_nodes, critic_loss_of_sensor_nodes, actor_loss_of_edge_node, critic_loss_of_edge_node
-
-    def reward_function_to_learn(self,
-                                 last_reward_observations: Tensor,
-                                 last_global_actions: Tensor,
-                                 last_reward_actions: Tensor,
-                                 rewards: Tensor,
-                                 reward_observations: Tensor,
-                                 global_actions: Tensor,
-                                 dones: Tensor):
+    def critic_reward_function_to_learn(self,
+                                        last_reward_observations: Tensor,
+                                        last_global_actions: Tensor,
+                                        last_reward_actions: Tensor,
+                                        rewards: Tensor,
+                                        reward_observations: Tensor,
+                                        global_actions: Tensor,
+                                        dones: Tensor):
 
         """Runs a learning iteration for the critic of reward function"""
         with torch.no_grad():
@@ -1052,30 +1241,7 @@ class HMAIMD_Agent(object):
         self.soft_update_of_target_network(self.critic_local_of_reward_function, self.critic_target_of_reward_function,
                                            self.hyperparameters["Critic_of_Reward"]["tau"])
 
-        """Runs a learning iteration for the actor"""
-
-        """Calculates the loss for the actor"""
-        actions_predicted = self.actor_local_of_reward_function(
-            torch.cat((last_reward_observations, last_global_actions), dim=1))
-
-        """
-        ________________________________________________________________
-
-        Calculates the actor loss of reward node
-        ________________________________________________________________
-        """
-
-        actor_loss = -self.critic_local_of_reward_function(
-            torch.cat((last_reward_observations, last_global_actions, actions_predicted), dim=1)).mean()
-
-        self.take_optimisation_step(self.actor_optimizer_of_reward_function,
-                                    self.actor_local_of_reward_function,
-                                    actor_loss,
-                                    self.hyperparameters["Actor_of_Reward"]["gradient_clipping_norm"])
-        self.soft_update_of_target_network(self.actor_local_of_reward_function, self.actor_target_of_reward_function,
-                                           self.hyperparameters["Actor_of_Reward"]["tau"])
-
-        return actor_loss.item(), loss.item()
+        return loss.item()
 
     @staticmethod
     def take_optimisation_step(optimizer, network, loss, clipping_norm=None, retain_graph=False):
@@ -1221,8 +1387,8 @@ class HMAIMD_Agent(object):
                     self.max_rolling_score_seen = self.rolling_results[-1]
 
             if self.environment.episode_index % 20 == 0:
-                save_obj(obj=self.config, name=temple_agent_config_name)
-                save_obj(obj=self, name=temple_agent_name)
+                # save_obj(obj=self.config, name=temple_agent_config_name)
+                # save_obj(obj=self, name=temple_agent_name)
                 result_data.to_csv(temple_result_name)
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
