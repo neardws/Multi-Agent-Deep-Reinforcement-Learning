@@ -35,6 +35,17 @@ def load_obj(name):
         return pickle.load(f)
 
 
+def init_compare_file_name():
+    dayTime = datetime.datetime.now().strftime('%Y-%m-%d')
+    hourTime = datetime.datetime.now().strftime('%H-%M-%S')
+    pwd = project_dir + data + dayTime + '-' + hourTime
+
+    if not os.path.exists(pwd):
+        os.makedirs(pwd)
+
+    return pwd + '/'
+
+
 def init_file_name():
     dayTime = datetime.datetime.now().strftime('%Y-%m-%d')
     hourTime = datetime.datetime.now().strftime('%H-%M-%S')

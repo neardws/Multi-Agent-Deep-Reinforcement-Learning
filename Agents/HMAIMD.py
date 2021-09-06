@@ -1378,16 +1378,17 @@ class HMAIMD_Agent(object):
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
 
-            if self.environment.episode_index < 500 and self.environment.episode_index % 20 == 0:
+            if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
                 save_obj(obj=self.config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
-                result_data.to_csv(temple_result_name)
-                loss_data.to_csv(temple_loss_name)
-                print("save result data successful")
+                print("save objectives successful")
 
             if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
                 save_obj(obj=self.config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
+                print("save objectives successful")
+
+            if self.environment.episode_index % 20 == 0:
                 result_data.to_csv(temple_result_name)
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")

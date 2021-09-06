@@ -21,6 +21,7 @@ def random_np(data_size):
 class Random_Agent(object):
 
     def __init__(self, environment: VehicularNetworkEnv):
+        self.name = "Random_Agent"
         self.environment = environment
         self.reward = None
         self.action = None
@@ -102,8 +103,6 @@ class Random_Agent(object):
         self.reward = None
         self.done = None  # 1 or 0 indicate is episode finished
         self.action = None
-
         self.environment.reset()
-
         self.total_episode_score_so_far = 0
 
