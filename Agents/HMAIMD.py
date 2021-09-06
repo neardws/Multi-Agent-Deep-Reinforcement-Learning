@@ -179,12 +179,9 @@ class HMAIMD_Agent(object):
             ) for _ in range(self.environment.config.vehicle_number)
         ]
 
-        # for vehicle_index in range(self.environment.config.vehicle_number):
-        #     HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
-        #                                  to_model=self.actor_target_of_sensor_nodes[vehicle_index])
-
-        # for _ in self.actor_local_of_sensor_nodes:
-        #     print(summary(_, input_size=(self.sensor_observation_size,)))
+        for vehicle_index in range(self.environment.config.vehicle_number):
+            HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_sensor_nodes[vehicle_index],
+                                         to_model=self.actor_target_of_sensor_nodes[vehicle_index])
 
         """
         optim.Adam()
@@ -255,9 +252,9 @@ class HMAIMD_Agent(object):
             ) for _ in range(self.environment.config.vehicle_number)
         ]
 
-        # for vehicle_index in range(self.environment.config.vehicle_number):
-        #     HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[vehicle_index],
-        #                                  to_model=self.critic_target_of_sensor_nodes[vehicle_index])
+        for vehicle_index in range(self.environment.config.vehicle_number):
+            HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_sensor_nodes[vehicle_index],
+                                         to_model=self.critic_target_of_sensor_nodes[vehicle_index])
 
         self.critic_optimizer_of_sensor_nodes = [
             optim.Adam(params=self.critic_local_of_sensor_nodes[vehicle_index].parameters(),
@@ -270,9 +267,6 @@ class HMAIMD_Agent(object):
             optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_sensor_nodes[vehicle_index], mode='min',
                                                  factor=0.1, patience=10, verbose=False, threshold=0.0001,
                                                  threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
-
-        # for _ in self.critic_local_of_sensor_nodes:
-        #     print(summary(_, input_size=(self.critic_size_for_sensor,)))
 
         """Actor Network for Edge Node"""
 
@@ -288,8 +282,8 @@ class HMAIMD_Agent(object):
             key_to_use="Actor_of_Edge"
         )
 
-        # HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_edge_node,
-        #                              to_model=self.actor_target_of_edge_node)
+        HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_edge_node,
+                                     to_model=self.actor_target_of_edge_node)
 
         self.actor_optimizer_of_edge_node = optim.Adam(
             params=self.actor_local_of_edge_node.parameters(),
@@ -300,8 +294,6 @@ class HMAIMD_Agent(object):
         optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_edge_node, mode='min', factor=0.1,
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
-
-        # print(summary(self.actor_local_of_edge_node, input_size=(self.edge_observation_size,)))
 
         """Critic Network for Edge Node"""
 
@@ -317,8 +309,8 @@ class HMAIMD_Agent(object):
             key_to_use="Critic_of_Edge"
         )
 
-        # HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_edge_node,
-        #                              to_model=self.critic_target_of_edge_node)
+        HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_edge_node,
+                                     to_model=self.critic_target_of_edge_node)
 
         self.critic_optimizer_of_edge_node = optim.Adam(
             params=self.critic_local_of_edge_node.parameters(),
@@ -329,8 +321,6 @@ class HMAIMD_Agent(object):
         optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_edge_node, mode='min', factor=0.1,
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
-
-        # print(summary(self.critic_local_of_edge_node, input_size=(self.critic_size_for_edge,)))
 
         """Actor Network for Reward Function"""
 
@@ -346,8 +336,8 @@ class HMAIMD_Agent(object):
             key_to_use="Actor_of_Reward"
         )
 
-        # HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_reward_function,
-        #                              to_model=self.actor_target_of_reward_function)
+        HMAIMD_Agent.copy_model_over(from_model=self.actor_local_of_reward_function,
+                                     to_model=self.actor_target_of_reward_function)
 
         self.actor_optimizer_of_reward_function = optim.Adam(
             params=self.actor_local_of_reward_function.parameters(),
@@ -358,8 +348,6 @@ class HMAIMD_Agent(object):
         optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_reward_function, mode='min', factor=0.1,
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
-
-        # print(summary(self.actor_local_of_reward_function, input_size=(self.reward_state_size,)))
 
         """Critic Network for Reward Function"""
 
@@ -375,8 +363,8 @@ class HMAIMD_Agent(object):
             key_to_use="Critic_of_Reward"
         )
 
-        # HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_reward_function,
-        #                              to_model=self.critic_target_of_reward_function)
+        HMAIMD_Agent.copy_model_over(from_model=self.critic_local_of_reward_function,
+                                     to_model=self.critic_target_of_reward_function)
 
         self.critic_optimizer_of_reward_function = optim.Adam(
             params=self.critic_local_of_reward_function.parameters(),
@@ -387,8 +375,6 @@ class HMAIMD_Agent(object):
         optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_reward_function, mode='min', factor=0.1,
                                              patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
                                              cooldown=0, min_lr=0, eps=1e-08)
-
-        # print(summary(self.critic_local_of_reward_function, input_size=(self.critic_size_for_reward,)))
 
         """
         ______________________________________________________________________________________________________________
@@ -510,7 +496,6 @@ class HMAIMD_Agent(object):
 
         with tqdm(total=self.environment.max_episode_length) as my_bar:
             while not self.done:  # when the episode is not over
-                # print(self.environment.episode_step)
                 self.sensor_nodes_pick_actions()
                 self.edge_node_pick_action()
                 self.combined_action()
@@ -1386,9 +1371,23 @@ class HMAIMD_Agent(object):
                 if len(self.rolling_results) > self.environment.config.rolling_score_window:
                     self.max_rolling_score_seen = self.rolling_results[-1]
 
-            if self.environment.episode_index % 20 == 0:
-                # save_obj(obj=self.config, name=temple_agent_config_name)
-                # save_obj(obj=self, name=temple_agent_name)
+            if self.environment.episode_index <= 1 and self.environment.episode_index % 1 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                result_data.to_csv(temple_result_name)
+                loss_data.to_csv(temple_loss_name)
+                print("save result data successful")
+
+            if self.environment.episode_index < 500 and self.environment.episode_index % 20 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                result_data.to_csv(temple_result_name)
+                loss_data.to_csv(temple_loss_name)
+                print("save result data successful")
+
+            if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
                 result_data.to_csv(temple_result_name)
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")

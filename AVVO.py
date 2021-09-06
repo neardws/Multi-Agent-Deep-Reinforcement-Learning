@@ -48,7 +48,7 @@ def init():
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25,
-            "action_noise_std": 0.005,
+            "action_noise_std": 0.001,
             "action_noise_clipping_range": 1.0
         },
 
@@ -79,7 +79,7 @@ def init():
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25,
-            "action_noise_std": 0.005,
+            "action_noise_std": 0.001,
             "action_noise_clipping_range": 1.0
         },
 
@@ -95,7 +95,7 @@ def init():
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 0.0001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
@@ -103,7 +103,7 @@ def init():
                          vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size()))],
             "final_layer_activation": "softmax",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5,
             "noise_seed": np.random.randint(0, 2 ** 32 - 2),
             "mu": 0.0,
@@ -112,13 +112,13 @@ def init():
         },
 
         "Critic_of_Reward": {
-            "learning_rate": 0.0001,
+            "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5
         },
 
@@ -224,9 +224,10 @@ if __name__ == '__main__':
     # run(given_list_file_name='2021-09-05-00-29-24-list_file_name.pkl')
     #
     #
-    run(given_list_file_name='2021-09-05-06-52-00-list_file_name.pkl')
-
-
+    # run(given_list_file_name='2021-09-05-06-52-00-list_file_name.pkl')
+    #
+    run(given_list_file_name='2021-09-06-02-17-41-list_file_name.pkl')
+    #
 
 
 
