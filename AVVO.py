@@ -7,7 +7,7 @@
 """
 import numpy as np
 from File_Name import project_dir, data
-from Utilities.FileOperator import load_obj, save_obj
+from Utilities.FileOperator import load_obj
 from Utilities.FileOperator import init_file_name
 from Utilities.FileOperator import save_init_files
 from Utilities.FileOperator import load_name
@@ -55,8 +55,8 @@ def init():
         "Critic_of_Sensor": {
             "learning_rate": 0.00001,
             "linear_hidden_units":
-                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
-                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
+                [int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
+                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
             "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
@@ -86,8 +86,8 @@ def init():
         "Critic_of_Edge": {
             "learning_rate": 0.00001,
             "linear_hidden_units":
-                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
-                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
+                [int(0.5 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
+                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
             "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
@@ -114,8 +114,8 @@ def init():
         "Critic_of_Reward": {
             "learning_rate": 0.00001,
             "linear_hidden_units":
-                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
-                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
+                [int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
+                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
             "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
@@ -226,8 +226,6 @@ if __name__ == '__main__':
     #
     # run(given_list_file_name='2021-09-05-06-52-00-list_file_name.pkl')
     #
-    run(given_list_file_name='2021-09-06-02-17-41-list_file_name.pkl')
+    # run(given_list_file_name='2021-09-06-02-17-41-list_file_name.pkl')
     #
-
-
-
+    run(given_list_file_name='2021-09-06-08-14-09-list_file_name.pkl')

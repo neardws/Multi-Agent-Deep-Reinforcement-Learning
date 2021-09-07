@@ -198,7 +198,8 @@ if __name__ == '__main__':
     # file_name = '2021-09-03-03-59-01-list_file_name.pkl'
     # file_name = '2021-09-04-09-37-24-list_file_name.pkl'
     # file_name = '2021-09-05-06-52-00-list_file_name.pkl'
-    file_name = '2021-09-06-02-17-41-list_file_name.pkl'
+    # file_name = '2021-09-06-02-17-41-list_file_name.pkl'
+    file_name = '2021-09-06-08-14-09-list_file_name.pkl'
 
     draw_results(file_name)
     draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
