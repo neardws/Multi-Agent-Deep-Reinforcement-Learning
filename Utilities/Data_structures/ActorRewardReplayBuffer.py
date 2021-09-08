@@ -18,7 +18,7 @@ class ActorRewardReplayBuffer(object):
     experience = namedtuple("Experience", field_names=["last_reward_observation", "last_global_action"])
     experience.__qualname__ = 'ActorRewardReplayBuffer.experience'
 
-    def __init__(self, buffer_size, batch_size, seed, device=None):
+    def __init__(self, buffer_size, batch_size, seed, dropout, device=None):
         """
         Init Replay_buffer
         :param buffer_size: buffer size
@@ -27,7 +27,9 @@ class ActorRewardReplayBuffer(object):
         :param device: GPU or CPU
         """
         self.batch_size = batch_size
-        self.memory = deque(maxlen=buffer_size)
+        self.buffer_size = buffer_size
+        self.dropout = dropout
+        self.memory = deque()
 
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu
@@ -44,6 +46,11 @@ class ActorRewardReplayBuffer(object):
         :return:
         """
         experience = self.experience(last_reward_observation, last_global_action)
+        if self.__len__() == self.buffer_size:
+            if self.dropout != 0:
+                size = self.buffer_size * self.dropout
+                for i in range(int(size)):
+                    self.memory.pop()
         self.memory.append(experience)
 
     def sample(self, num_experiences=None, separate_out_data_types=True):

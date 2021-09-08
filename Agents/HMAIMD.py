@@ -7,7 +7,6 @@
 """
 import time
 from tqdm import tqdm
-from tensorboardX import SummaryWriter
 import numpy as np
 import torch
 import torch.nn.functional as functional
@@ -27,7 +26,6 @@ from Utilities.FileOperator import save_obj
 np.set_printoptions(threshold=np.inf)
 torch.set_printoptions(threshold=np.inf)
 pd.set_option('display.max_rows', None)
-writer = SummaryWriter('runs/loss')
 
 
 class HMAIMD_Agent(object):
@@ -105,26 +103,30 @@ class HMAIMD_Agent(object):
         self.actor_experience_replay_buffer = ActorExperienceReplayBuffer(
             buffer_size=self.config.actor_experience_replay_buffer_buffer_size,
             batch_size=self.config.actor_experience_replay_buffer_batch_size,
-            seed=self.config.actor_experience_replay_buffer_seed
+            seed=self.config.actor_experience_replay_buffer_seed,
+            dropout=self.config.actor_experience_replay_buffer_dropout
         )
 
         self.critic_experience_replay_buffer = ExperienceReplayBuffer(
             buffer_size=self.config.critic_experience_replay_buffer_buffer_size,
             batch_size=self.config.critic_experience_replay_buffer_batch_size,
-            seed=self.config.critic_experience_replay_buffer_seed
+            seed=self.config.critic_experience_replay_buffer_seed,
+            dropout=self.config.critic_experience_replay_buffer_dropout
         )
 
         """Reward Replay Buffer"""
         self.actor_reward_replay_buffer = ActorRewardReplayBuffer(
             buffer_size=self.config.actor_reward_replay_buffer_buffer_size,
             batch_size=self.config.actor_reward_replay_buffer_batch_size,
-            seed=self.config.actor_reward_replay_buffer_seed
+            seed=self.config.actor_reward_replay_buffer_seed,
+            dropout=self.config.actor_reward_replay_buffer_dropout
         )
 
         self.critic_reward_replay_buffer = RewardReplayBuffer(
             buffer_size=self.config.critic_reward_replay_buffer_buffer_size,
             batch_size=self.config.critic_reward_replay_buffer_batch_size,
-            seed=self.config.critic_reward_replay_buffer_seed
+            seed=self.config.critic_reward_replay_buffer_seed,
+            dropout=self.config.critic_reward_replay_buffer_dropout
         )
 
         """Init input and output size of neural network"""
@@ -639,34 +641,9 @@ class HMAIMD_Agent(object):
         average_critic_loss_of_reward_node /= \
             (self.environment.max_episode_length / self.hyperparameters["learning_updates_per_learning_session"])
 
-        # print(list(range(self.environment.config.vehicle_number)))
-        # print(type(list(range(self.environment.config.vehicle_number))))
-        # print(average_actor_loss_of_sensor_nodes.tolist())
-        # print(type(average_actor_loss_of_sensor_nodes.tolist()))
-        #
-        # print(zip(list(range(self.environment.config.vehicle_number)), average_actor_loss_of_sensor_nodes.tolist()))
-        # print(dict(zip(list(range(self.environment.config.vehicle_number)), average_actor_loss_of_sensor_nodes.tolist())))
-
-        writer.add_scalars("average_actor_loss_of_sensor_nodes",
-                           dict(zip(list(str(i) for i in range(self.environment.config.vehicle_number)),
-                                    average_actor_loss_of_sensor_nodes.tolist())),
-                           self.environment.episode_index)
-        writer.add_scalars("average_critic_loss_of_sensor_nodes",
-                           dict(zip(list(str(i) for i in range(self.environment.config.vehicle_number)),
-                                    average_critic_loss_of_sensor_nodes.tolist())),
-                           self.environment.episode_index)
-        writer.add_scalar("average_actor_loss_of_edge_node", average_actor_loss_of_edge_node,
-                          self.environment.episode_index)
-        writer.add_scalar("average_critic_loss_of_edge_node", average_critic_loss_of_edge_node,
-                          self.environment.episode_index)
-        writer.add_scalar("average_actor_loss_of_reward_node", average_actor_loss_of_reward_node,
-                          self.environment.episode_index)
-        writer.add_scalar("average_critic_loss_of_reward_node", average_critic_loss_of_reward_node,
-                          self.environment.episode_index)
-
         return average_actor_loss_of_sensor_nodes, average_critic_loss_of_sensor_nodes, \
-               average_actor_loss_of_edge_node, average_critic_loss_of_edge_node, \
-               average_actor_loss_of_reward_node, average_critic_loss_of_reward_node
+            average_actor_loss_of_edge_node, average_critic_loss_of_edge_node, \
+            average_actor_loss_of_reward_node, average_critic_loss_of_reward_node
 
     def sensor_nodes_pick_actions(self):
         """Picks an action using the actor network of each sensor node
@@ -1259,7 +1236,6 @@ class HMAIMD_Agent(object):
     def run_n_episodes(self, num_episodes=None, temple_agent_config_name=None,
                        temple_agent_name=None, temple_result_name=None, temple_loss_name=None):
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
-        writer = SummaryWriter('runs/loss')
         if num_episodes is None:
             num_episodes = self.environment.config.episode_number
 
@@ -1388,12 +1364,11 @@ class HMAIMD_Agent(object):
                 save_obj(obj=self, name=temple_agent_name)
                 print("save objectives successful")
 
-            if self.environment.episode_index % 20 == 0:
+            if self.environment.episode_index % 25 == 0:
                 result_data.to_csv(temple_result_name)
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
 
-        writer.close()
         time_taken = time.time() - start
         return self.game_full_episode_scores, self.rolling_results, time_taken
 

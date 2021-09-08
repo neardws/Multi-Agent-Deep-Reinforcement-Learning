@@ -139,67 +139,7 @@ def draw_critic_loss_of_reward(given_list_file_name):
 
 
 if __name__ == '__main__':
-    # draw_results(given_list_file_name='2021-08-21-05-56-04-list_file_name.pkl')
-    # draw_results(given_list_file_name='2021-08-28-09-11-22-list_file_name.pkl')
-    # draw_results(given_list_file_name='2021-08-29-23-03-17-list_file_name.pkl')
-    # draw_results(given_list_file_name='2021-08-30-02-18-29-list_file_name.pkl')
-
-    # file_name = '2021-09-01-00-58-25-list_file_name.pkl'
-    # draw_results(file_name)
-    # draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_critic_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_actor_loss_of_edge(given_list_file_name=file_name)
-    # draw_critic_loss_of_edge(given_list_file_name=file_name)
-    # draw_actor_loss_of_reward(given_list_file_name=file_name)
-    # draw_critic_loss_of_reward(given_list_file_name=file_name)
-
-    # file_name = '2021-09-01-02-10-58-list_file_name.pkl'
-    # draw_results(file_name)
-    # draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_critic_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_actor_loss_of_edge(given_list_file_name=file_name)
-    # draw_critic_loss_of_edge(given_list_file_name=file_name)
-    # draw_actor_loss_of_reward(given_list_file_name=file_name)
-    # draw_critic_loss_of_reward(given_list_file_name=file_name)
-
-    # file_name = '2021-09-01-02-35-26-list_file_name.pkl'
-    # draw_results(file_name)
-    # draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_critic_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_actor_loss_of_edge(given_list_file_name=file_name)
-    # draw_critic_loss_of_edge(given_list_file_name=file_name)
-    # draw_actor_loss_of_reward(given_list_file_name=file_name)
-    # draw_critic_loss_of_reward(given_list_file_name=file_name)
-
-    # file_name = '2021-09-01-03-58-12-list_file_name.pkl'
-    #
-    # # file_name = '2021-09-01-04-42-32-list_file_name.pkl'
-    #
-    # # file_name = '2021-09-01-06-43-51-list_file_name.pkl'
-    # draw_results(file_name)
-    # draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_critic_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_actor_loss_of_edge(given_list_file_name=file_name)
-    # draw_critic_loss_of_edge(given_list_file_name=file_name)
-    # draw_actor_loss_of_reward(given_list_file_name=file_name)
-    # draw_critic_loss_of_reward(given_list_file_name=file_name)
-
-    # file_name = '2021-09-01-07-14-31-list_file_name.pkl'
-    # draw_results(file_name)
-    # draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_critic_loss_of_sensor_nodes(given_list_file_name=file_name)
-    # draw_actor_loss_of_edge(given_list_file_name=file_name)
-    # draw_critic_loss_of_edge(given_list_file_name=file_name)
-    # draw_actor_loss_of_reward(given_list_file_name=file_name)
-    # draw_critic_loss_of_reward(given_list_file_name=file_name)
-
-    # file_name = '2021-09-01-22-23-27-list_file_name.pkl'
-    # file_name = '2021-09-02-03-20-11-list_file_name.pkl'
-    # file_name = '2021-09-03-03-59-01-list_file_name.pkl'
-    # file_name = '2021-09-04-09-37-24-list_file_name.pkl'
-    # file_name = '2021-09-05-06-52-00-list_file_name.pkl'
-    # file_name = '2021-09-06-02-17-41-list_file_name.pkl'
-    file_name = '2021-09-06-08-14-09-list_file_name.pkl'
+    file_name = '2021-09-08-04-11-04-list_file_name.pkl'
 
     draw_results(file_name)
     draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)

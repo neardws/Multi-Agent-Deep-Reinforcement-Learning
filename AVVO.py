@@ -37,7 +37,7 @@ def init():
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
-                 int(0.5 * (
+                 int(0.75 * (
                          vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
                  ],
             "final_layer_activation": "tanh",
@@ -55,8 +55,8 @@ def init():
         "Critic_of_Sensor": {
             "learning_rate": 0.00001,
             "linear_hidden_units":
-                [int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
-                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
+                [int(0.75 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
             "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
@@ -66,7 +66,7 @@ def init():
         "Actor_of_Edge": {
             "learning_rate": 0.00001,
             "linear_hidden_units":
-                [int(0.75 * (
+                [int(0.5 * (
                         vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
                  int(0.5 * (
                          vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))
@@ -97,7 +97,7 @@ def init():
         "Actor_of_Reward": {
             "learning_rate": 0.00001,
             "linear_hidden_units":
-                [int(0.75 * (
+                [int(0.5 * (
                         vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
                  int(0.5 * (
                          vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size()))],
@@ -115,7 +115,7 @@ def init():
             "learning_rate": 0.00001,
             "linear_hidden_units":
                 [int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
-                 int(0.25 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
+                 int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
             "final_layer_activation": "tanh",
             "batch_norm": False,
             "tau": 0.0001,
@@ -178,54 +178,7 @@ def run(first=False, rerun=False, given_list_file_name=None):
 
 if __name__ == '__main__':
     # run(first=True)
-    # run(rerun=True, given_list_file_name='2021-08-10-10-19-22-list_file_name.pkl')
 
-    # run(rerun=True, given_list_file_name='2021-08-21-05-56-04-list_file_name.pkl')
-    # run(given_list_file_name='2021-08-28-09-11-22-list_file_name.pkl')
-    # run(given_list_file_name='2021-08-29-23-03-17-list_file_name.pkl')
+    run(given_list_file_name='2021-09-08-05-03-53-list_file_name.pkl')
 
-    # run(given_list_file_name='2021-08-30-02-18-29-list_file_name.pkl')
 
-    # run(given_list_file_name='2021-08-30-02-32-49-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-08-30-04-01-44-list_file_name.pkl')
-
-    # run(rerun=True, given_list_file_name='2021-08-30-04-45-25-list_file_name.pkl')
-    # run(given_list_file_name='2021-08-30-04-45-25-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-08-31-07-23-38-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-00-58-25-list_file_name.pkl')
-
-    # run(rerun=True, given_list_file_name='2021-09-01-02-10-58-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-02-22-26-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-02-35-26-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-03-36-37-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-03-58-12-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-04-42-32-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-06-43-51-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-07-14-31-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-01-22-23-27-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-02-03-20-11-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-09-03-03-59-01-list_file_name.pkl')
-    #
-    # run(given_list_file_name='2021-09-04-09-37-24-list_file_name.pkl')
-    #
-    # run(given_list_file_name='2021-09-05-00-29-24-list_file_name.pkl')
-    #
-    #
-    # run(given_list_file_name='2021-09-05-06-52-00-list_file_name.pkl')
-    #
-    # run(given_list_file_name='2021-09-06-02-17-41-list_file_name.pkl')
-    #
-    run(given_list_file_name='2021-09-06-08-14-09-list_file_name.pkl')

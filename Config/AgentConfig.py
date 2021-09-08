@@ -29,18 +29,22 @@ class AgentConfig(object):
         self.actor_experience_replay_buffer_buffer_size = None
         self.actor_experience_replay_buffer_batch_size = None
         self.actor_experience_replay_buffer_seed = None
+        self.actor_experience_replay_buffer_dropout = None
 
         self.critic_experience_replay_buffer_buffer_size = None
         self.critic_experience_replay_buffer_batch_size = None
         self.critic_experience_replay_buffer_seed = None
+        self.critic_experience_replay_buffer_dropout = None
 
         self.actor_reward_replay_buffer_buffer_size = None
         self.actor_reward_replay_buffer_batch_size = None
         self.actor_reward_replay_buffer_seed = None
+        self.actor_reward_replay_buffer_dropout = None
 
         self.critic_reward_replay_buffer_buffer_size = None
         self.critic_reward_replay_buffer_batch_size = None
         self.critic_reward_replay_buffer_seed = None
+        self.critic_reward_replay_buffer_dropout = None
 
         self.nn_seed = None
 
@@ -50,32 +54,45 @@ class AgentConfig(object):
 
     def config(self,
                actor_experience_replay_buffer_buffer_size=50000,
-               actor_experience_replay_buffer_batch_size=512,
+               actor_experience_replay_buffer_batch_size=1024,
                actor_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               actor_experience_replay_buffer_dropout=0.2,
                critic_experience_replay_buffer_buffer_size=100000,
-               critic_experience_replay_buffer_batch_size=512,
+               critic_experience_replay_buffer_batch_size=1024,
                critic_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               critic_experience_replay_buffer_dropout=0.2,
                actor_reward_replay_buffer_buffer_size=50000,
-               actor_reward_replay_buffer_batch_size=512,
+               actor_reward_replay_buffer_batch_size=1024,
                actor_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               critic_replay_buffer_buffer_size=100000,
-               critic_replay_buffer_batch_size=512,
-               critic_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               actor_reward_replay_buffer_dropout=0.2,
+               critic_reward_replay_buffer_buffer_size=100000,
+               critic_reward_replay_buffer_batch_size=1024,
+               critic_reward_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+               critic_reward_replay_buffer_dropout=0.2,
                nn_seed=np.random.randint(0, 2 ** 32 - 2),
                hyperparameters=None,
                file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
+
         self.actor_experience_replay_buffer_buffer_size = actor_experience_replay_buffer_buffer_size
         self.actor_experience_replay_buffer_batch_size = actor_experience_replay_buffer_batch_size
         self.actor_experience_replay_buffer_seed = actor_experience_replay_buffer_seed
+        self.actor_experience_replay_buffer_dropout = actor_experience_replay_buffer_dropout
+
         self.critic_experience_replay_buffer_buffer_size = critic_experience_replay_buffer_buffer_size
         self.critic_experience_replay_buffer_batch_size = critic_experience_replay_buffer_batch_size
         self.critic_experience_replay_buffer_seed = critic_experience_replay_buffer_seed
+        self.critic_experience_replay_buffer_dropout = critic_experience_replay_buffer_dropout
+
         self.actor_reward_replay_buffer_buffer_size = actor_reward_replay_buffer_buffer_size
         self.actor_reward_replay_buffer_batch_size = actor_reward_replay_buffer_batch_size
         self.actor_reward_replay_buffer_seed = actor_reward_replay_buffer_seed
-        self.critic_reward_replay_buffer_buffer_size = critic_replay_buffer_buffer_size
-        self.critic_reward_replay_buffer_batch_size = critic_replay_buffer_batch_size
-        self.critic_reward_replay_buffer_seed = critic_reward_replay_buffer_seed
+        self.actor_reward_replay_buffer_dropout = actor_reward_replay_buffer_dropout
+
+        self.critic_reward_replay_buffer_buffer_size = critic_reward_replay_buffer_buffer_size
+        self.critic_reward_replay_buffer_batch_size = critic_reward_replay_buffer_batch_size
+        self.critic_reward_replay_buffer_seed = critic_reward_reward_replay_buffer_seed
+        self.critic_reward_replay_buffer_dropout = critic_reward_replay_buffer_dropout
+
         self.nn_seed = nn_seed
         self.hyperparameters = hyperparameters
         self.file_to_save_data_results = file_to_save_data_results
