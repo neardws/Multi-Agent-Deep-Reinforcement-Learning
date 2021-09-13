@@ -11,8 +11,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 pd.set_option('display.max_rows', None)
-
-
+#
+# def print_env():
+#
 def draw_results(given_list_file_name):
     correct_list_file_name = project_dir + data + given_list_file_name
     list_file = load_obj(name=correct_list_file_name)
@@ -44,7 +45,8 @@ def read_loss(given_list_file_name):
                                            "Critic of V10",
                                            "Actor of Edge", "Critic of Edge",
                                            "Actor of Reward", "Critic of Reward"], header=0)
-    df = df[df["Epoch index"] >= 111]
+    df = df[df["Epoch index"] >= 55]
+    # df = df[df["Epoch index"] <= 310]
     return df
 
 
@@ -139,7 +141,7 @@ def draw_critic_loss_of_reward(given_list_file_name):
 
 
 if __name__ == '__main__':
-    file_name = '2021-09-08-04-11-04-list_file_name.pkl'
+    file_name = '2021-09-10-03-45-29-list_file_name.pkl'
 
     draw_results(file_name)
     draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)

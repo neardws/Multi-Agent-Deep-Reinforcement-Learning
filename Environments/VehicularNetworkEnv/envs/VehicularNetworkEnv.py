@@ -116,8 +116,9 @@ class VehicularNetworkEnv(gym.Env):
         self.episode_index = 0   # in which episode of whole episode number
         self.episode_step = None    # in which step of whole one episode
         self.global_trajectories = None
+        # self.trajectories_file_name = "/home/ubuntu/HRL/CSV/vehicle.csv"
 
-        self.trajectories_file_name = "~/Documents/pyProject_hrl/CSV/vehicle.csv"
+        self.trajectories_file_name = "/home/neardws/Documents/pyProject_hrl/CSV/vehicle.csv"
         self.trajectories = None
 
         self.init_experiences_global_trajectory()
