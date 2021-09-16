@@ -33,14 +33,14 @@ def init():
         # uses a softmax activation function
 
         "Actor_of_Sensor": {
-            "learning_rate": 0.00001,
+            "learning_rate": 1e-5,
             "linear_hidden_units":
                 [int(0.75 * (
                         vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size())),
                  int(0.75 * (
                          vehicularNetworkEnv.get_sensor_observation_size() + vehicularNetworkEnv.get_sensor_action_size()))
                  ],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5,
@@ -53,25 +53,25 @@ def init():
         },
 
         "Critic_of_Sensor": {
-            "learning_rate": 0.0001,
+            "learning_rate": 1e-5,
             "linear_hidden_units":
                 [int(0.4 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1)),
                  int(0.4 * (vehicularNetworkEnv.get_critic_size_for_sensor() + 1))],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": None,
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Edge": {
-            "learning_rate": 0.00001,
+            "learning_rate": 1e-5,
             "linear_hidden_units":
-                [int(0.6 * (
+                [int(0.4 * (
                         vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size())),
                  int(0.4 * (
                          vehicularNetworkEnv.get_actor_input_size_for_edge() + vehicularNetworkEnv.get_edge_action_size()))
                  ],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5,
@@ -84,18 +84,18 @@ def init():
         },
 
         "Critic_of_Edge": {
-            "learning_rate": 0.0001,
+            "learning_rate": 1e-5,
             "linear_hidden_units":
                 [int(0.4 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1)),
                  int(0.2 * (vehicularNetworkEnv.get_critic_size_for_edge() + 1))],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": None,
             "batch_norm": False,
-            "tau": 0.001,
+            "tau": 0.0001,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 0.0001,
+            "learning_rate": 1e-6,
             "linear_hidden_units":
                 [int(0.5 * (
                         vehicularNetworkEnv.get_actor_input_size_for_reward() + vehicularNetworkEnv.get_reward_action_size())),
@@ -112,19 +112,25 @@ def init():
         },
 
         "Critic_of_Reward": {
-            "learning_rate": 0.001,
+            "learning_rate": 1e-6,
             "linear_hidden_units":
                 [int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1)),
                  int(0.5 * (vehicularNetworkEnv.get_critic_size_for_reward() + 1))],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": None,
             "batch_norm": False,
             "tau": 0.0001,
             "gradient_clipping_norm": 5
         },
 
         "discount_rate": 0.996,
-        "update_every_n_steps": 300,  # 30 times in one episode
-        "learning_updates_per_learning_session": 16,
+        "actor_nodes_update_every_n_steps": 20,  # 10 times in one episode
+        "critic_nodes_update_every_n_steps": 20,  # 15 times in one episode
+        "actor_reward_update_every_n_steps": 25,  # 20 times in one episode
+        "critic_reward_update_every_n_steps": 25,  # 20 times in one episode
+        "actor_nodes_learning_updates_per_learning_session": 16,
+        "critic_nodes_learning_updates_per_learning_session": 16,
+        "actor_reward_learning_updates_per_learning_session": 16,
+        "critic_reward_learning_updates_per_learning_session": 16,
         "clip_rewards": False}
 
     agent_config.config(hyperparameters=hyperparameters)
@@ -179,6 +185,6 @@ def run(first=False, rerun=False, given_list_file_name=None):
 if __name__ == '__main__':
     # run(first=True)
 
-    run(given_list_file_name='2021-09-11-22-05-51-list_file_name.pkl')
+    run(given_list_file_name='2021-09-14-04-49-44-list_file_name.pkl')
 
 

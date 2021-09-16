@@ -7,5 +7,5 @@
 """
 import os
 
-data = '/Data0912/'
+data = '/Data/Data0914/'
 project_dir = os.path.dirname(os.path.abspath(__file__))

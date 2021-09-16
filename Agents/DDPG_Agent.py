@@ -5,13 +5,17 @@
 @Author  ：Neardws
 @Date    ：9/7/21 2:35 下午 
 """
+import time
 import torch
 import numpy as np
+import pandas as pd
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
+import torch.nn.functional as functional
 from Exploration_strategies.Gaussian_Exploration import Gaussian_Exploration
 from nn_builder.pytorch.NN import NN
 from torch import optim
 from tqdm import tqdm
+from Utilities.FileOperator import save_obj
 
 
 class DDPG_Agent(object):
@@ -20,9 +24,11 @@ class DDPG_Agent(object):
         self.done = None
         self.reward = None
         self.action = None
+        self.observation = None
+        self.next_observation = None
         self.hyperparameters = None
         self.config = None
-        _, _, self.reward_observation = self.environment.reset()
+        _, _, self.observation = self.environment.reset()
         self.total_episode_score_so_far = 0
         self.device = "cuda" if self.environment.config.use_gpu else "cpu"
 
@@ -94,8 +100,8 @@ class DDPG_Agent(object):
                 self.conduct_action()
                 self.save_experience()
                 if self.time_for_learn():
-                    self.DDPG_ReplayBuffer.sample()
-                    self.actor_and_critic_to_learn()
+                    observations, actions, rewards, next_observations, dones = self.DDPG_ReplayBuffer.sample()
+                    self.actor_and_critic_to_learn(observations, actions, rewards, next_observations, dones)
                 my_bar.update(n=1)
 
     def pick_actions(self):
@@ -135,6 +141,10 @@ class DDPG_Agent(object):
         self.action = {"priority": priority,
                        "arrival_rate": arrival_rate,
                        "bandwidth": edge_nodes_bandwidth}
+        
+        _, _, self.next_observation, self.reward, self.done = self.environment.step(self.action)
+        self.total_episode_score_so_far += self.reward
+        
 
     def save_experience(self):
         if self.replay_buffer is None:
@@ -154,6 +164,19 @@ class DDPG_Agent(object):
                self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
 
     def actor_and_critic_to_learn(self, observations, actions, rewards, next_observations, dones):
+        with torch.no_grad():
+            actions_next = self.actor_target_of_ddpg(next_observations)
+            critic_targets_next = self.critic_target(torch.cat((next_observations, actions_next), 1))
+            critic_targets = rewards + (self.hyperparameters["discount_rate"] * critic_targets_next * (1.0 - dones))
+
+        critic_expected = self.critic_local(torch.cat((observations, actions), 1))
+        critic_loss = functional.mse_loss(critic_expected, critic_targets)
+        self.take_optimisation_step(self.critic_optimizer_of_ddpg, 
+                                    self.critic_local_of_ddpg, 
+                                    critic_loss, 
+                                    self.hyperparameters["Critic_of_DDPG"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.critic_local, self.critic_target, self.hyperparameters["Critic"]["tau"])
+
         actions_predicted = self.actor_local_of_ddpg(self.observation)
 
         actor_loss = -self.critic_local_of_ddpg(
@@ -163,6 +186,88 @@ class DDPG_Agent(object):
                                     self.actor_local_of_ddpg,
                                     actor_loss,
                                     self.hyperparameters["Actor_of_DDPG"]["gradient_clipping_norm"])
+    
+    def run_n_episodes(self, num_episodes):
+
+        """Runs game to completion n times and then summarises results and saves model (if asked to)"""
+        if num_episodes is None:
+            num_episodes = self.environment.config.episode_number
+
+        start = time.time()
+        while self.environment.episode_index < num_episodes:
+            print("*" * 64)
+            start = time.time()
+            self.reset_game()
+            actor_loss_of_ddpg, critic_loss_of_ddpg = self.step()
+            time_taken = time.time() - start
+            print("Epoch index: ", self.environment.episode_index)
+            print("Total reward: ", self.total_episode_score_so_far)
+            print("Time taken: ", time_taken)
+            new_line_in_result = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
+                                               "Total reward": str(self.total_episode_score_so_far),
+                                               "Time taken": str(time_taken)}, index=["0"])
+            result_data = result_data.append(new_line_in_result, ignore_index=True)
+
+            new_line_in_loss = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
+                                             "Actor of DDPG": str(actor_loss_of_ddpg),
+                                             "Critic of DDPG": str(critic_loss_of_ddpg)},
+                                            index=["0"])
+            loss_data = loss_data.append(new_line_in_loss, ignore_index=True)
+
+            if self.environment.episode_index % 10 == 0:
+                print(result_data)
+
+            if self.environment.episode_index == 1:
+                result_data = result_data.drop(result_data.index[[0]])
+                loss_data = loss_data.drop(loss_data.index[[0]])
+
+            """Saves the result of an episode of the game"""
+            self.game_full_episode_scores.append(self.total_episode_score_so_far)
+            self.rolling_results.append(
+                np.mean(self.game_full_episode_scores[-1 * self.environment.config.rolling_score_window:]))
+
+            """Updates the best episode result seen so far"""
+            if self.game_full_episode_scores[-1] > self.max_episode_score_seen:
+                self.max_episode_score_seen = self.game_full_episode_scores[-1]
+
+            if self.rolling_results[-1] > self.max_rolling_score_seen:
+                if len(self.rolling_results) > self.environment.config.rolling_score_window:
+                    self.max_rolling_score_seen = self.rolling_results[-1]
+
+            if self.environment.episode_index <= 1 and self.environment.episode_index % 1 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                result_data.to_csv(temple_result_name)
+                loss_data.to_csv(temple_loss_name)
+                print("save result data successful")
+
+            if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                print("save objectives successful")
+
+            if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                print("save objectives successful")
+
+            if self.environment.episode_index % 25 == 0:
+                result_data.to_csv(temple_result_name)
+                loss_data.to_csv(temple_loss_name)
+                print("save result data successful")
+
+        time_taken = time.time() - start
+        return self.game_full_episode_scores, self.rolling_results, time_taken
+
+
+    def reset_game(self):
+        self.done = None
+        self.reward = None
+        self.action = None
+        self.total_episode_score_so_far = 0
+        _, _, self.reward_observation = self.environment.reset()
+
+
 
     def create_nn(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
         """

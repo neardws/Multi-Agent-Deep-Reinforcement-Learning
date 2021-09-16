@@ -5,6 +5,8 @@
 # @Author : Neardws
 # @Time : 2021/8/11 2:20 下午
 """
+
+# %%
 from File_Name import project_dir, data
 from Utilities.FileOperator import load_obj, load_name
 import pandas as pd
@@ -141,7 +143,7 @@ def draw_critic_loss_of_reward(given_list_file_name):
 
 
 if __name__ == '__main__':
-    file_name = '2021-09-10-03-45-29-list_file_name.pkl'
+    file_name = '2021-09-13-03-08-29-list_file_name.pkl'
 
     draw_results(file_name)
     draw_actor_loss_of_sensor_nodes(given_list_file_name=file_name)

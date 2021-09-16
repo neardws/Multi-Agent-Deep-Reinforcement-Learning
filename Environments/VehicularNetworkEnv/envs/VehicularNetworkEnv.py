@@ -118,7 +118,7 @@ class VehicularNetworkEnv(gym.Env):
         self.global_trajectories = None
         # self.trajectories_file_name = "/home/ubuntu/HRL/CSV/vehicle.csv"
 
-        self.trajectories_file_name = "/home/neardws/Documents/pyProject_hrl/CSV/vehicle.csv"
+        self.trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle.csv"
         self.trajectories = None
 
         self.init_experiences_global_trajectory()
