@@ -1,24 +1,27 @@
-# -*- coding: UTF-8 -*-
-"""
-@Project ：Hierarchical-Reinforcement-Learning 
-@File    ：ActorRewardReplayBuffer.py
-@Author  ：Neardws
-@Date    ：9/5/21 11:19 上午 
-"""
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@File    :   DDPG_ReplayBuffer.py
+@Time    :   2021/09/16 17:06:10
+@Author  :   Neardws
+@Version :   1.0
+@Contact :   neard.ws@gmail.com
+@Desc    :   None
+'''
+
 from collections import namedtuple, deque
 import random
 import torch
 import numpy as np
 
 
-class ActorRewardReplayBuffer(object):
+class DDPG_ReplayBuffer(object):
     """Replay buffer to store past reward experiences that the agent can then use for training data"""
 
-    # module-level type definition
-    experience = namedtuple("Experience", field_names=["last_reward_observation", "last_global_action"])
-    experience.__qualname__ = 'ActorRewardReplayBuffer.experience'
+    experience = namedtuple("Experience", field_names=["observation", "action", "reward", "next_observation", "done"])
+    experience.__qualname__ = 'DDPG_ReplayBuffer.experience'
 
-    def __init__(self, buffer_size, batch_size, seed, dropout, device=None):
+    def __init__(self, buffer_size, batch_size, seed, device=None):
         """
         Init Replay_buffer
         :param buffer_size: buffer size
@@ -28,7 +31,6 @@ class ActorRewardReplayBuffer(object):
         """
         self.batch_size = batch_size
         self.buffer_size = buffer_size
-        self.dropout = dropout
         self.memory = deque(maxlen=self.buffer_size)
 
         random.seed(seed)  # setup random number seed
@@ -37,20 +39,18 @@ class ActorRewardReplayBuffer(object):
             self.device = torch.device(device)
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    def add_experience(self, last_reward_observation, last_global_action):
+    
+    def add_experience(self, observation, action, reward, next_observation, done):
         """
         Adds experience(s) into the replay buffer
-        :param last_reward_observation:
-        :param last_global_action:
-        :return:
+        :param observation:
+        :param action:
+        :param reward:
+        :param next_observation:
+        :param done:
+        :return: None
         """
-        experience = self.experience(last_reward_observation, last_global_action)
-        if self.__len__() == self.buffer_size:
-            if self.dropout != 0:
-                size = self.buffer_size * self.dropout
-                for i in range(int(size)):
-                    self.memory.pop()
+        experience = self.experience(observation, action, reward, next_observation, done)
         self.memory.append(experience)
 
     def sample(self, num_experiences=None, separate_out_data_types=True):
@@ -62,22 +62,22 @@ class ActorRewardReplayBuffer(object):
         """
         experiences = self.pick_experiences(num_experiences)
         if separate_out_data_types:
-            last_reward_observation, last_global_actions = self.separate_out_data_types(experiences)
-            return last_reward_observation, last_global_actions
+            return self.separate_out_data_types(experiences)
         else:
             return experiences
 
     def separate_out_data_types(self, experiences):
         """
         Puts the sampled experience into the correct format for a PyTorch neural network
-        :param experiences: Input
-        :return:/
+        :param experiences:
+        :return:
         """
-        last_reward_observations = torch.from_numpy(np.vstack([e.last_reward_observation.cpu().data for e in experiences if e is not None]))\
-            .float().to(self.device)
-        last_global_actions = torch.from_numpy(np.vstack([e.last_global_action.cpu().data for e in experiences if e is not None]))\
-            .float().to(self.device)
-        return last_reward_observations, last_global_actions
+        observations = torch.from_numpy(np.vstack([e.observation.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        actions = torch.from_numpy(np.vstack([e.action.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        rewards = torch.from_numpy(np.vstack([e.reward.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        next_observations = torch.from_numpy(np.vstack([e.next_observation.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
+        return observations, actions, rewards, next_observations, dones
 
     def pick_experiences(self, num_experiences=None):
         """

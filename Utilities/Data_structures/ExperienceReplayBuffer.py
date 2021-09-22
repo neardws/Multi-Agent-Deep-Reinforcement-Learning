@@ -33,7 +33,7 @@ class ExperienceReplayBuffer(object):
         self.batch_size = batch_size
         self.buffer_size = buffer_size
         self.dropout = dropout
-        self.memory = deque()
+        self.memory = deque(maxlen=self.buffer_size)
 
         random.seed(seed)  # setup random number seed
         # if the device is not settle, then use available GPU, if not, the cpu

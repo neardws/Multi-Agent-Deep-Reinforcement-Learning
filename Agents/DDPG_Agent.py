@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 import torch.nn.functional as functional
+from Utilities.Data_structures import DDPG_ReplayBuffer
 from Exploration_strategies.Gaussian_Exploration import Gaussian_Exploration
 from nn_builder.pytorch.NN import NN
 from torch import optim
@@ -31,7 +32,6 @@ class DDPG_Agent(object):
         _, _, self.observation = self.environment.reset()
         self.total_episode_score_so_far = 0
         self.device = "cuda" if self.environment.config.use_gpu else "cpu"
-
         self.replay_buffer = DDPG_ReplayBuffer(
             buffer_size=self.config.replay_buffer_buffer_size,
             batch_size=self.config.replay_buffer_batch_size,
@@ -55,8 +55,10 @@ class DDPG_Agent(object):
             key_to_use="Actor_of_DDPG"
         )
 
-        DDPG_Agent.copy_model_over(from_model=self.actor_local_of_ddpg,
-                                   to_model=self.actor_target_of_ddpg)
+        DDPG_Agent.copy_model_over(
+            from_model=self.actor_local_of_ddpg,
+            to_model=self.actor_target_of_ddpg
+        )
 
         self.actor_optimizer_of_ddpg = optim.Adam(
             params=self.actor_local_of_ddpg.parameters(),
@@ -64,9 +66,18 @@ class DDPG_Agent(object):
             eps=1e-8
         )
 
-        optim.lr_scheduler.ReduceLROnPlateau(self.actor_optimizer_of_ddpg, mode='min', factor=0.1,
-                                             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
-                                             cooldown=0, min_lr=0, eps=1e-08)
+        optim.lr_scheduler.ReduceLROnPlateau(
+            self.actor_optimizer_of_ddpg, 
+            mode='min', 
+            factor=0.1,
+            patience=10, 
+            verbose=False, 
+            threshold=0.0001, 
+            threshold_mode='rel',
+            cooldown=0, 
+            min_lr=0, 
+            eps=1e-08
+        )
 
         self.critic_local_of_ddpg = self.create_nn(
             input_dim=self.environment.get_actor_input_size_for_reward() + self.action_size,
@@ -80,18 +91,29 @@ class DDPG_Agent(object):
             key_to_use="Critic_of_DDPG"
         )
 
-        DDPG_Agent.copy_model_over(from_model=self.critic_local_of_ddpg,
-                                   to_model=self.critic_target_of_ddpg)
+        DDPG_Agent.copy_model_over(
+            from_model=self.critic_local_of_ddpg,
+            to_model=self.critic_target_of_ddpg
+        )
 
-        self.critic_optimizer_of_edge_node = optim.Adam(
+        self.critic_optimizer_of_ddpg = optim.Adam(
             params=self.critic_local_of_ddpg.parameters(),
             lr=self.hyperparameters["Critic_of_DDPG"]["learning_rate"],
             eps=1e-8
         )
 
-        optim.lr_scheduler.ReduceLROnPlateau(self.critic_optimizer_of_edge_node, mode='min', factor=0.1,
-                                             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
-                                             cooldown=0, min_lr=0, eps=1e-08)
+        optim.lr_scheduler.ReduceLROnPlateau(
+            self.critic_optimizer_of_ddpg, 
+            mode='min', 
+            factor=0.1,
+            patience=10, 
+            verbose=False, 
+            threshold=0.0001, 
+            threshold_mode='rel',
+            cooldown=0, 
+            min_lr=0, 
+            eps=1e-08
+        )
 
     def step(self):
         with tqdm(total=self.environment.max_episode_length) as my_bar:
@@ -138,9 +160,11 @@ class DDPG_Agent(object):
 
         edge_nodes_bandwidth = self.action[0][-self.environment.config.data_types_number:-1].cpu().data.numpy() * self.environment.config.bandwidth
 
-        self.action = {"priority": priority,
-                       "arrival_rate": arrival_rate,
-                       "bandwidth": edge_nodes_bandwidth}
+        self.action = {
+            "priority": priority,
+            "arrival_rate": arrival_rate,
+            "bandwidth": edge_nodes_bandwidth
+        }
         
         _, _, self.next_observation, self.reward, self.done = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
@@ -203,14 +227,16 @@ class DDPG_Agent(object):
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
             print("Time taken: ", time_taken)
-            new_line_in_result = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
-                                               "Total reward": str(self.total_episode_score_so_far),
-                                               "Time taken": str(time_taken)}, index=["0"])
+            new_line_in_result = pd.DataFrame(
+                {"Epoch index": str(self.environment.episode_index),
+                "Total reward": str(self.total_episode_score_so_far),
+                "Time taken": str(time_taken)}, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
 
-            new_line_in_loss = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
-                                             "Actor of DDPG": str(actor_loss_of_ddpg),
-                                             "Critic of DDPG": str(critic_loss_of_ddpg)},
+            new_line_in_loss = pd.DataFrame(
+                {"Epoch index": str(self.environment.episode_index),
+                "Actor of DDPG": str(actor_loss_of_ddpg),
+                "Critic of DDPG": str(critic_loss_of_ddpg)},
                                             index=["0"])
             loss_data = loss_data.append(new_line_in_loss, ignore_index=True)
 

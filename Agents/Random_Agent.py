@@ -26,9 +26,7 @@ class Random_Agent(object):
         self.reward = None
         self.action = None
         self.done = None
-
         self.total_episode_score_so_far = 0
-
         self.environment.reset()
 
     def step(self):
