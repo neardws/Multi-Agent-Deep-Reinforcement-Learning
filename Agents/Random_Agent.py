@@ -58,9 +58,11 @@ class Random_Agent(object):
 
         edge_nodes_bandwidth = random_np(self.environment.config.vehicle_number) * self.environment.config.bandwidth
 
-        self.action = {"priority": priority,
-                       "arrival_rate": arrival_rate,
-                       "bandwidth": edge_nodes_bandwidth}
+        self.action = {
+            "priority": priority,
+            "arrival_rate": arrival_rate,
+            "bandwidth": edge_nodes_bandwidth
+        }
 
     def conduct_action(self):
         _, _, _, self.reward, self.done = self.environment.step(self.action)

@@ -27,7 +27,7 @@ class DDPG_Agent(object):
         self.action = None
         self.observation = None
         self.next_observation = None
-        self.hyperparameters = None
+        
         self.config = None
         _, _, self.observation = self.environment.reset()
         self.total_episode_score_so_far = 0
@@ -39,19 +39,62 @@ class DDPG_Agent(object):
         )
 
         self.action_size = self.environment.get_sensor_action_size() * self.environment.config.vehicle_number + self.environment.get_edge_action_size()
+        
+        self.hyperparameters = {
+
+            "Actor_of_DDPG": {
+                "learning_rate": 1e-6,
+                "linear_hidden_units":
+                    [int(0.75 * (self.action_size)),
+                    int(0.75 * (self.action_size))
+                    ],
+                "final_layer_activation": [
+                    "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax",
+                    "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax",
+                    "softmax"
+                ],  # 20 actions of vehicles, and one action of edge node
+                "batch_norm": False,
+                "tau": 0.0001,
+                "gradient_clipping_norm": 5,
+                "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+                "mu": 0.0,
+                "theta": 0.15,
+                "sigma": 0.25,
+                "action_noise_std": 0.001,
+                "action_noise_clipping_range": 1.0
+            },
+
+            "Critic_of_DDPG": {
+                "learning_rate": 1e-5,
+                "linear_hidden_units":
+                    [int(0.2 * (self.action_size + 1)),
+                    int(0.2 * (self.action_size + 1))],
+                "final_layer_activation": "tanh",
+                "batch_norm": False,
+                "tau": 0.0001,
+                "gradient_clipping_norm": 5
+            }
+        }
+        
         self.sensor_exploration_strategy = Gaussian_Exploration(size=self.action_size,
                                                                 hyperparameters=self.hyperparameters,
                                                                 key_to_use="Actor_of_DDPG")
 
         self.actor_local_of_ddpg = self.create_nn(
             input_dim=self.environment.get_actor_input_size_for_reward(),
-            output_dim=self.action_size,
+            output_dim=[
+                10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+                10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
+            ],
             key_to_use="Actor_of_DDPG"
         )
 
         self.actor_target_of_ddpg = self.create_nn(
             input_dim=self.environment.get_actor_input_size_for_reward(),
-            output_dim=self.action_size,
+            output_dim=[
+                10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+                10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
+            ],
             key_to_use="Actor_of_DDPG"
         )
 
