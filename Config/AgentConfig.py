@@ -52,26 +52,32 @@ class AgentConfig(object):
 
         self.file_to_save_data_results = None
 
-    def config(self,
-               actor_experience_replay_buffer_buffer_size=50000,
-               actor_experience_replay_buffer_batch_size=1024,
-               actor_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               actor_experience_replay_buffer_dropout=0,
-               critic_experience_replay_buffer_buffer_size=100000,
-               critic_experience_replay_buffer_batch_size=1024,
-               critic_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               critic_experience_replay_buffer_dropout=0,
-               actor_reward_replay_buffer_buffer_size=50000,
-               actor_reward_replay_buffer_batch_size=1024,
-               actor_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               actor_reward_replay_buffer_dropout=0,
-               critic_reward_replay_buffer_buffer_size=100000,
-               critic_reward_replay_buffer_batch_size=1024,
-               critic_reward_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
-               critic_reward_replay_buffer_dropout=0,
-               nn_seed=np.random.randint(0, 2 ** 32 - 2),
-               hyperparameters=None,
-               file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
+    def config(
+        self,
+        actor_experience_replay_buffer_buffer_size=100000,
+        actor_experience_replay_buffer_batch_size=512,
+        actor_experience_replay_buffer_seed=2801641275,
+        # actor_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+        actor_experience_replay_buffer_dropout=0,
+        critic_experience_replay_buffer_buffer_size=200000,
+        critic_experience_replay_buffer_batch_size=512,
+        critic_experience_replay_buffer_seed=1097855444,
+        # critic_experience_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+        critic_experience_replay_buffer_dropout=0,
+        actor_reward_replay_buffer_buffer_size=100000,
+        actor_reward_replay_buffer_batch_size=512,
+        actor_reward_replay_buffer_seed=1328027828,
+        # actor_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+        actor_reward_replay_buffer_dropout=0,
+        critic_reward_replay_buffer_buffer_size=200000,
+        critic_reward_replay_buffer_batch_size=512,
+        critic_reward_replay_buffer_seed=2419977517,
+        # critic_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
+        critic_reward_replay_buffer_dropout=0,
+        nn_seed=3523186978,
+        # nn_seed=np.random.randint(0, 2 ** 32 - 2),
+        hyperparameters=None,
+        file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
 
         self.actor_experience_replay_buffer_buffer_size = actor_experience_replay_buffer_buffer_size
         self.actor_experience_replay_buffer_batch_size = actor_experience_replay_buffer_batch_size
@@ -90,7 +96,7 @@ class AgentConfig(object):
 
         self.critic_reward_replay_buffer_buffer_size = critic_reward_replay_buffer_buffer_size
         self.critic_reward_replay_buffer_batch_size = critic_reward_replay_buffer_batch_size
-        self.critic_reward_replay_buffer_seed = critic_reward_reward_replay_buffer_seed
+        self.critic_reward_replay_buffer_seed = critic_reward_replay_buffer_seed
         self.critic_reward_replay_buffer_dropout = critic_reward_replay_buffer_dropout
 
         self.nn_seed = nn_seed

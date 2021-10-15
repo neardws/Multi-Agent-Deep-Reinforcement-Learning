@@ -74,7 +74,7 @@ class DDPG_ReplayBuffer(object):
         """
         observations = torch.from_numpy(np.vstack([e.observation.cpu().data for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action.cpu().data for e in experiences if e is not None])).float().to(self.device)
-        rewards = torch.from_numpy(np.vstack([e.reward.cpu().data for e in experiences if e is not None])).float().to(self.device)
+        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
         next_observations = torch.from_numpy(np.vstack([e.next_observation.cpu().data for e in experiences if e is not None])).float().to(self.device)
         dones = torch.from_numpy(np.vstack([int(e.done) for e in experiences if e is not None])).float().to(self.device)
         return observations, actions, rewards, next_observations, dones

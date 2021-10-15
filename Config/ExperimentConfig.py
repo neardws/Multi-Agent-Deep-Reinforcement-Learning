@@ -88,54 +88,55 @@ class ExperimentConfig(object):
 
         self.use_gpu = None
 
-    def config(self,
+    def config(
+        self,
 
-               longitude_min=104.04565967220308,  # 104.05089219802858
-               longitude_max=104.07650822204591,  # 104.082306230011
-               latitude_min=30.654605745741608,  # 30.64253859556557
-               latitude_max=30.68394513007631,  # 30.6684641634594
+        longitude_min=104.04565967220308,  # 104.05089219802858
+        longitude_max=104.07650822204591,  # 104.082306230011
+        latitude_min=30.654605745741608,  # 30.64253859556557
+        latitude_max=30.68394513007631,  # 30.6684641634594
 
-               time_start=1479031200,
+        time_start=1479031200,
 
-               episode_number=5000,
-               max_episode_length=300,
+        episode_number=5000,
+        max_episode_length=300,
 
-               vehicle_number=10,
-               data_types_number=10,
-               edge_views_number=10,
+        vehicle_number=10,
+        data_types_number=10,
+        edge_views_number=10,
 
-               threshold_data_types_in_vehicles=0.3,
-               data_size_low_bound=300,  # Bytes
-               data_size_up_bound=1 * 1024 * 1024,  # Bytes
+        threshold_data_types_in_vehicles=0.3,
+        data_size_low_bound=300,  # Bytes
+        data_size_up_bound=1 * 1024 * 1024,  # Bytes
 
-               edge_view_required_start_time=10,
-               threshold_edge_views_in_edge_node=0.15,
-               threshold_view_required_data=0.6,
+        edge_view_required_start_time=10,
+        threshold_edge_views_in_edge_node=0.15,
+        threshold_view_required_data=0.6,
 
-               arrival_rate_low_bound=0.1,
-               arrival_rate_up_bound=1,
+        arrival_rate_low_bound=0.1,
+        arrival_rate_up_bound=1,
 
-               mean_service_time_of_types=None,
-               second_moment_service_time_of_types=None,
+        mean_service_time_of_types=None,
+        second_moment_service_time_of_types=None,
 
-               communication_range=1500,  # meters
-               transmission_power=1,  # mW
-               bandwidth=1,  # MHz
-               additive_white_gaussian_noise=-90,  # dBm
-               mean_channel_fading_gain=2,
-               second_moment_channel_fading_gain=0.4,
-               path_loss_exponent=3,
+        communication_range=1500,  # meters
+        transmission_power=1,  # mW
+        bandwidth=1,  # MHz
+        additive_white_gaussian_noise=-90,  # dBm
+        mean_channel_fading_gain=2,
+        second_moment_channel_fading_gain=0.4,
+        path_loss_exponent=3,
 
-               noise_uncertainty_low_bound=1,  # dB
-               noise_uncertainty_up_bound=4,  # dB
-               trajectories_predicted_time=10,
-               rolling_score_window=100,
+        noise_uncertainty_low_bound=1,  # dB
+        noise_uncertainty_up_bound=4,  # dB
+        trajectories_predicted_time=10,
+        rolling_score_window=100,
 
-               edge_node_x=1500,
-               edge_node_y=1500,
+        edge_node_x=1500,
+        edge_node_y=1500,
 
-               use_gpu=True
-               ):
+        use_gpu=True
+        ):
         """Map"""
         self.longitude_min = longitude_min
         self.longitude_max = longitude_max

@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 import torch.nn.functional as functional
-from Utilities.Data_structures import DDPG_ReplayBuffer
+from Utilities.Data_structures.DDPG_ReplayBuffer import DDPG_ReplayBuffer
 from Exploration_strategies.Gaussian_Exploration import Gaussian_Exploration
 from nn_builder.pytorch.NN import NN
 from torch import optim
@@ -28,15 +28,9 @@ class DDPG_Agent(object):
         self.observation = None
         self.next_observation = None
         
-        self.config = None
         _, _, self.observation = self.environment.reset()
         self.total_episode_score_so_far = 0
         self.device = "cuda" if self.environment.config.use_gpu else "cpu"
-        self.replay_buffer = DDPG_ReplayBuffer(
-            buffer_size=self.config.replay_buffer_buffer_size,
-            batch_size=self.config.replay_buffer_batch_size,
-            seed=self.config.replay_buffer_seed
-        )
 
         self.action_size = self.environment.get_sensor_action_size() * self.environment.config.vehicle_number + self.environment.get_edge_action_size()
         
@@ -45,8 +39,8 @@ class DDPG_Agent(object):
             "Actor_of_DDPG": {
                 "learning_rate": 1e-6,
                 "linear_hidden_units":
-                    [int(0.75 * (self.action_size)),
-                    int(0.75 * (self.action_size))
+                    [512,
+                    256
                     ],
                 "final_layer_activation": [
                     "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax", "softmax",
@@ -54,7 +48,7 @@ class DDPG_Agent(object):
                     "softmax"
                 ],  # 20 actions of vehicles, and one action of edge node
                 "batch_norm": False,
-                "tau": 0.0001,
+                "tau": 0.00001,
                 "gradient_clipping_norm": 5,
                 "noise_seed": np.random.randint(0, 2 ** 32 - 2),
                 "mu": 0.0,
@@ -65,23 +59,29 @@ class DDPG_Agent(object):
             },
 
             "Critic_of_DDPG": {
-                "learning_rate": 1e-5,
+                "learning_rate": 1e-6,
                 "linear_hidden_units":
-                    [int(0.2 * (self.action_size + 1)),
-                    int(0.2 * (self.action_size + 1))],
+                    [512,
+                    256],
                 "final_layer_activation": "tanh",
                 "batch_norm": False,
-                "tau": 0.0001,
+                "tau": 0.00001,
                 "gradient_clipping_norm": 5
             }
         }
         
+        self.replay_buffer = DDPG_ReplayBuffer(
+            buffer_size=50000,
+            batch_size=64,
+            seed=np.random.randint(0, 2 ** 32 - 2)
+        )
+
         self.sensor_exploration_strategy = Gaussian_Exploration(size=self.action_size,
                                                                 hyperparameters=self.hyperparameters,
                                                                 key_to_use="Actor_of_DDPG")
 
         self.actor_local_of_ddpg = self.create_nn(
-            input_dim=self.environment.get_actor_input_size_for_reward(),
+            input_dim=self.environment.get_global_state_size(),
             output_dim=[
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
@@ -90,7 +90,7 @@ class DDPG_Agent(object):
         )
 
         self.actor_target_of_ddpg = self.create_nn(
-            input_dim=self.environment.get_actor_input_size_for_reward(),
+            input_dim=self.environment.get_global_state_size(),
             output_dim=[
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
@@ -123,13 +123,13 @@ class DDPG_Agent(object):
         )
 
         self.critic_local_of_ddpg = self.create_nn(
-            input_dim=self.environment.get_actor_input_size_for_reward() + self.action_size,
+            input_dim=self.environment.get_global_state_size() + self.action_size,
             output_dim=1,
             key_to_use="Critic_of_DDPG"
         )
 
         self.critic_target_of_ddpg = self.create_nn(
-            input_dim=self.environment.get_actor_input_size_for_reward() + self.action_size,
+            input_dim=self.environment.get_global_state_size() + self.action_size,
             output_dim=1,
             key_to_use="Critic_of_DDPG"
         )
@@ -165,7 +165,7 @@ class DDPG_Agent(object):
                 self.conduct_action()
                 self.save_experience()
                 if self.time_for_learn():
-                    observations, actions, rewards, next_observations, dones = self.DDPG_ReplayBuffer.sample()
+                    observations, actions, rewards, next_observations, dones = self.replay_buffer.sample()
                     self.actor_and_critic_to_learn(observations, actions, rewards, next_observations, dones)
                 my_bar.update(n=1)
 
@@ -186,7 +186,7 @@ class DDPG_Agent(object):
 
         for sensor_node_index in range(self.environment.config.vehicle_number):
             start_index = sensor_node_index * 2 * self.environment.config.data_types_number
-            sensor_node_action = self.action[0][start_index, start_index + 2 * self.environment.config.data_types_number]
+            sensor_node_action = self.action[0][start_index: start_index + 2 * self.environment.config.data_types_number]
             sensor_node_action_of_priority = \
                 sensor_node_action[0:self.environment.config.data_types_number]  # first data types are priority
             sensor_node_action_of_arrival_rate = \
@@ -201,15 +201,14 @@ class DDPG_Agent(object):
                         float(sensor_node_action_of_arrival_rate[data_type_index]) / \
                         self.environment.config.mean_service_time_of_types[sensor_node_index][data_type_index]
 
-        edge_nodes_bandwidth = self.action[0][-self.environment.config.data_types_number:-1].cpu().data.numpy() * self.environment.config.bandwidth
-
-        self.action = {
+        edge_nodes_bandwidth = self.action[0][-self.environment.config.data_types_number:].unsqueeze(0).cpu().data.numpy() * self.environment.config.bandwidth
+        
+        dict_action = {
             "priority": priority,
             "arrival_rate": arrival_rate,
             "bandwidth": edge_nodes_bandwidth
         }
-        
-        _, _, self.next_observation, self.reward, self.done = self.environment.step(self.action)
+        _, _, self.next_observation, self.reward, self.done = self.environment.step(dict_action)
         self.total_episode_score_so_far += self.reward
         
 
@@ -217,7 +216,7 @@ class DDPG_Agent(object):
         if self.replay_buffer is None:
             raise Exception("Buffer is None")
         self.replay_buffer.add_experience(
-            obeservation=self.observation,
+            observation=self.observation,
             action=self.action,
             reward=self.reward,
             next_observation=self.next_observation,
@@ -226,46 +225,51 @@ class DDPG_Agent(object):
 
     def time_for_learn(self):
         return len(self.replay_buffer) > (
-                self.config.buffer_batch_size * self.config.hyperparameters[
-            "learning_updates_per_learning_session"]) and \
-               self.environment.episode_step % self.hyperparameters["update_every_n_steps"] == 0
+                256 * 10) and \
+               self.environment.episode_step % 300 == 0
 
     def actor_and_critic_to_learn(self, observations, actions, rewards, next_observations, dones):
         with torch.no_grad():
             actions_next = self.actor_target_of_ddpg(next_observations)
-            critic_targets_next = self.critic_target(torch.cat((next_observations, actions_next), 1))
-            critic_targets = rewards + (self.hyperparameters["discount_rate"] * critic_targets_next * (1.0 - dones))
+            critic_targets_next = self.critic_target_of_ddpg(torch.cat((next_observations, actions_next), 1))
+            critic_targets = rewards + (0.996 * critic_targets_next * (1.0 - dones))
 
-        critic_expected = self.critic_local(torch.cat((observations, actions), 1))
+        critic_expected = self.critic_local_of_ddpg(torch.cat((observations, actions), 1))
         critic_loss = functional.mse_loss(critic_expected, critic_targets)
         self.take_optimisation_step(self.critic_optimizer_of_ddpg, 
                                     self.critic_local_of_ddpg, 
                                     critic_loss, 
                                     self.hyperparameters["Critic_of_DDPG"]["gradient_clipping_norm"])
-        self.soft_update_of_target_network(self.critic_local, self.critic_target, self.hyperparameters["Critic"]["tau"])
+        self.soft_update_of_target_network(self.critic_local_of_ddpg, self.critic_target_of_ddpg, self.hyperparameters["Critic_of_DDPG"]["tau"])
 
-        actions_predicted = self.actor_local_of_ddpg(self.observation)
-
+        actions_predicted = self.actor_local_of_ddpg(observations)
+        
         actor_loss = -self.critic_local_of_ddpg(
-            torch.cat((observations, actions_predicted), dim=1).mean()
-        )
+            torch.cat((observations, actions_predicted), dim=1)
+        ).mean()
+
         self.take_optimisation_step(self.actor_optimizer_of_ddpg,
                                     self.actor_local_of_ddpg,
                                     actor_loss,
                                     self.hyperparameters["Actor_of_DDPG"]["gradient_clipping_norm"])
     
-    def run_n_episodes(self, num_episodes):
+    def run_n_episodes(self, num_episodes, temple_result_name):
 
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
         if num_episodes is None:
             num_episodes = self.environment.config.episode_number
+
+        try:
+            result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
+        except FileNotFoundError:
+            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "Total reward": "", "Time taken": ""}, index=[0])
 
         start = time.time()
         while self.environment.episode_index < num_episodes:
             print("*" * 64)
             start = time.time()
             self.reset_game()
-            actor_loss_of_ddpg, critic_loss_of_ddpg = self.step()
+            self.step()
             time_taken = time.time() - start
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
@@ -276,57 +280,46 @@ class DDPG_Agent(object):
                 "Time taken": str(time_taken)}, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
 
-            new_line_in_loss = pd.DataFrame(
-                {"Epoch index": str(self.environment.episode_index),
-                "Actor of DDPG": str(actor_loss_of_ddpg),
-                "Critic of DDPG": str(critic_loss_of_ddpg)},
-                                            index=["0"])
-            loss_data = loss_data.append(new_line_in_loss, ignore_index=True)
-
             if self.environment.episode_index % 10 == 0:
                 print(result_data)
 
             if self.environment.episode_index == 1:
                 result_data = result_data.drop(result_data.index[[0]])
-                loss_data = loss_data.drop(loss_data.index[[0]])
 
-            """Saves the result of an episode of the game"""
-            self.game_full_episode_scores.append(self.total_episode_score_so_far)
-            self.rolling_results.append(
-                np.mean(self.game_full_episode_scores[-1 * self.environment.config.rolling_score_window:]))
+            # """Saves the result of an episode of the game"""
+            # # self.game_full_episode_scores.append(self.total_episode_score_so_far)
+            # self.rolling_results.append(
+            #     np.mean(self.game_full_episode_scores[-1 * self.environment.config.rolling_score_window:]))
 
-            """Updates the best episode result seen so far"""
-            if self.game_full_episode_scores[-1] > self.max_episode_score_seen:
-                self.max_episode_score_seen = self.game_full_episode_scores[-1]
+            # """Updates the best episode result seen so far"""
+            # if self.game_full_episode_scores[-1] > self.max_episode_score_seen:
+            #     self.max_episode_score_seen = self.game_full_episode_scores[-1]
 
-            if self.rolling_results[-1] > self.max_rolling_score_seen:
-                if len(self.rolling_results) > self.environment.config.rolling_score_window:
-                    self.max_rolling_score_seen = self.rolling_results[-1]
+            # if self.rolling_results[-1] > self.max_rolling_score_seen:
+            #     if len(self.rolling_results) > self.environment.config.rolling_score_window:
+            #         self.max_rolling_score_seen = self.rolling_results[-1]
 
             if self.environment.episode_index <= 1 and self.environment.episode_index % 1 == 0:
-                save_obj(obj=self.config, name=temple_agent_config_name)
-                save_obj(obj=self, name=temple_agent_name)
+                # save_obj(obj=self, name=temple_agent_name)
                 result_data.to_csv(temple_result_name)
-                loss_data.to_csv(temple_loss_name)
+                # loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
 
-            if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
-                save_obj(obj=self.config, name=temple_agent_config_name)
-                save_obj(obj=self, name=temple_agent_name)
-                print("save objectives successful")
+            # if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
+            #     save_obj(obj=self, name=temple_agent_name)
+            #     print("save objectives successful")
 
-            if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
-                save_obj(obj=self.config, name=temple_agent_config_name)
-                save_obj(obj=self, name=temple_agent_name)
-                print("save objectives successful")
+            # if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
+            #     save_obj(obj=self.config, name=temple_agent_config_name)
+            #     save_obj(obj=self, name=temple_agent_name)
+            #     print("save objectives successful")
 
             if self.environment.episode_index % 25 == 0:
                 result_data.to_csv(temple_result_name)
-                loss_data.to_csv(temple_loss_name)
+                # loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
 
         time_taken = time.time() - start
-        return self.game_full_episode_scores, self.rolling_results, time_taken
 
 
     def reset_game(self):
@@ -334,8 +327,7 @@ class DDPG_Agent(object):
         self.reward = None
         self.action = None
         self.total_episode_score_so_far = 0
-        _, _, self.reward_observation = self.environment.reset()
-
+        _, _, self.observation = self.environment.reset()
 
 
     def create_nn(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
@@ -355,7 +347,7 @@ class DDPG_Agent(object):
         if override_seed:
             seed = override_seed
         else:
-            seed = self.config.nn_seed
+            seed = np.random.randint(0, 2 ** 32 - 2)
 
         default_hyperparameter_choices = {"output_activation": None,
                                           "hidden_activations": "relu",
@@ -414,3 +406,31 @@ class DDPG_Agent(object):
         for to_model, from_model in zip(to_model.parameters(), from_model.parameters()):
             to_model.data.copy_(from_model.data.clone())
 
+
+    @staticmethod
+    def take_optimisation_step(optimizer, network, loss, clipping_norm=None, retain_graph=False):
+        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
+        if not isinstance(network, list):
+            network = [network]
+        optimizer.zero_grad()  # reset gradients to 0
+        loss.backward(retain_graph=retain_graph)  # this calculates the gradients
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm_(net.parameters(),
+                                            max_norm=clipping_norm,
+                                            norm_type=2,
+                                            error_if_nonfinite=False)  # clip gradients to help stabilise training
+        optimizer.step()  # this applies the gradients
+
+    @staticmethod
+    def soft_update_of_target_network(local_model, target_model, tau):
+        """
+        Updates the target network in the direction of the local network but by taking a step size
+        less than one so the target network's parameter values trail the local networks. This helps stabilise training
+        :param local_model:
+        :param target_model:
+        :param tau:
+        :return:
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)

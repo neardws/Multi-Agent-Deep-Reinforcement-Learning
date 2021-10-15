@@ -1,10 +1,13 @@
-# -*- coding: UTF-8 -*-
-"""
-@Project ：Hierarchical-Reinforcement-Learning 
-@File    ：HMAIMD.py
-@Author  ：Neardws
-@Date    ：7/1/21 9:49 上午 
-"""
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@File    :   IDPG_Agent.py
+@Time    :   2021/09/22 17:09:39
+@Author  :   Neardws
+@Version :   1.0
+@Contact :   neard.ws@gmail.com
+'''
+
 import time
 from tqdm import tqdm
 import numpy as np
@@ -22,14 +25,13 @@ from Utilities.Data_structures.ActorExperienceReplayBuffer import ActorExperienc
 from Utilities.Data_structures.RewardReplayBuffer import RewardReplayBuffer
 from Utilities.Data_structures.ActorRewardReplayBuffer import ActorRewardReplayBuffer
 from Utilities.FileOperator import save_obj
-from apex import amp
 
 np.set_printoptions(threshold=np.inf)
 torch.set_printoptions(threshold=np.inf)
 pd.set_option('display.max_rows', None)
 
 
-class HMAIMD_Agent(object):
+class IDPG_Agent(object):
     """
     Workflow of HMAIMD_Agent
 
@@ -92,7 +94,7 @@ class HMAIMD_Agent(object):
         self.rolling_results = []
         self.max_rolling_score_seen = float("-inf")  # max score in one episode
         self.max_episode_score_seen = float("-inf")  # max score in whole episodes
-        self.device = "cuda:1" if self.environment.config.use_gpu else "cpu"
+        self.device = "cuda" if self.environment.config.use_gpu else "cpu"
 
         """
         ______________________________________________________________________________________________________________
@@ -102,64 +104,39 @@ class HMAIMD_Agent(object):
 
         """Experience Replay Buffer"""
         self.actor_experience_replay_buffer = ActorExperienceReplayBuffer(
-            buffer_size=self.agent_config.actor_experience_replay_buffer_buffer_size,
-            batch_size=self.agent_config.actor_experience_replay_buffer_batch_size,
-            seed=self.agent_config.actor_experience_replay_buffer_seed,
-            dropout=self.agent_config.actor_experience_replay_buffer_dropout,
-            device=self.device
+            buffer_size=self.config.actor_experience_replay_buffer_buffer_size,
+            batch_size=self.config.actor_experience_replay_buffer_batch_size,
+            seed=self.config.actor_experience_replay_buffer_seed,
+            dropout=self.config.actor_experience_replay_buffer_dropout
         )
 
         self.critic_experience_replay_buffer = ExperienceReplayBuffer(
-            buffer_size=self.agent_config.critic_experience_replay_buffer_buffer_size,
-            batch_size=self.agent_config.critic_experience_replay_buffer_batch_size,
-            seed=self.agent_config.critic_experience_replay_buffer_seed,
-            dropout=self.agent_config.critic_experience_replay_buffer_dropout,
-            device=self.device
-        )
-
-        """Reward Replay Buffer"""
-        self.actor_reward_replay_buffer = ActorRewardReplayBuffer(
-            buffer_size=self.agent_config.actor_reward_replay_buffer_buffer_size,
-            batch_size=self.agent_config.actor_reward_replay_buffer_batch_size,
-            seed=self.agent_config.actor_reward_replay_buffer_seed,
-            dropout=self.agent_config.actor_reward_replay_buffer_dropout,
-            device=self.device
-        )
-
-        self.critic_reward_replay_buffer = RewardReplayBuffer(
-            buffer_size=self.agent_config.critic_reward_replay_buffer_buffer_size,
-            batch_size=self.agent_config.critic_reward_replay_buffer_batch_size,
-            seed=self.agent_config.critic_reward_replay_buffer_seed,
-            dropout=self.agent_config.critic_reward_replay_buffer_dropout,
-            device=self.device
+            buffer_size=self.config.critic_experience_replay_buffer_buffer_size,
+            batch_size=self.config.critic_experience_replay_buffer_batch_size,
+            seed=self.config.critic_experience_replay_buffer_seed,
+            dropout=self.config.critic_experience_replay_buffer_dropout
         )
 
         """Init input and output size of neural network"""
         self.sensor_observation_size = self.environment.get_sensor_observation_size()
         self.sensor_action_size = self.environment.get_sensor_action_size()
-        self.critic_size_for_sensor = self.environment.get_critic_size_for_sensor()
+        self.critic_size_for_sensor = self.sensor_observation_size + self.sensor_action_size
 
-        self.edge_observation_size = self.environment.get_actor_input_size_for_edge()
+        self.edge_observation_size = self.environment.get_edge_observation_size()
         self.edge_action_size = self.environment.get_edge_action_size()
-        self.critic_size_for_edge = self.environment.get_critic_size_for_edge()
-
-        self.reward_state_size = self.environment.get_actor_input_size_for_reward()
-        self.reward_action_size = self.environment.get_reward_action_size()
-        self.critic_size_for_reward = self.environment.get_critic_size_for_reward()
+        self.critic_size_for_edge = self.edge_observation_size + self.critic_size_for_edge
 
         """Exploration Strategy"""
         self.sensor_exploration_strategy = Gaussian_Exploration(
             size=self.sensor_action_size,
             hyperparameters=self.hyperparameters,
-            key_to_use="Actor_of_Sensor",
-            device=self.device
+            key_to_use="Actor_of_Sensor"
         )
 
         self.edge_exploration_strategy = Gaussian_Exploration(
             size=self.edge_action_size,
             hyperparameters=self.hyperparameters,
-            key_to_use="Actor_of_Edge",
-            device=self.device
+            key_to_use="Actor_of_Edge"
         )
 
         """
@@ -257,9 +234,6 @@ class HMAIMD_Agent(object):
                 min_lr=0, 
                 eps=1e-08
             )
-        
-        # for vehicle_index in range(self.environment.config.vehicle_number):
-        #    self.actor_local_of_sensor_nodes[vehicle_index], self.actor_optimizer_of_sensor_nodes[vehicle_index] = amp.initialize(self.actor_local_of_sensor_nodes[vehicle_index], self.actor_optimizer_of_sensor_nodes[vehicle_index], opt_level="O1")
 
         """Critic Network of Sensor Nodes"""
 
@@ -298,9 +272,6 @@ class HMAIMD_Agent(object):
                 self.critic_optimizer_of_sensor_nodes[vehicle_index], mode='min',
                 factor=0.1, patience=10, verbose=False, threshold=0.0001,
                 threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
-        
-        # for vehicle_index in range(self.environment.config.vehicle_number):
-        #    self.critic_local_of_sensor_nodes[vehicle_index], self.critic_optimizer_of_sensor_nodes[vehicle_index] = amp.initialize(self.critic_local_of_sensor_nodes[vehicle_index], self.critic_optimizer_of_sensor_nodes[vehicle_index], opt_level="O1")
 
         """Actor Network for Edge Node"""
 
@@ -331,8 +302,6 @@ class HMAIMD_Agent(object):
             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
             cooldown=0, min_lr=0, eps=1e-08)
 
-        # self.actor_local_of_edge_node, self.actor_optimizer_of_edge_node = amp.initialize(self.actor_local_of_edge_node, self.actor_optimizer_of_edge_node, opt_level="O1")
-
         """Critic Network for Edge Node"""
 
         self.critic_local_of_edge_node = self.create_nn(
@@ -362,79 +331,11 @@ class HMAIMD_Agent(object):
             patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
             cooldown=0, min_lr=0, eps=1e-08)
 
-        # self.critic_local_of_edge_node, self.critic_optimizer_of_edge_node = amp.initialize(self.critic_local_of_edge_node, self.critic_optimizer_of_edge_node, opt_level="O1")
-
-        """Actor Network for Reward Function"""
-
-        self.actor_local_of_reward_function = self.create_nn(
-            input_dim=self.reward_state_size,
-            output_dim=self.reward_action_size,
-            key_to_use="Actor_of_Reward"
-        )
-
-        self.actor_target_of_reward_function = self.create_nn(
-            input_dim=self.reward_state_size,
-            output_dim=self.reward_action_size,
-            key_to_use="Actor_of_Reward"
-        )
-
-        HMAIMD_Agent.copy_model_over(
-            from_model=self.actor_local_of_reward_function,
-            to_model=self.actor_target_of_reward_function)
-
-        self.actor_optimizer_of_reward_function = optim.Adam(
-            params=self.actor_local_of_reward_function.parameters(),
-            lr=self.hyperparameters["Actor_of_Reward"]["learning_rate"],
-            eps=1e-8
-        )
-
-        optim.lr_scheduler.ReduceLROnPlateau(
-            self.actor_optimizer_of_reward_function, mode='min', factor=0.1,
-            patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
-            cooldown=0, min_lr=0, eps=1e-08)
-
-        # self.actor_local_of_reward_function, self.actor_optimizer_of_reward_function = amp.initialize(self.actor_local_of_reward_function, self.actor_optimizer_of_reward_function, opt_level="O1")
-
-        """Critic Network for Reward Function"""
-
-        self.critic_local_of_reward_function = self.create_nn(
-            input_dim=self.critic_size_for_reward,
-            output_dim=1,
-            key_to_use="Critic_of_Reward"
-        )
-
-        self.critic_target_of_reward_function = self.create_nn(
-            input_dim=self.critic_size_for_reward,
-            output_dim=1,
-            key_to_use="Critic_of_Reward"
-        )
-
-        HMAIMD_Agent.copy_model_over(
-            from_model=self.critic_local_of_reward_function,
-            to_model=self.critic_target_of_reward_function)
-
-        self.critic_optimizer_of_reward_function = optim.Adam(
-            params=self.critic_local_of_reward_function.parameters(),
-            lr=self.hyperparameters["Critic_of_Reward"]["learning_rate"],
-            eps=1e-8
-        )
-
-        optim.lr_scheduler.ReduceLROnPlateau(
-            self.critic_optimizer_of_reward_function, mode='min', factor=0.1,
-            patience=10, verbose=False, threshold=0.0001, threshold_mode='rel',
-            cooldown=0, min_lr=0, eps=1e-08)
-
-        # self.critic_local_of_reward_function, self.critic_optimizer_of_reward_function = amp.initialize(self.critic_local_of_reward_function, self.critic_optimizer_of_reward_function, opt_level="O1")
-        
         """
         ______________________________________________________________________________________________________________
         Actor network and Critic network End
         ______________________________________________________________________________________________________________
         """
-    
-    def config_hyperparameters(self, hyperparameters):
-        self.agent_config.config(hyperparameters=hyperparameters)
-        self.hyperparameters = self.agent_config.hyperparameters
 
     @staticmethod
     def copy_model_over(from_model, to_model):
@@ -465,7 +366,7 @@ class HMAIMD_Agent(object):
         if override_seed:
             seed = override_seed
         else:
-            seed = self.agent_config.nn_seed
+            seed = self.config.nn_seed
 
         default_hyperparameter_choices = {"output_activation": None,
                                           "hidden_activations": "relu",
@@ -545,26 +446,12 @@ class HMAIMD_Agent(object):
         average_critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
         average_actor_loss_of_edge_node = 0
         average_critic_loss_of_edge_node = 0
-        average_actor_loss_of_reward_node = 0
-        average_critic_loss_of_reward_node = 0
 
-        number_of_actor_nodes_buffer = self.agent_config.actor_experience_replay_buffer_batch_size * self.agent_config.hyperparameters["actor_nodes_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["actor_nodes_update_every_n_steps"])
-        number_of_critic_nodes_buffer = self.agent_config.critic_experience_replay_buffer_batch_size * self.agent_config.hyperparameters["critic_nodes_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["critic_nodes_update_every_n_steps"])
-        number_of_actor_reward_buffer = self.agent_config.actor_reward_replay_buffer_batch_size * self.agent_config.hyperparameters["actor_reward_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["actor_reward_update_every_n_steps"])
-        number_of_critic_reward_buffer = self.agent_config.critic_reward_replay_buffer_batch_size * self.agent_config.hyperparameters["critic_reward_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["critic_reward_update_every_n_steps"])
+        number_of_actor_nodes_buffer = self.config.actor_experience_replay_buffer_batch_size * self.config.hyperparameters["actor_nodes_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.config.hyperparameters["actor_nodes_update_every_n_steps"])
+        number_of_critic_nodes_buffer = self.config.critic_experience_replay_buffer_batch_size * self.config.hyperparameters["critic_nodes_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.config.hyperparameters["critic_nodes_update_every_n_steps"])
         
-        # IDDPG
-        number_of_actor_reward_buffer = 0
-        number_of_critic_reward_buffer = 0
-
-        max_buffer_number = max([number_of_actor_nodes_buffer, number_of_critic_nodes_buffer, number_of_actor_reward_buffer, number_of_critic_reward_buffer])
-        
-        nodes_start_episode_num = max_buffer_number * 1
-        reward_start_episode_num = max_buffer_number * 1
-
-        # nodes_start_episode_num = max_buffer_number * 2.9
-        # reward_start_episode_num = max_buffer_number * 0.5
-
+        max_buffer_number = max([number_of_actor_nodes_buffer, number_of_critic_nodes_buffer])
+        nodes_start_episode_num = max_buffer_number * 4
         during_episode_number = 1
         update_every_n_steps = 300
 
@@ -576,12 +463,9 @@ class HMAIMD_Agent(object):
                 self.edge_node_pick_action()
                 self.combined_action()
                 self.conduct_action()
-                self.reward_function_pick_action()
                 self.save_actor_experience()
                 self.save_critic_experience()
-                self.save_actor_reward_experience()
-                self.save_critic_reward_experience()
-                
+
                 if self.time_for_actor_of_sensor_nodes_and_edge_node_to_learn(nodes_start_episode_num, during_episode_number, update_every_n_steps):
                     # print("time_for_actor_of_sensor_nodes_and_edge_node_to_learn")
                     one_time_average_actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
@@ -650,55 +534,13 @@ class HMAIMD_Agent(object):
                             index]
                     average_critic_loss_of_edge_node += one_time_average_critic_loss_of_edge_node
 
-                if self.time_for_actor_of_reward_function_to_learn(reward_start_episode_num, during_episode_number, update_every_n_steps):
-                    # print("time_for_actor_of_reward_function_to_learn")
-                    one_time_average_actor_loss_of_reward_node = 0
-
-                    for _ in range(self.hyperparameters["actor_reward_learning_updates_per_learning_session"]):
-                        last_reward_observations, last_global_actions = self.actor_reward_replay_buffer.sample()
-                        actor_loss_of_reward_node = self.actor_reward_function_to_learn(
-                            last_reward_observations=last_reward_observations,
-                            last_global_actions=last_global_actions)
-
-                        one_time_average_actor_loss_of_reward_node += actor_loss_of_reward_node
-
-                    one_time_average_actor_loss_of_reward_node /= self.hyperparameters[
-                        "actor_reward_learning_updates_per_learning_session"]
-
-                    average_actor_loss_of_reward_node += one_time_average_actor_loss_of_reward_node
-
-                if self.time_for_critic_of_reward_function_to_learn(reward_start_episode_num, during_episode_number, update_every_n_steps):
-                    # print("time_for_critic_of_reward_function_to_learn")
-                    one_time_average_critic_loss_of_reward_node = 0
-
-                    for _ in range(self.hyperparameters["critic_reward_learning_updates_per_learning_session"]):
-                        last_reward_observations, last_global_actions, last_reward_actions, rewards, reward_observations, \
-                        global_actions, dones = self.critic_reward_replay_buffer.sample()
-                        critic_loss_of_reward_node = self.critic_reward_function_to_learn(
-                            last_reward_observations=last_reward_observations,
-                            last_global_actions=last_global_actions,
-                            last_reward_actions=last_reward_actions,
-                            rewards=rewards,
-                            reward_observations=reward_observations,
-                            global_actions=global_actions,
-                            dones=dones)
-
-                        one_time_average_critic_loss_of_reward_node += critic_loss_of_reward_node
-
-                    one_time_average_critic_loss_of_reward_node /= self.hyperparameters[
-                        "critic_reward_learning_updates_per_learning_session"]
-
-                    average_critic_loss_of_reward_node += one_time_average_critic_loss_of_reward_node
 
                 """Renew by reward function"""
-                self.last_reward_observation = self.reward_observation.clone().detach()
                 self.last_global_action = self.global_action.clone().detach()
-                self.last_reward_action = self.reward_action.clone().detach()
 
                 """Renew by environment"""
                 self.sensor_nodes_observation = self.next_sensor_nodes_observation.clone().detach()
                 self.edge_node_observation = self.next_edge_node_observation.clone().detach()
-                self.reward_observation = self.next_reward_observation.clone().detach()
 
                 my_bar.update(n=1)
 
@@ -711,48 +553,9 @@ class HMAIMD_Agent(object):
             (self.environment.max_episode_length / self.hyperparameters["actor_nodes_update_every_n_steps"])
         average_critic_loss_of_edge_node /= \
             (self.environment.max_episode_length / self.hyperparameters["critic_nodes_update_every_n_steps"])
-        average_actor_loss_of_reward_node /= \
-            (self.environment.max_episode_length / self.hyperparameters["actor_reward_update_every_n_steps"])
-        average_critic_loss_of_reward_node /= \
-            (self.environment.max_episode_length / self.hyperparameters["actor_reward_update_every_n_steps"])
-
-        #  for index in range(self.environment.config.vehicle_number):
-        #     if (self.environment.episode_index - nodes_start_episode_num / during_episode_number) % 1 <= 5 / 150:
-        #         average_actor_loss_of_sensor_nodes[index] /= \
-        #             int(self.environment.max_episode_length / self.hyperparameters["actor_nodes_update_every_n_steps"])
-        #         average_critic_loss_of_sensor_nodes[index] /= \
-        #             int(self.environment.max_episode_length / self.hyperparameters["critic_nodes_update_every_n_steps"])
-        #     else:
-        #         average_actor_loss_of_sensor_nodes[index] /= \
-        #             int(self.environment.max_episode_length / update_every_n_steps)
-        #         average_critic_loss_of_sensor_nodes[index] /= \
-        #             int(self.environment.max_episode_length / update_every_n_steps)
-        
-        # if (self.environment.episode_index - nodes_start_episode_num) / during_episode_number % 1 <= 5 / 150:
-        #     average_actor_loss_of_edge_node /= \
-        #         int(self.environment.max_episode_length / self.hyperparameters["actor_nodes_update_every_n_steps"])
-        #     average_critic_loss_of_edge_node /= \
-        #         int(self.environment.max_episode_length / self.hyperparameters["critic_nodes_update_every_n_steps"])
-        # else:
-        #     average_actor_loss_of_edge_node /= \
-        #         int(self.environment.max_episode_length / update_every_n_steps)
-        #     average_critic_loss_of_edge_node /= \
-        #         int(self.environment.max_episode_length / update_every_n_steps)
-
-        # if (self.environment.episode_index - nodes_start_episode_num) / during_episode_number % 1 <= 5 / 150:
-        #     average_actor_loss_of_reward_node /= \
-        #         int(self.environment.max_episode_length / self.hyperparameters["actor_reward_update_every_n_steps"])
-        #     average_critic_loss_of_reward_node /= \
-        #         int(self.environment.max_episode_length / self.hyperparameters["actor_reward_update_every_n_steps"])
-        # else:
-        #     average_actor_loss_of_reward_node /= \
-        #         int(self.environment.max_episode_length / update_every_n_steps)
-        #     average_critic_loss_of_reward_node /= \
-        #         int(self.environment.max_episode_length / update_every_n_steps)
 
         return average_actor_loss_of_sensor_nodes, average_critic_loss_of_sensor_nodes, \
-            average_actor_loss_of_edge_node, average_critic_loss_of_edge_node, \
-            average_actor_loss_of_reward_node, average_critic_loss_of_reward_node
+            average_actor_loss_of_edge_node, average_critic_loss_of_edge_node
 
     def sensor_nodes_pick_actions(self):
         """Picks an action using the actor network of each sensor node
@@ -775,7 +578,7 @@ class HMAIMD_Agent(object):
                     (softmax(sensor_action_add_noise[0][0:self.environment.config.data_types_number]),
                      softmax(sensor_action_add_noise[0][self.environment.config.data_types_number:
                                                         self.environment.config.data_types_number * 2])),
-                    dim=-1).unsqueeze(0)
+                    dim=-1).unsqueeze(0).to(self.device)
 
                 for action_index in range(self.sensor_action_size):
                     self.sensor_nodes_action[sensor_node_index, action_index] = \
@@ -795,7 +598,7 @@ class HMAIMD_Agent(object):
         edge_action_add_noise = self.edge_exploration_strategy.perturb_action_for_exploration_purposes(
             {"action": edge_action})
 
-        softmax = torch.nn.Softmax(dim=-1).to(self.device)
+        softmax = torch.nn.Softmax(dim=-1)
         edge_action = softmax(edge_action_add_noise)
 
         self.edge_node_action = edge_action
@@ -843,26 +646,6 @@ class HMAIMD_Agent(object):
         # print(self.reward)
         self.total_episode_score_so_far += self.reward
 
-    def reward_function_pick_action(self):
-        # reward_function_state = torch.cat((self.reward_observation.unsqueeze(0).to(
-        #     self.device), self.global_action.to(
-        #     self.device)), dim=1).float().to(
-        #     self.device)
-        # self.actor_local_of_reward_function.eval()
-        # with torch.no_grad():
-        #     reward_function_action = self.actor_local_of_reward_function(reward_function_state)
-        # self.actor_local_of_reward_function.train()
-        # self.reward_action = reward_function_action
-
-        # # self.reward_action = torch.ones(self.environment.config.vehicle_number+1).float().to(self.device).unsqueeze(0)
-
-        # self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.config.vehicle_number]
-        # self.edge_node_reward = self.reward * self.reward_action[0][-1]
-
-        # self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
-        # self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
-
-        # IDDPG
         self.reward_action = torch.ones(self.environment.config.vehicle_number+1).float().to(self.device).unsqueeze(0)
 
         self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.config.vehicle_number]
@@ -870,6 +653,7 @@ class HMAIMD_Agent(object):
 
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
         self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
+        
 
     def save_actor_experience(self):
         """
@@ -908,47 +692,13 @@ class HMAIMD_Agent(object):
             next_edge_node_observation=self.next_edge_node_observation.clone().detach(),
             done=self.done)
 
-    def save_actor_reward_experience(self):
-        if self.actor_reward_replay_buffer is None:
-            raise Exception("reward_replay_buffer is None, function save_reward_experience at HMAIMD.py")
-        """Save as torch.Tensor"""
-        if self.last_reward_observation is None:
-            pass
-        else:
-            self.actor_reward_replay_buffer.add_experience(
-                last_reward_observation=self.last_reward_observation.clone().detach(),
-                last_global_action=self.last_global_action.clone().detach())
-
-    def save_critic_reward_experience(self):
-        if self.critic_reward_replay_buffer is None:
-            raise Exception("reward_replay_buffer is None, function save_reward_experience at HMAIMD.py")
-        """Save as torch.Tensor"""
-        if self.last_reward_observation is None:
-            pass
-        else:
-            self.critic_reward_replay_buffer.add_experience(
-                last_reward_observation=self.last_reward_observation.clone().detach(),
-                last_global_action=self.last_global_action.clone().detach(),
-                last_reward_action=self.last_reward_action.clone().detach(),
-                reward=self.reward,
-                reward_observation=self.reward_observation.clone().detach(),
-                global_action=self.global_action.clone().detach(),
-                done=self.done)
-
     def time_for_actor_of_sensor_nodes_and_edge_node_to_learn(self, nodes_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
         start_episode_index = nodes_start_episode_num / self.environment.config.max_episode_length
         if (self.environment.episode_index) >= start_episode_index:
-            if self.max_episode_score_seen >= 110:
-                return False
             added_episode_index = self.environment.episode_index - start_episode_index
             return self.environment.episode_step % self.hyperparameters["actor_nodes_update_every_n_steps"] == 0
-
-            # if (added_episode_index / during_episode) % 1 <= 5 /150:
-            #     return self.environment.episode_step % self.hyperparameters["actor_nodes_update_every_n_steps"] == 0
-            # else:
-            #     return self.environment.episode_step % update_every_n_steps == 0
         else:
             return False
 
@@ -957,60 +707,18 @@ class HMAIMD_Agent(object):
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
         start_episode_index = nodes_start_episode_num / self.environment.config.max_episode_length
         if self.environment.episode_index >= start_episode_index:
-            if self.max_episode_score_seen >= 110:
-                return False
             added_episode_index = self.environment.episode_index - start_episode_index
             return self.environment.episode_step % self.hyperparameters["critic_nodes_update_every_n_steps"] == 0
-            # if (added_episode_index / during_episode) % 1 <= 5 / 150:
-            #     return self.environment.episode_step % self.hyperparameters["critic_nodes_update_every_n_steps"] == 0
-            # else:
-            #     return self.environment.episode_step % update_every_n_steps == 0
         else:
             return False
 
-    def time_for_actor_of_reward_function_to_learn(self, reward_start_episode_num, during_episode, update_every_n_steps):
-        """Returns boolean indicating whether there are enough experiences to learn from
-        and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        # IDDPG
-        return False
-
-        start_episode_index = reward_start_episode_num / self.environment.config.max_episode_length
-        if self.environment.episode_index >= start_episode_index:
-            if self.environment.episode_index >= 800:
-                return False
-            added_episode_index = self.environment.episode_index - start_episode_index
-            return self.environment.episode_step % self.hyperparameters["actor_reward_update_every_n_steps"] == 0
-            # if (added_episode_index / during_episode) % 1 <= 5 / 150:
-            #     return self.environment.episode_step % self.hyperparameters["actor_reward_update_every_n_steps"] == 0
-            # else:
-            #     return self.environment.episode_step % update_every_n_steps == 0
-        else:
-            return False
-
-    def time_for_critic_of_reward_function_to_learn(self, reward_start_episode_num, during_episode, update_every_n_steps):
-        """Returns boolean indicating whether there are enough experiences to learn from
-        and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        # IDDPG
-        return False
-        
-        start_episode_index = reward_start_episode_num / self.environment.config.max_episode_length
-        if self.environment.episode_index >= start_episode_index:
-            if self.environment.episode_index >= 800:
-                return False
-            added_episode_index = self.environment.episode_index - start_episode_index
-            return self.environment.episode_step % self.hyperparameters["actor_reward_update_every_n_steps"] == 0
-            # if (added_episode_index / during_episode) % 1 <= 5 / 150:
-            #     return self.environment.episode_step % self.hyperparameters["actor_reward_update_every_n_steps"] == 0
-            # else:
-            #     return self.environment.episode_step % update_every_n_steps == 0
-        else:
-            return False
-
-    def actor_sensor_nodes_and_edge_node_to_learn(self,
-                                                  sensor_nodes_observations: list,
-                                                  edge_node_observations: Tensor,
-                                                  sensor_nodes_actions: list,
-                                                  next_sensor_nodes_observations: list):
+    def actor_sensor_nodes_and_edge_node_to_learn(
+        self,
+        sensor_nodes_observations: list,
+        edge_node_observations: Tensor,
+        sensor_nodes_actions: list,
+        next_sensor_nodes_observations: list
+    ):
         actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
 
         """Runs a learning iteration for the critic of sensor nodes"""
@@ -1254,7 +962,7 @@ class HMAIMD_Agent(object):
             ________________________________________________________________
             """
 
-            critic_loss_of_sensor_node = functional.mse_loss(
+            critic_loss_of_sensor_node = functional.smooth_l1_loss(
                 critic_expected_of_sensor_node,
                 critic_targets_of_sensor_node.float().to(self.device))
 
@@ -1293,7 +1001,7 @@ class HMAIMD_Agent(object):
         ________________________________________________________________
         """
 
-        loss_of_edge_node = functional.mse_loss(critic_expected_of_edge_node, critic_targets_of_edge_node)
+        loss_of_edge_node = functional.smooth_l1_loss(critic_expected_of_edge_node, critic_targets_of_edge_node)
         critic_loss_of_edge_node = loss_of_edge_node.item()
 
         self.take_optimisation_step(self.critic_optimizer_of_edge_node,
@@ -1307,69 +1015,6 @@ class HMAIMD_Agent(object):
 
         return critic_loss_of_sensor_nodes, critic_loss_of_edge_node
 
-    def actor_reward_function_to_learn(self,
-                                       last_reward_observations: Tensor,
-                                       last_global_actions: Tensor):
-
-        """Runs a learning iteration for the actor"""
-
-        """Calculates the loss for the actor"""
-        actions_predicted = self.actor_local_of_reward_function(
-            torch.cat((last_reward_observations, last_global_actions), dim=1))
-
-        """
-        ________________________________________________________________
-
-        Calculates the actor loss of reward node
-        ________________________________________________________________
-        """
-
-        actor_loss = -self.critic_local_of_reward_function(
-            torch.cat((last_reward_observations, last_global_actions, actions_predicted), dim=1)).mean()
-
-        self.take_optimisation_step(self.actor_optimizer_of_reward_function,
-                                    self.actor_local_of_reward_function,
-                                    actor_loss,
-                                    self.hyperparameters["Actor_of_Reward"]["gradient_clipping_norm"])
-        self.soft_update_of_target_network(self.actor_local_of_reward_function, self.actor_target_of_reward_function,
-                                           self.hyperparameters["Actor_of_Reward"]["tau"])
-
-        return actor_loss.item()
-
-    def critic_reward_function_to_learn(self,
-                                        last_reward_observations: Tensor,
-                                        last_global_actions: Tensor,
-                                        last_reward_actions: Tensor,
-                                        rewards: Tensor,
-                                        reward_observations: Tensor,
-                                        global_actions: Tensor,
-                                        dones: Tensor):
-
-        """Runs a learning iteration for the critic of reward function"""
-        with torch.no_grad():
-            reward_actions_next = self.actor_target_of_reward_function(
-                torch.cat((reward_observations, global_actions), dim=1))
-            critic_targets_next = self.critic_target_of_reward_function(
-                torch.cat((reward_observations, global_actions, reward_actions_next), 1))
-            critic_targets = rewards + (self.hyperparameters["discount_rate"] * critic_targets_next * (1.0 - dones))
-        critic_expected = self.critic_local_of_reward_function(
-            torch.cat((last_reward_observations, last_global_actions, last_reward_actions), dim=1))
-
-        """
-        ________________________________________________________________
-
-        Calculates the critic loss of reward node
-        ________________________________________________________________
-        """
-        loss = functional.mse_loss(critic_expected, critic_targets)
-
-        self.take_optimisation_step(self.critic_optimizer_of_reward_function,
-                                    self.critic_local_of_reward_function, loss,
-                                    self.hyperparameters["Critic_of_Reward"]["gradient_clipping_norm"])
-        self.soft_update_of_target_network(self.critic_local_of_reward_function, self.critic_target_of_reward_function,
-                                           self.hyperparameters["Critic_of_Reward"]["tau"])
-
-        return loss.item()
 
     @staticmethod
     def take_optimisation_step(optimizer, network, loss, clipping_norm=None, retain_graph=False):
@@ -1377,12 +1022,6 @@ class HMAIMD_Agent(object):
         if not isinstance(network, list):
             network = [network]
         optimizer.zero_grad()  # reset gradients to 0
-        # try:
-        #     network, optimizer = amp.initialize(network, optimizer, opt_level="O1")
-        # except RuntimeError:
-        #     pass
-        # with amp.scale_loss(loss, optimizer) as scaled_loss:
-        #     scaled_loss.backward()
         loss.backward(retain_graph=retain_graph)  # this calculates the gradients
         if clipping_norm is not None:
             for net in network:
@@ -1449,9 +1088,7 @@ class HMAIMD_Agent(object):
                                                          "Critic of V9": "",
                                                          "Critic of V10": "",
                                                          "Actor of Edge": "",
-                                                         "Critic of Edge": "",
-                                                         "Actor of Reward": "",
-                                                         "Critic of Reward": ""}, index=[0])
+                                                         "Critic of Edge": ""}, index=[0])
 
         start = time.time()
         while self.environment.episode_index < num_episodes:
@@ -1459,8 +1096,7 @@ class HMAIMD_Agent(object):
             start = time.time()
             self.reset_game()
             average_actor_loss_of_sensor_nodes, average_critic_loss_of_sensor_nodes, \
-            average_actor_loss_of_edge_node, average_critic_loss_of_edge_node, \
-            average_actor_loss_of_reward_node, average_critic_loss_of_reward_node = self.step()
+            average_actor_loss_of_edge_node, average_critic_loss_of_edge_node = self.step()
             time_taken = time.time() - start
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
@@ -1492,16 +1128,13 @@ class HMAIMD_Agent(object):
                                              "Critic of V9": str(average_critic_loss_of_sensor_nodes[8]),
                                              "Critic of V10": str(average_critic_loss_of_sensor_nodes[9]),
                                              "Actor of Edge": str(average_actor_loss_of_edge_node),
-                                             "Critic of Edge": str(average_critic_loss_of_edge_node),
-                                             "Actor of Reward": str(average_actor_loss_of_reward_node),
-                                             "Critic of Reward": str(average_critic_loss_of_reward_node)},
+                                             "Critic of Edge": str(average_critic_loss_of_edge_node))},
                                             index=["0"])
             loss_data = loss_data.append(new_line_in_loss, ignore_index=True)
 
             if self.environment.episode_index % 10 == 0:
                 print(result_data)
-            # for i in self.actor_target_of_sensor_nodes[0].named_parameters():
-            #     print(i)
+
             if self.environment.episode_index == 1:
                 result_data = result_data.drop(result_data.index[[0]])
                 loss_data = loss_data.drop(loss_data.index[[0]])
@@ -1520,23 +1153,23 @@ class HMAIMD_Agent(object):
                     self.max_rolling_score_seen = self.rolling_results[-1]
 
             if self.environment.episode_index <= 1 and self.environment.episode_index % 1 == 0:
-                save_obj(obj=self.agent_config, name=temple_agent_config_name)
+                save_obj(obj=self.config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
                 result_data.to_csv(temple_result_name)
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
 
-            # if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
-            #     save_obj(obj=self.agent_config, name=temple_agent_config_name)
-            #     save_obj(obj=self, name=temple_agent_name)
-            #     print("save objectives successful")
+            if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                print("save objectives successful")
 
-            # if self.environment.episode_index >= 500 and self.environment.episode_index % 50 == 0:
-            #     save_obj(obj=self.agent_config, name=temple_agent_config_name)
-            #     save_obj(obj=self, name=temple_agent_name)
-            #     print("save objectives successful")
+            if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
+                save_obj(obj=self.config, name=temple_agent_config_name)
+                save_obj(obj=self, name=temple_agent_name)
+                print("save objectives successful")
 
-            if self.environment.episode_index % 10 == 0:
+            if self.environment.episode_index % 25 == 0:
                 result_data.to_csv(temple_result_name)
                 loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
@@ -1566,15 +1199,12 @@ class HMAIMD_Agent(object):
         self.edge_node_reward = None
         self.next_sensor_nodes_observation = None
         self.next_edge_node_observation = None
-        self.next_reward_observation = None
 
         """Resets the game information so we are ready to play a new episode"""
-        self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation = self.environment.reset()
-        # assert self.sensor_nodes_observation.shape[0] == self.environment.config.vehicle_number\
-        #     and self.sensor_nodes_observation.shape[1] == self.environment.get_sensor_observation_size(), "sensor_nodes_observation is not same"
-        # assert self.edge_node_observation.shape[0] == self.environment.get_edge_observation_size(), "edge_node_observation is not same"
-        # assert self.reward_observation.shape[0] == self.environment.get_global_state_size(), "reward_observation is not same"
+        self.sensor_nodes_observation, self.edge_node_observation, _ = self.environment.reset()
 
         self.total_episode_score_so_far = 0
         self.sensor_exploration_strategy.reset()
         self.edge_exploration_strategy.reset()
+
+

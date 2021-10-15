@@ -58,6 +58,7 @@ class Random_Agent(object):
 
         edge_nodes_bandwidth = random_np(self.environment.config.vehicle_number) * self.environment.config.bandwidth
 
+        edge_nodes_bandwidth = edge_nodes_bandwidth[np.newaxis, :]
         self.action = {
             "priority": priority,
             "arrival_rate": arrival_rate,

@@ -12,10 +12,10 @@ from torch.distributions.normal import Normal
 class Gaussian_Exploration(object):
 
     """Gaussian noise exploration strategy"""
-    def __init__(self, size, hyperparameters, key_to_use=None):
+    def __init__(self, size, hyperparameters, key_to_use=None, device=None):
         self.hyperparameters = hyperparameters[key_to_use]
         self.action_noise_std = self.hyperparameters["action_noise_std"]
-        self.action_noise_distribution = Normal(torch.cuda.FloatTensor([0.0]), torch.cuda.FloatTensor([self.action_noise_std]))
+        self.action_noise_distribution = Normal(torch.FloatTensor([0.0]).to(device), torch.FloatTensor([self.action_noise_std]).to(device))
         self.action_noise_clipping_range = self.hyperparameters["action_noise_clipping_range"]
 
     def perturb_action_for_exploration_purposes(self, action_info):
