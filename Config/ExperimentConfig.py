@@ -106,7 +106,7 @@ class ExperimentConfig(object):
         edge_views_number=10,
 
         threshold_data_types_in_vehicles=0.3,
-        data_size_low_bound=300,  # Bytes
+        data_size_low_bound=100,  # Bytes
         data_size_up_bound=1 * 1024 * 1024,  # Bytes
 
         edge_view_required_start_time=10,
@@ -121,14 +121,14 @@ class ExperimentConfig(object):
 
         communication_range=1500,  # meters
         transmission_power=1,  # mW
-        bandwidth=1,  # MHz
+        bandwidth=3,  # MHz
         additive_white_gaussian_noise=-90,  # dBm
         mean_channel_fading_gain=2,
         second_moment_channel_fading_gain=0.4,
         path_loss_exponent=3,
 
         noise_uncertainty_low_bound=1,  # dB
-        noise_uncertainty_up_bound=4,  # dB
+        noise_uncertainty_up_bound=3,  # dB
         trajectories_predicted_time=10,
         rolling_score_window=100,
 

@@ -94,7 +94,7 @@ class IDPG_Agent(object):
         self.rolling_results = []
         self.max_rolling_score_seen = float("-inf")  # max score in one episode
         self.max_episode_score_seen = float("-inf")  # max score in whole episodes
-        self.device = "cuda" if self.environment.config.use_gpu else "cpu"
+        self.device = "cuda" if self.environment.experiment_config.use_gpu else "cpu"
 
         """
         ______________________________________________________________________________________________________________
@@ -158,7 +158,7 @@ class IDPG_Agent(object):
                 input_dim=self.sensor_observation_size,
                 output_dim=self.sensor_action_size,
                 key_to_use="Actor_of_Sensor"
-            ) for _ in range(self.environment.config.vehicle_number)
+            ) for _ in range(self.environment.experiment_config.vehicle_number)
         ]
 
         self.actor_target_of_sensor_nodes = [
@@ -166,10 +166,10 @@ class IDPG_Agent(object):
                 input_dim=self.sensor_observation_size,
                 output_dim=self.sensor_action_size,
                 key_to_use="Actor_of_Sensor"
-            ) for _ in range(self.environment.config.vehicle_number)
+            ) for _ in range(self.environment.experiment_config.vehicle_number)
         ]
 
-        for vehicle_index in range(self.environment.config.vehicle_number):
+        for vehicle_index in range(self.environment.experiment_config.vehicle_number):
             HMAIMD_Agent.copy_model_over(
                 from_model=self.actor_local_of_sensor_nodes[vehicle_index],
                 to_model=self.actor_target_of_sensor_nodes[vehicle_index]
@@ -191,10 +191,10 @@ class IDPG_Agent(object):
                 params=self.actor_local_of_sensor_nodes[vehicle_index].parameters(),
                 lr=self.hyperparameters["Actor_of_Sensor"]["learning_rate"],
                 eps=1e-8
-            ) for vehicle_index in range(self.environment.config.vehicle_number)
+            ) for vehicle_index in range(self.environment.experiment_config.vehicle_number)
         ]
 
-        for vehicle_index in range(self.environment.config.vehicle_number):
+        for vehicle_index in range(self.environment.experiment_config.vehicle_number):
             """
             optimizer (Optimizer) – Wrapped optimizer.
             mode (str) – One of min, max. In min mode, lr will be reduced when the quantity monitored has stopped 
@@ -242,7 +242,7 @@ class IDPG_Agent(object):
                 input_dim=self.critic_size_for_sensor,
                 output_dim=1,
                 key_to_use="Critic_of_Sensor"
-            ) for _ in range(self.environment.config.vehicle_number)
+            ) for _ in range(self.environment.experiment_config.vehicle_number)
         ]
 
         self.critic_target_of_sensor_nodes = [
@@ -250,10 +250,10 @@ class IDPG_Agent(object):
                 input_dim=self.critic_size_for_sensor,
                 output_dim=1,
                 key_to_use="Critic_of_Sensor"
-            ) for _ in range(self.environment.config.vehicle_number)
+            ) for _ in range(self.environment.experiment_config.vehicle_number)
         ]
 
-        for vehicle_index in range(self.environment.config.vehicle_number):
+        for vehicle_index in range(self.environment.experiment_config.vehicle_number):
             HMAIMD_Agent.copy_model_over(
                 from_model=self.critic_local_of_sensor_nodes[vehicle_index],
                 to_model=self.critic_target_of_sensor_nodes[vehicle_index]
@@ -264,10 +264,10 @@ class IDPG_Agent(object):
                 params=self.critic_local_of_sensor_nodes[vehicle_index].parameters(),
                 lr=self.hyperparameters["Critic_of_Sensor"]["learning_rate"],
                 eps=1e-8
-            ) for vehicle_index in range(self.environment.config.vehicle_number)
+            ) for vehicle_index in range(self.environment.experiment_config.vehicle_number)
         ]
 
-        for vehicle_index in range(self.environment.config.vehicle_number):
+        for vehicle_index in range(self.environment.experiment_config.vehicle_number):
             optim.lr_scheduler.ReduceLROnPlateau(
                 self.critic_optimizer_of_sensor_nodes[vehicle_index], mode='min',
                 factor=0.1, patience=10, verbose=False, threshold=0.0001,
@@ -442,8 +442,8 @@ class IDPG_Agent(object):
 
     def step(self):
         """Runs a step in the game"""
-        average_actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
-        average_critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
+        average_actor_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
+        average_critic_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
         average_actor_loss_of_edge_node = 0
         average_critic_loss_of_edge_node = 0
 
@@ -468,7 +468,7 @@ class IDPG_Agent(object):
 
                 if self.time_for_actor_of_sensor_nodes_and_edge_node_to_learn(nodes_start_episode_num, during_episode_number, update_every_n_steps):
                     # print("time_for_actor_of_sensor_nodes_and_edge_node_to_learn")
-                    one_time_average_actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
+                    one_time_average_actor_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
                     one_time_average_actor_loss_of_edge_node = 0
 
                     for _ in range(self.hyperparameters["actor_nodes_learning_updates_per_learning_session"]):
@@ -481,26 +481,26 @@ class IDPG_Agent(object):
                             sensor_nodes_actions=sensor_nodes_actions,
                             next_sensor_nodes_observations=next_sensor_nodes_observations)
 
-                        for index in range(self.environment.config.vehicle_number):
+                        for index in range(self.environment.experiment_config.vehicle_number):
                             one_time_average_actor_loss_of_sensor_nodes[index] += actor_loss_of_sensor_nodes[index]
 
                         one_time_average_actor_loss_of_edge_node += actor_loss_of_edge_node
 
-                    for index in range(self.environment.config.vehicle_number):
+                    for index in range(self.environment.experiment_config.vehicle_number):
                         one_time_average_actor_loss_of_sensor_nodes[index] /= self.hyperparameters[
                             "actor_nodes_learning_updates_per_learning_session"]
 
                     one_time_average_actor_loss_of_edge_node /= self.hyperparameters[
                         "actor_nodes_learning_updates_per_learning_session"]
 
-                    for index in range(self.environment.config.vehicle_number):
+                    for index in range(self.environment.experiment_config.vehicle_number):
                         average_actor_loss_of_sensor_nodes[index] += one_time_average_actor_loss_of_sensor_nodes[index]
 
                     average_actor_loss_of_edge_node += one_time_average_actor_loss_of_edge_node
 
                 if self.time_for_critic_of_sensor_nodes_and_edge_node_to_learn(nodes_start_episode_num, during_episode_number, update_every_n_steps):
                     # print("time_for_critic_of_sensor_nodes_and_edge_node_to_learn")
-                    one_time_average_critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
+                    one_time_average_critic_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
                     one_time_average_critic_loss_of_edge_node = 0
 
                     for _ in range(self.hyperparameters["critic_nodes_learning_updates_per_learning_session"]):
@@ -519,17 +519,17 @@ class IDPG_Agent(object):
                             next_sensor_nodes_observations=next_sensor_nodes_observations,
                             next_edge_node_observations=next_edge_node_observations,
                             dones=dones)
-                        for index in range(self.environment.config.vehicle_number):
+                        for index in range(self.environment.experiment_config.vehicle_number):
                             one_time_average_critic_loss_of_sensor_nodes[index] += critic_loss_of_sensor_nodes[index]
                         one_time_average_critic_loss_of_edge_node += critic_loss_of_edge_node
 
-                    for index in range(self.environment.config.vehicle_number):
+                    for index in range(self.environment.experiment_config.vehicle_number):
                         one_time_average_critic_loss_of_sensor_nodes[index] /= self.hyperparameters[
                             "critic_nodes_learning_updates_per_learning_session"]
                     one_time_average_critic_loss_of_edge_node /= self.hyperparameters[
                         "critic_nodes_learning_updates_per_learning_session"]
 
-                    for index in range(self.environment.config.vehicle_number):
+                    for index in range(self.environment.experiment_config.vehicle_number):
                         average_critic_loss_of_sensor_nodes[index] += one_time_average_critic_loss_of_sensor_nodes[
                             index]
                     average_critic_loss_of_edge_node += one_time_average_critic_loss_of_edge_node
@@ -544,7 +544,7 @@ class IDPG_Agent(object):
 
                 my_bar.update(n=1)
 
-        for index in range(self.environment.config.vehicle_number):
+        for index in range(self.environment.experiment_config.vehicle_number):
             average_actor_loss_of_sensor_nodes[index] /= \
                 (self.environment.max_episode_length / self.hyperparameters["actor_nodes_update_every_n_steps"])
             average_critic_loss_of_sensor_nodes[index] /= \
@@ -560,7 +560,7 @@ class IDPG_Agent(object):
     def sensor_nodes_pick_actions(self):
         """Picks an action using the actor network of each sensor node
         and then adds some noise to it to ensure exploration"""
-        for sensor_node_index in range(self.environment.config.vehicle_number):
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
             if self.environment.next_action_time_of_sensor_nodes[sensor_node_index] == self.environment.episode_step:
 
                 sensor_node_observation = self.sensor_nodes_observation[sensor_node_index, :].unsqueeze(0).to(
@@ -575,9 +575,9 @@ class IDPG_Agent(object):
 
                 softmax = torch.nn.Softmax(dim=0)
                 sensor_action = torch.cat(
-                    (softmax(sensor_action_add_noise[0][0:self.environment.config.data_types_number]),
-                     softmax(sensor_action_add_noise[0][self.environment.config.data_types_number:
-                                                        self.environment.config.data_types_number * 2])),
+                    (softmax(sensor_action_add_noise[0][0:self.environment.experiment_config.data_types_number]),
+                     softmax(sensor_action_add_noise[0][self.environment.experiment_config.data_types_number:
+                                                        self.environment.experiment_config.data_types_number * 2])),
                     dim=-1).unsqueeze(0).to(self.device)
 
                 for action_index in range(self.sensor_action_size):
@@ -609,29 +609,29 @@ class IDPG_Agent(object):
             (torch.flatten(self.sensor_nodes_action).unsqueeze(0), self.edge_node_action),
             dim=1).to(self.device)
 
-        priority = np.zeros(shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number),
+        priority = np.zeros(shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number),
                             dtype=np.float)
         arrival_rate = np.zeros(
-            shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number), dtype=np.float)
+            shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number), dtype=np.float)
 
-        for sensor_node_index in range(self.environment.config.vehicle_number):
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
 
             sensor_node_action = self.sensor_nodes_action[sensor_node_index, :]
             sensor_node_action_of_priority = \
-                sensor_node_action[0:self.environment.config.data_types_number]  # first data types are priority
+                sensor_node_action[0:self.environment.experiment_config.data_types_number]  # first data types are priority
             sensor_node_action_of_arrival_rate = \
                 sensor_node_action[
-                self.environment.config.data_types_number:]  # second data types number are arrival rate
+                self.environment.experiment_config.data_types_number:]  # second data types number are arrival rate
 
-            for data_type_index in range(self.environment.config.data_types_number):
+            for data_type_index in range(self.environment.experiment_config.data_types_number):
                 if self.environment.state["data_types"][sensor_node_index][data_type_index] == 1:
                     priority[sensor_node_index][data_type_index] = sensor_node_action_of_priority[data_type_index]
 
                     arrival_rate[sensor_node_index][data_type_index] = \
                         float(sensor_node_action_of_arrival_rate[data_type_index]) / \
-                        self.environment.config.mean_service_time_of_types[sensor_node_index][data_type_index]
+                        self.environment.experiment_config.mean_service_time_of_types[sensor_node_index][data_type_index]
 
-        edge_nodes_bandwidth = self.edge_node_action.cpu().data.numpy() * self.environment.config.bandwidth
+        edge_nodes_bandwidth = self.edge_node_action.cpu().data.numpy() * self.environment.experiment_config.bandwidth
 
         self.action = {
             "priority": priority,
@@ -646,9 +646,9 @@ class IDPG_Agent(object):
         # print(self.reward)
         self.total_episode_score_so_far += self.reward
 
-        self.reward_action = torch.ones(self.environment.config.vehicle_number+1).float().to(self.device).unsqueeze(0)
+        self.reward_action = torch.ones(self.environment.experiment_config.vehicle_number+1).float().to(self.device).unsqueeze(0)
 
-        self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.config.vehicle_number]
+        self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
         self.edge_node_reward = self.reward * self.reward_action[0][-1]
 
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
@@ -695,7 +695,7 @@ class IDPG_Agent(object):
     def time_for_actor_of_sensor_nodes_and_edge_node_to_learn(self, nodes_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        start_episode_index = nodes_start_episode_num / self.environment.config.max_episode_length
+        start_episode_index = nodes_start_episode_num / self.environment.experiment_config.max_episode_length
         if (self.environment.episode_index) >= start_episode_index:
             added_episode_index = self.environment.episode_index - start_episode_index
             return self.environment.episode_step % self.hyperparameters["actor_nodes_update_every_n_steps"] == 0
@@ -705,7 +705,7 @@ class IDPG_Agent(object):
     def time_for_critic_of_sensor_nodes_and_edge_node_to_learn(self, nodes_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        start_episode_index = nodes_start_episode_num / self.environment.config.max_episode_length
+        start_episode_index = nodes_start_episode_num / self.environment.experiment_config.max_episode_length
         if self.environment.episode_index >= start_episode_index:
             added_episode_index = self.environment.episode_index - start_episode_index
             return self.environment.episode_step % self.hyperparameters["critic_nodes_update_every_n_steps"] == 0
@@ -719,13 +719,13 @@ class IDPG_Agent(object):
         sensor_nodes_actions: list,
         next_sensor_nodes_observations: list
     ):
-        actor_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
+        actor_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
 
         """Runs a learning iteration for the critic of sensor nodes"""
         sensor_nodes_actions_next_list = []  # next action of sensor nodes according to next_sensor_nodes_observations
         next_sensor_node_observations_list = []  # next observation of single sensor node, Reorganized by next_sensor_nodes_observations
 
-        for sensor_node_index in range(self.environment.config.vehicle_number):
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
             next_sensor_node_observations_tensor = torch.cat(
                 (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
                  next_sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
@@ -771,7 +771,7 @@ class IDPG_Agent(object):
                 )
         sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
 
-        for sensor_node_index in range(self.environment.config.vehicle_number):
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
 
             sensor_node_observations = torch.cat(
                 (sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
@@ -865,13 +865,13 @@ class IDPG_Agent(object):
                                                    next_sensor_nodes_observations: list,
                                                    next_edge_node_observations: Tensor,
                                                    dones: Tensor):
-        critic_loss_of_sensor_nodes = np.zeros(self.environment.config.vehicle_number)
+        critic_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
 
         """Runs a learning iteration for the critic of sensor nodes"""
         sensor_nodes_actions_next_list = []  # next action of sensor nodes according to next_sensor_nodes_observations
         next_sensor_node_observations_list = []  # next observation of single sensor node, Reorganized by next_sensor_nodes_observations
 
-        for sensor_node_index in range(self.environment.config.vehicle_number):
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
             next_sensor_node_observations_tensor = torch.cat(
                 (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
                  next_sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
@@ -917,7 +917,7 @@ class IDPG_Agent(object):
                 )
         sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
 
-        for sensor_node_index in range(self.environment.config.vehicle_number):
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
 
             sensor_node_observations = torch.cat(
                 (sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
@@ -1048,7 +1048,7 @@ class IDPG_Agent(object):
                        temple_agent_name=None, temple_result_name=None, temple_loss_name=None):
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
         if num_episodes is None:
-            num_episodes = self.environment.config.episode_number
+            num_episodes = self.environment.experiment_config.episode_number
 
         try:
             result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
@@ -1142,14 +1142,14 @@ class IDPG_Agent(object):
             """Saves the result of an episode of the game"""
             self.game_full_episode_scores.append(self.total_episode_score_so_far)
             self.rolling_results.append(
-                np.mean(self.game_full_episode_scores[-1 * self.environment.config.rolling_score_window:]))
+                np.mean(self.game_full_episode_scores[-1 * self.environment.experiment_config.rolling_score_window:]))
 
             """Updates the best episode result seen so far"""
             if self.game_full_episode_scores[-1] > self.max_episode_score_seen:
                 self.max_episode_score_seen = self.game_full_episode_scores[-1]
 
             if self.rolling_results[-1] > self.max_rolling_score_seen:
-                if len(self.rolling_results) > self.environment.config.rolling_score_window:
+                if len(self.rolling_results) > self.environment.experiment_config.rolling_score_window:
                     self.max_rolling_score_seen = self.rolling_results[-1]
 
             if self.environment.episode_index <= 1 and self.environment.episode_index % 1 == 0:
@@ -1191,7 +1191,7 @@ class IDPG_Agent(object):
         self.global_action = None
         self.reward_action = None
 
-        self.sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.config.vehicle_number,
+        self.sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.experiment_config.vehicle_number,
                                                                     self.sensor_action_size),
                                                              dtype=np.float)).float().to(self.device)
         self.edge_node_action = None

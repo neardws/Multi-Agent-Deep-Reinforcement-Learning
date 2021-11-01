@@ -59,23 +59,23 @@ def init_file_name():
     uuid_str = uuid.uuid4().hex
     init_experiment_config_name = pwd + '/' + 'init_experiment_config_%s.pkl' % uuid_str
 
-    uuid_str = uuid.uuid4().hex
     init_agent_config_name = pwd + '/' + 'init_agent_config_%s.pkl' % uuid_str
 
-    uuid_str = uuid.uuid4().hex
     init_environment_name = pwd + '/' + 'init_environment_%s.pkl' % uuid_str
 
-    uuid_str = uuid.uuid4().hex
     temple_agent_config_name = pwd + '/' + 'temple_agent_config_%s.pkl' % uuid_str
 
-    uuid_str = uuid.uuid4().hex
     temple_agent_name = pwd + '/' + 'temple_agent_%s.pkl' % uuid_str
 
-    uuid_str = uuid.uuid4().hex
     temple_result_name = pwd + '/' + 'temple_result_%s.csv' % uuid_str
 
-    uuid_str = uuid.uuid4().hex
     temple_loss_name = pwd + '/' + 'temple_loss_%s.csv' % uuid_str
+
+    agent_name = pwd + '/' + 'agent_%s.pkl' % uuid_str
+
+    actor_nodes_name = pwd + '/' + 'actor_nodes_%s.pkl' % uuid_str
+
+    actor_edge_name = pwd + '/' + 'actor_edge_%s.pkl' % uuid_str
 
     return {
         "list_file_name": list_file_name,
@@ -85,7 +85,10 @@ def init_file_name():
         "temple_agent_config_name": temple_agent_config_name,
         "temple_agent_name": temple_agent_name,
         "temple_result_name": temple_result_name,
-        "temple_loss_name": temple_loss_name
+        "temple_loss_name": temple_loss_name,
+        "agent_name": agent_name,
+        "actor_nodes_name": actor_nodes_name,
+        "actor_edge_name": actor_edge_name
     }
 
 
@@ -137,3 +140,9 @@ def load_name(list_file_name_obj, name):
         return list_file_name_obj['temple_result_name']
     if name == 'temple_loss_name' and isinstance(list_file_name_obj, dict):
         return list_file_name_obj['temple_loss_name']
+    if name == 'agent_name' and isinstance(list_file_name_obj, dict):
+        return list_file_name_obj['agent_name']
+    if name == 'actor_nodes_name' and isinstance(list_file_name_obj, dict):
+        return list_file_name_obj['actor_nodes_name']
+    if name == 'actor_edge_name' and isinstance(list_file_name_obj, dict):
+        return list_file_name_obj['actor_edge_name']

@@ -26,14 +26,15 @@ class Trainer(object):
         print("-----------------------------------------------------------------------------------")
         print(" ")
 
-    def run_games_for_agent(self, temple_agent_config_name, temple_agent_name, temple_result_name, temple_loss_name):
+    def run_games_for_agent(self, temple_agent_config_name, temple_agent_name, temple_result_name, temple_loss_name, agent_name):
 
         game_scores, rolling_scores, time_taken = self.agent.run_n_episodes(temple_agent_config_name=temple_agent_config_name,
                                                                             temple_agent_name=temple_agent_name,
                                                                             temple_result_name=temple_result_name,
-                                                                            temple_loss_name=temple_loss_name)
-        print("Time taken: {}".format(time_taken), flush=True)
+                                                                            temple_loss_name=temple_loss_name,
+                                                                            agent_name=agent_name)
+        # print("Time taken: {}".format(time_taken), flush=True)
 
-        self.print_two_empty_lines()
-        agent_result = [game_scores, rolling_scores, len(rolling_scores), max(rolling_scores), time_taken]
-        save_obj(agent_result, self.config.file_to_save_data_results)
+        # self.print_two_empty_lines()
+        # agent_result = [game_scores, rolling_scores, len(rolling_scores), max(rolling_scores), time_taken]
+        # save_obj(agent_result, self.config.file_to_save_data_results)

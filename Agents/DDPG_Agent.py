@@ -30,14 +30,23 @@ class DDPG_Agent(object):
         
         _, _, self.observation = self.environment.reset()
         self.total_episode_score_so_far = 0
-        self.device = "cuda" if self.environment.config.use_gpu else "cpu"
+        self.total_episode_age_of_view_so_far = 0
+        self.total_episode_timeliness_so_far = 0
+        self.total_episode_consistence_so_far = 0
+        self.total_episode_completeness_so_far = 0
+        self.total_episode_queuing_time_so_far = 0
+        self.total_episode_transmitting_time_so_far = 0
+        self.total_episode_service_time_so_far = 0
+        self.total_episode_service_rate = 0
 
-        self.action_size = self.environment.get_sensor_action_size() * self.environment.config.vehicle_number + self.environment.get_edge_action_size()
+        self.device = "cuda" if self.environment.experiment_config.use_gpu else "cpu"
+
+        self.action_size = self.environment.get_sensor_action_size() * self.environment.experiment_config.vehicle_number + self.environment.get_edge_action_size()
         
         self.hyperparameters = {
 
             "Actor_of_DDPG": {
-                "learning_rate": 1e-6,
+                "learning_rate": 1e-5,
                 "linear_hidden_units":
                     [512,
                     256
@@ -59,7 +68,7 @@ class DDPG_Agent(object):
             },
 
             "Critic_of_DDPG": {
-                "learning_rate": 1e-6,
+                "learning_rate": 1e-4,
                 "linear_hidden_units":
                     [512,
                     256],
@@ -158,6 +167,17 @@ class DDPG_Agent(object):
             eps=1e-08
         )
 
+    def config_environment(self, environment):
+        self.environment = environment
+        _, _, self.observation = self.environment.reset()
+
+    def target_step(self):
+        with tqdm(total=self.environment.max_episode_length) as my_bar:
+            while not self.done:
+                self.target_pick_actions()
+                self.conduct_action()
+                my_bar.update(n=1)
+
     def step(self):
         with tqdm(total=self.environment.max_episode_length) as my_bar:
             while not self.done:
@@ -165,9 +185,19 @@ class DDPG_Agent(object):
                 self.conduct_action()
                 self.save_experience()
                 if self.time_for_learn():
-                    observations, actions, rewards, next_observations, dones = self.replay_buffer.sample()
-                    self.actor_and_critic_to_learn(observations, actions, rewards, next_observations, dones)
+                    for i in range(40):
+                        observations, actions, rewards, next_observations, dones = self.replay_buffer.sample()
+                        self.actor_and_critic_to_learn(observations, actions, rewards, next_observations, dones)
                 my_bar.update(n=1)
+    
+    def target_pick_actions(self):
+        state = self.observation.unsqueeze(0).float().to(self.device)
+        # self.actor_target_of_ddpg.eval()
+        self.actor_local_of_ddpg.eval()
+        with torch.no_grad():
+            # action = self.actor_target_of_ddpg(state)
+            action = self.actor_local_of_ddpg(state)
+        self.action = action
 
     def pick_actions(self):
         state = self.observation.unsqueeze(0).float().to(self.device)
@@ -179,37 +209,46 @@ class DDPG_Agent(object):
 
     def conduct_action(self):
 
-        priority = np.zeros(shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number),
+        priority = np.zeros(shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number),
                             dtype=np.float)
         arrival_rate = np.zeros(
-            shape=(self.environment.config.vehicle_number, self.environment.config.data_types_number), dtype=np.float)
+            shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number), dtype=np.float)
 
-        for sensor_node_index in range(self.environment.config.vehicle_number):
-            start_index = sensor_node_index * 2 * self.environment.config.data_types_number
-            sensor_node_action = self.action[0][start_index: start_index + 2 * self.environment.config.data_types_number]
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
+            start_index = sensor_node_index * 2 * self.environment.experiment_config.data_types_number
+            sensor_node_action = self.action[0][start_index: start_index + 2 * self.environment.experiment_config.data_types_number]
             sensor_node_action_of_priority = \
-                sensor_node_action[0:self.environment.config.data_types_number]  # first data types are priority
+                sensor_node_action[0:self.environment.experiment_config.data_types_number]  # first data types are priority
             sensor_node_action_of_arrival_rate = \
                 sensor_node_action[
-                self.environment.config.data_types_number:]  # second data types number are arrival rate
+                self.environment.experiment_config.data_types_number:]  # second data types number are arrival rate
 
-            for data_type_index in range(self.environment.config.data_types_number):
+            for data_type_index in range(self.environment.experiment_config.data_types_number):
                 if self.environment.state["data_types"][sensor_node_index][data_type_index] == 1:
                     priority[sensor_node_index][data_type_index] = sensor_node_action_of_priority[data_type_index]
 
                     arrival_rate[sensor_node_index][data_type_index] = \
                         float(sensor_node_action_of_arrival_rate[data_type_index]) / \
-                        self.environment.config.mean_service_time_of_types[sensor_node_index][data_type_index]
+                        self.environment.experiment_config.mean_service_time_of_types[sensor_node_index][data_type_index]
 
-        edge_nodes_bandwidth = self.action[0][-self.environment.config.data_types_number:].unsqueeze(0).cpu().data.numpy() * self.environment.config.bandwidth
+        edge_nodes_bandwidth = self.action[0][-self.environment.experiment_config.data_types_number:].unsqueeze(0).cpu().data.numpy() * self.environment.experiment_config.bandwidth
         
         dict_action = {
             "priority": priority,
             "arrival_rate": arrival_rate,
             "bandwidth": edge_nodes_bandwidth
         }
-        _, _, self.next_observation, self.reward, self.done = self.environment.step(dict_action)
+        _, _, self.next_observation, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+        sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate = self.environment.step(dict_action)
         self.total_episode_score_so_far += self.reward
+        self.total_episode_age_of_view_so_far += sum_age_of_view
+        self.total_episode_timeliness_so_far += sum_timeliness
+        self.total_episode_consistence_so_far += sum_consistence
+        self.total_episode_completeness_so_far += sum_completeness
+        self.total_episode_queuing_time_so_far += sum_queuing_time
+        self.total_episode_transmitting_time_so_far += sum_transmitting_time
+        self.total_episode_service_time_so_far += sum_service_time
+        self.total_episode_service_rate += sum_service_rate / self.environment.max_episode_length
         
 
     def save_experience(self):
@@ -253,11 +292,49 @@ class DDPG_Agent(object):
                                     actor_loss,
                                     self.hyperparameters["Actor_of_DDPG"]["gradient_clipping_norm"])
     
-    def run_n_episodes(self, num_episodes, temple_result_name):
+    def run_n_episodes_as_results(self, num_episodes, result_name):
+
+        try:
+            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate"], header=0)
+        except FileNotFoundError:
+            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": ""},
+                                       index=[0])
+
+        for i in range(num_episodes):
+            print("*" * 64)
+            self.reset_game()
+            self.target_step()
+            print("Epoch index: ", i)
+            print("Total reward: ", self.total_episode_score_so_far)
+
+            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+
+            new_line_in_result = pd.DataFrame({
+                "Epoch index": str(i),
+                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "timeliness": str(self.total_episode_timeliness_so_far),
+                "consistence": str(self.total_episode_consistence_so_far),
+                "completeness": str(self.total_episode_completeness_so_far),
+                "queuing_time": str(self.total_episode_queuing_time_so_far),
+                "transmitting_time": str(self.total_episode_transmitting_time_so_far),
+                "service_time": str(self.total_episode_service_time_so_far),
+                "service_rate": str(self.total_episode_service_rate)
+            }, index=["0"])
+            result_data = result_data.append(new_line_in_result, ignore_index=True)
+            result_data.to_csv(result_name)
+            print("save result data successful")
+
+
+    def run_n_episodes(self, num_episodes, temple_result_name, agent_name):
 
         """Runs game to completion n times and then summarises results and saves model (if asked to)"""
         if num_episodes is None:
-            num_episodes = self.environment.config.episode_number
+            num_episodes = self.environment.experiment_config.episode_number
 
         try:
             result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
@@ -289,14 +366,14 @@ class DDPG_Agent(object):
             # """Saves the result of an episode of the game"""
             # # self.game_full_episode_scores.append(self.total_episode_score_so_far)
             # self.rolling_results.append(
-            #     np.mean(self.game_full_episode_scores[-1 * self.environment.config.rolling_score_window:]))
+            #     np.mean(self.game_full_episode_scores[-1 * self.environment.experiment_config.rolling_score_window:]))
 
             # """Updates the best episode result seen so far"""
             # if self.game_full_episode_scores[-1] > self.max_episode_score_seen:
             #     self.max_episode_score_seen = self.game_full_episode_scores[-1]
 
             # if self.rolling_results[-1] > self.max_rolling_score_seen:
-            #     if len(self.rolling_results) > self.environment.config.rolling_score_window:
+            #     if len(self.rolling_results) > self.environment.experiment_config.rolling_score_window:
             #         self.max_rolling_score_seen = self.rolling_results[-1]
 
             if self.environment.episode_index <= 1 and self.environment.episode_index % 1 == 0:
@@ -305,14 +382,9 @@ class DDPG_Agent(object):
                 # loss_data.to_csv(temple_loss_name)
                 print("save result data successful")
 
-            # if self.environment.episode_index < 500 and self.environment.episode_index % 50 == 0:
-            #     save_obj(obj=self, name=temple_agent_name)
-            #     print("save objectives successful")
-
-            # if self.environment.episode_index >= 500 and self.environment.episode_index % 100 == 0:
-            #     save_obj(obj=self.config, name=temple_agent_config_name)
-            #     save_obj(obj=self, name=temple_agent_name)
-            #     print("save objectives successful")
+            if self.environment.episode_index <= 500 and self.environment.episode_index % 100 == 0 or self.environment.episode_index > 500 and self.environment.episode_index % 50 == 0:
+                save_obj(obj=self, name=agent_name)
+                print("save objectives successful")
 
             if self.environment.episode_index % 25 == 0:
                 result_data.to_csv(temple_result_name)
@@ -327,6 +399,14 @@ class DDPG_Agent(object):
         self.reward = None
         self.action = None
         self.total_episode_score_so_far = 0
+        self.total_episode_age_of_view_so_far = 0
+        self.total_episode_timeliness_so_far = 0
+        self.total_episode_consistence_so_far = 0
+        self.total_episode_completeness_so_far = 0
+        self.total_episode_queuing_time_so_far = 0
+        self.total_episode_transmitting_time_so_far = 0
+        self.total_episode_service_time_so_far = 0
+        self.total_episode_service_rate = 0
         _, _, self.observation = self.environment.reset()
 
 
