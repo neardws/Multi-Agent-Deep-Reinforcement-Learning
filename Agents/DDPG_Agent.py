@@ -30,14 +30,18 @@ class DDPG_Agent(object):
         
         _, _, self.observation = self.environment.reset()
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
 
         self.device = "cuda" if self.environment.experiment_config.use_gpu else "cpu"
 
@@ -82,7 +86,7 @@ class DDPG_Agent(object):
         self.replay_buffer = DDPG_ReplayBuffer(
             buffer_size=50000,
             batch_size=64,
-            seed=np.random.randint(0, 2 ** 32 - 2)
+            seed=2801641275
         )
 
         self.sensor_exploration_strategy = Gaussian_Exploration(size=self.action_size,
@@ -185,7 +189,7 @@ class DDPG_Agent(object):
                 self.conduct_action()
                 self.save_experience()
                 if self.time_for_learn():
-                    for i in range(40):
+                    for i in range(1):
                         observations, actions, rewards, next_observations, dones = self.replay_buffer.sample()
                         self.actor_and_critic_to_learn(observations, actions, rewards, next_observations, dones)
                 my_bar.update(n=1)
@@ -239,16 +243,21 @@ class DDPG_Agent(object):
             "bandwidth": edge_nodes_bandwidth
         }
         _, _, self.next_observation, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
-        sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate = self.environment.step(dict_action)
+        sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
+        sum_required_data_number, new_reward = self.environment.step(dict_action)
         self.total_episode_score_so_far += self.reward
+        self.new_total_episode_score_so_far += new_reward
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
         self.total_episode_consistence_so_far += sum_consistence
         self.total_episode_completeness_so_far += sum_completeness
+        self.total_episode_intel_arrival_time += sum_intel_arrival_time
         self.total_episode_queuing_time_so_far += sum_queuing_time
         self.total_episode_transmitting_time_so_far += sum_transmitting_time
         self.total_episode_service_time_so_far += sum_service_time
         self.total_episode_service_rate += sum_service_rate / self.environment.max_episode_length
+        self.total_episode_received_data_number += sum_received_data_number
+        self.total_episode_required_data_number += sum_required_data_number
         
 
     def save_experience(self):
@@ -295,9 +304,9 @@ class DDPG_Agent(object):
     def run_n_episodes_as_results(self, num_episodes, result_name):
 
         try:
-            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate"], header=0)
+            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": ""},
+            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "new_age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "intel_arrival_time": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": "",  "received_data": "", "required_data": ""},
                                        index=[0])
 
         for i in range(num_episodes):
@@ -310,6 +319,7 @@ class DDPG_Agent(object):
             self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
             self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
@@ -317,13 +327,17 @@ class DDPG_Agent(object):
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(i),
                 "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
                 "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
                 "queuing_time": str(self.total_episode_queuing_time_so_far),
                 "transmitting_time": str(self.total_episode_transmitting_time_so_far),
                 "service_time": str(self.total_episode_service_time_so_far),
-                "service_rate": str(self.total_episode_service_rate)
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
             }, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
             result_data.to_csv(result_name)
@@ -337,9 +351,10 @@ class DDPG_Agent(object):
             num_episodes = self.environment.experiment_config.episode_number
 
         try:
-            result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
+            result_data = pd.read_csv(temple_result_name, names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "Total reward": "", "Time taken": ""}, index=[0])
+            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "new_age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "intel_arrival_time": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": "",  "received_data": "", "required_data": ""},
+                                       index=[0])
 
         start = time.time()
         while self.environment.episode_index < num_episodes:
@@ -350,11 +365,32 @@ class DDPG_Agent(object):
             time_taken = time.time() - start
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
             print("Time taken: ", time_taken)
-            new_line_in_result = pd.DataFrame(
-                {"Epoch index": str(self.environment.episode_index),
-                "Total reward": str(self.total_episode_score_so_far),
-                "Time taken": str(time_taken)}, index=["0"])
+            
+            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
+            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+
+            new_line_in_result = pd.DataFrame({
+                "Epoch index": str(self.environment.episode_index),
+                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
+                "timeliness": str(self.total_episode_timeliness_so_far),
+                "consistence": str(self.total_episode_consistence_so_far),
+                "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
+                "queuing_time": str(self.total_episode_queuing_time_so_far),
+                "transmitting_time": str(self.total_episode_transmitting_time_so_far),
+                "service_time": str(self.total_episode_service_time_so_far),
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
+            }, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
 
             if self.environment.episode_index % 10 == 0:
@@ -399,15 +435,20 @@ class DDPG_Agent(object):
         self.reward = None
         self.action = None
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         _, _, self.observation = self.environment.reset()
+        self.sensor_exploration_strategy.reset()
 
 
     def create_nn(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
@@ -427,7 +468,7 @@ class DDPG_Agent(object):
         if override_seed:
             seed = override_seed
         else:
-            seed = np.random.randint(0, 2 ** 32 - 2)
+            seed = 2419977517
 
         default_hyperparameter_choices = {"output_activation": None,
                                           "hidden_activations": "relu",

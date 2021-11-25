@@ -90,6 +90,17 @@ class IDPG_Agent(object):
         Some parameters
         """
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
+        self.total_episode_age_of_view_so_far = 0
+        self.total_episode_timeliness_so_far = 0
+        self.total_episode_consistence_so_far = 0
+        self.total_episode_completeness_so_far = 0
+        self.total_episode_queuing_time_so_far = 0
+        self.total_episode_transmitting_time_so_far = 0
+        self.total_episode_service_time_so_far = 0
+        self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.game_full_episode_scores = []
         self.rolling_results = []
         self.max_rolling_score_seen = float("-inf")  # max score in one episode
@@ -170,7 +181,7 @@ class IDPG_Agent(object):
         ]
 
         for vehicle_index in range(self.environment.experiment_config.vehicle_number):
-            HMAIMD_Agent.copy_model_over(
+            IDPG_Agent.copy_model_over(
                 from_model=self.actor_local_of_sensor_nodes[vehicle_index],
                 to_model=self.actor_target_of_sensor_nodes[vehicle_index]
             )
@@ -254,7 +265,7 @@ class IDPG_Agent(object):
         ]
 
         for vehicle_index in range(self.environment.experiment_config.vehicle_number):
-            HMAIMD_Agent.copy_model_over(
+            IDPG_Agent.copy_model_over(
                 from_model=self.critic_local_of_sensor_nodes[vehicle_index],
                 to_model=self.critic_target_of_sensor_nodes[vehicle_index]
             )
@@ -287,7 +298,7 @@ class IDPG_Agent(object):
             key_to_use="Actor_of_Edge"
         )
 
-        HMAIMD_Agent.copy_model_over(
+        IDPG_Agent.copy_model_over(
             from_model=self.actor_local_of_edge_node,
             to_model=self.actor_target_of_edge_node)
 
@@ -316,7 +327,7 @@ class IDPG_Agent(object):
             key_to_use="Critic_of_Edge"
         )
 
-        HMAIMD_Agent.copy_model_over(
+        IDPG_Agent.copy_model_over(
             from_model=self.critic_local_of_edge_node,
             to_model=self.critic_target_of_edge_node)
 
@@ -1128,8 +1139,13 @@ class IDPG_Agent(object):
                                              "Critic of V9": str(average_critic_loss_of_sensor_nodes[8]),
                                              "Critic of V10": str(average_critic_loss_of_sensor_nodes[9]),
                                              "Actor of Edge": str(average_actor_loss_of_edge_node),
-                                             "Critic of Edge": str(average_critic_loss_of_edge_node))},
-                                            index=["0"])
+                                             "Critic of Edge": str(average_critic_loss_of_edge_node)},
+                                            index=[0])
+            loss_data = loss_data.append(new_line_in_loss, ignore_index=True)
+
+            result_data.to_csv(result_name, index=False)
+            loss_data.to_csv(loss_name, index=False)
+
             loss_data = loss_data.append(new_line_in_loss, ignore_index=True)
 
             if self.environment.episode_index % 10 == 0:
@@ -1204,6 +1220,17 @@ class IDPG_Agent(object):
         self.sensor_nodes_observation, self.edge_node_observation, _ = self.environment.reset()
 
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
+        self.total_episode_age_of_view_so_far = 0
+        self.total_episode_timeliness_so_far = 0
+        self.total_episode_consistence_so_far = 0
+        self.total_episode_completeness_so_far = 0
+        self.total_episode_queuing_time_so_far = 0
+        self.total_episode_transmitting_time_so_far = 0
+        self.total_episode_service_time_so_far = 0
+        self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.sensor_exploration_strategy.reset()
         self.edge_exploration_strategy.reset()
 

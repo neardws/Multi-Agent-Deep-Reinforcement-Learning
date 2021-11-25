@@ -42,7 +42,7 @@ def init(environments_file_name):
         # uses a softmax activation function
 
         "Actor_of_Sensor": {
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "linear_hidden_units": [64, 32],
             "final_layer_activation": "tanh",
             "batch_norm": False,
@@ -57,7 +57,7 @@ def init(environments_file_name):
         },
 
         "Critic_of_Sensor": {
-            "learning_rate": 1e-3,
+            "learning_rate": 1e-4,
             "linear_hidden_units": [128, 64],
             "final_layer_activation": "tanh",
             "batch_norm": False,
@@ -66,7 +66,7 @@ def init(environments_file_name):
         },
 
         "Actor_of_Edge": {
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "linear_hidden_units": [256, 128],
             "final_layer_activation": "tanh",
             "batch_norm": False,
@@ -81,7 +81,7 @@ def init(environments_file_name):
         },
 
         "Critic_of_Edge": {
-            "learning_rate": 1e-3,
+            "learning_rate": 1e-4,
             "linear_hidden_units": [256, 128], 
             "final_layer_activation": "tanh",
             "batch_norm": False,
@@ -90,7 +90,7 @@ def init(environments_file_name):
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-5,
             "linear_hidden_units": [256, 128],
             "final_layer_activation": "softmax",
             "batch_norm": False,
@@ -103,7 +103,7 @@ def init(environments_file_name):
         },
 
         "Critic_of_Reward": {
-            "learning_rate": 1e-3,
+            "learning_rate": 1e-4,
             "linear_hidden_units": [256, 128],
             "final_layer_activation": "tanh",
             "batch_norm": False,
@@ -116,8 +116,8 @@ def init(environments_file_name):
         "critic_nodes_update_every_n_steps": 300,  # 15 times in one episode
         "actor_reward_update_every_n_steps": 300,  # 20 times in one episode
         "critic_reward_update_every_n_steps": 300,  # 20 times in one episode
-        "actor_nodes_learning_updates_per_learning_session": 20,
-        "critic_nodes_learning_updates_per_learning_session": 20,
+        "actor_nodes_learning_updates_per_learning_session": 1,
+        "critic_nodes_learning_updates_per_learning_session": 1,
         "actor_reward_learning_updates_per_learning_session": 160,
         "critic_reward_learning_updates_per_learning_session": 160,
         "clip_rewards": False}
@@ -157,11 +157,11 @@ def run_iddpg(first=False, rerun=False, environments_file_name=None, given_list_
                                 actor_nodes_name=load_name(new_list_file_name, 'actor_nodes_name'), 
                                 actor_edge_name=load_name(new_list_file_name, 'actor_edge_name'))
         else:
-            correct_list_file_name = project_dir + data + given_list_file_name
-            list_file = load_obj(name=correct_list_file_name)
+            list_file = load_obj(name=given_list_file_name)
             temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
             temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
-            temple_agent.run_n_episodes(temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
+            temple_agent.run_n_episodes(num_episodes=2500,
+                                        temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
                                         temple_agent_name=load_name(list_file, 'temple_agent_name'),
                                         temple_result_name=load_name(list_file, 'temple_result_name'),
                                         temple_loss_name=load_name(list_file, 'temple_loss_name'),
@@ -315,52 +315,93 @@ def run_again(temple_agent_config_file_name, temple_agent_file_name):
                                 agent_name=load_name(new_list_file_name, 'agent_name'))
 
 def generate_environment():
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_08.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_0800_bandwidth_3_threshold_015_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_0800_bandwidth_3_threshold_015_02.pkl"
+    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_10.csv"
+    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1000_bandwidth_3_threshold_05_01.pkl"
     save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_10.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1000_bandwidth_3_threshold_015_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1000_bandwidth_3_threshold_015_02.pkl"
+    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_12.csv"
+    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1200_bandwidth_3_threshold_05_01.pkl"
     save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_12.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1200_bandwidth_3_threshold_015_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1200_bandwidth_3_threshold_015_02.pkl"
+    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_18.csv"
+    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1800_bandwidth_3_threshold_05_01.pkl"
     save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_18.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1800_bandwidth_3_threshold_015_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1800_bandwidth_3_threshold_015_02.pkl"
+    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_22.csv"
+    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_2200_bandwidth_3_threshold_05_01.pkl"
     save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_22.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_2200_bandwidth_3_threshold_015_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1117_2200_bandwidth_3_threshold_015_02.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_0800_bandwidth_3_threshold_015_02.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_10.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1000_bandwidth_3_threshold_015_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1000_bandwidth_3_threshold_015_02.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_12.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1200_bandwidth_3_threshold_015_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1200_bandwidth_3_threshold_015_02.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_18.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1800_bandwidth_3_threshold_015_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_1800_bandwidth_3_threshold_015_02.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1117_22.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_2200_bandwidth_3_threshold_015_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_2200_bandwidth_3_threshold_015_02.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
 
 def change_environment():
-    environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_2_threshold_015_02.pkl")
-    environment.config_bandwidth(new_bandwidth=2.5)
-    save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_2_5_threshold_015_02_03.pkl")
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    # environment.config_bandwidth(new_bandwidth=1)
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_1_threshold_05_01.pkl")
+    
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    # environment.config_bandwidth(new_bandwidth=2)
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_2_threshold_05_01.pkl")
 
-    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_015_02.pkl")
-    # environment.config_bandwidth(new_bandwidth=3.5)
-    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_5_threshold_015_02.pkl")
-
-    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_015_02.pkl")
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
     # environment.config_bandwidth(new_bandwidth=4)
-    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_4_threshold_015_02.pkl")
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_4_threshold_05_01.pkl")
 
-    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_015_02.pkl")
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
     # environment.config_bandwidth(new_bandwidth=5)
-    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_threshold_015_02.pkl")
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_threshold_05_01.pkl")
+
+    environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    environment.config_threshold_view_required_data(new_threshold_view_required_data=0.175)
+    save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_03_01.pkl")
+
+    environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    environment.config_threshold_view_required_data(new_threshold_view_required_data=0.33)
+    save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_04_01.pkl")
+
+    environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    environment.config_threshold_view_required_data(new_threshold_view_required_data=0.54)
+    save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_06_01.pkl")
+
+    environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    environment.config_threshold_view_required_data(new_threshold_view_required_data=0.64)
+    save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
+    
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_threshold_015_01.pkl")
+    # environment.config_bandwidth(new_bandwidth=5)
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_threshold_015_01.pkl")
+
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_015_01.pkl")
+    # environment.config_bandwidth(new_bandwidth=5.5)
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_5_threshold_015_01.pkl")
+
+    # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_015_01.pkl")
+    # environment.config_bandwidth(new_bandwidth=6)
+    # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_6_threshold_015_01.pkl")
 
     # environment = load_obj(name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_015_02.pkl")
     # environment.config_views_required_at_each_time_slot(threshold_edge_views_in_edge_node=0.05)
@@ -379,17 +420,55 @@ def change_environment():
     # save_obj(obj=environment, name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_025_02.pkl")
 
 if __name__ == '__main__':
+
+    # generate_environment()
     # change_environment()
     
-    # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_025_02.pkl")
+    # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
     
-    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_1800_bandwidth_3_threshold_015_01.pkl")
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
 
     # run(rerun=True, given_list_file_name='2021-10-25-22-33-35-list_file_name.pkl')
 
-    # run_iddpg(given_list_file_name="2021-10-27-12-19-26-list_file_name.pkl")
-    
-    run(given_list_file_name='2021-10-27-18-37-42-list_file_name.pkl')
+    # run_iddpg(given_list_file_name="2021-11-15-16-08-37-list_file_name.pkl")
+
+    # nomal bandwidth = 1
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_1_threshold_05_01/2021-11-15-22-24-33-list_file_name.pkl")
+    # nomal bandwidth = 2
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_2_threshold_05_01/2021-11-15-22-31-59-list_file_name.pkl")
+    # nomal bandwidth = 4
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_4_threshold_05_01/2021-11-15-22-33-35-list_file_name.pkl")
+    # nomal bandwidth = 5
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_5_threshold_05_01/2021-11-15-22-35-59-list_file_name.pkl")
+
+    # nomal threshold = 0.3
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_03_01/2021-11-15-22-38-16-list_file_name.pkl")
+    # nomal threshold = 0.4
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_04_01/2021-11-15-22-38-45-list_file_name.pkl")
+    # nomal threshold = 0.6
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_06_01/2021-11-15-22-39-05-list_file_name.pkl")
+    # nomal threshold = 0.7
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_07_01/2021-11-15-22-39-27-list_file_name.pkl")
+
+    # random bandwidth = 1
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_1_threshold_05_01/2021-11-15-22-47-48-list_file_name.pkl")
+    # random bandwidth = 2
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_2_threshold_05_01/2021-11-15-22-48-30-list_file_name.pkl")
+    # random bandwidth = 4
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_4_threshold_05_01/2021-11-15-22-49-02-list_file_name.pkl")
+    # random bandwidth = 5
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_5_threshold_05_01/2021-11-15-22-49-31-list_file_name.pkl")
+
+    # random threshold = 0.3
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_03_01/2021-11-15-22-52-48-list_file_name.pkl")
+    # random threshold = 0.4
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_04_01/2021-11-15-22-53-17-list_file_name.pkl")
+    # random threshold = 0.6
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_06_01/2021-11-15-22-53-41-list_file_name.pkl")
+    # random threshold = 0.7
+    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_07_01/2021-11-15-22-54-05-list_file_name.pkl")
+
+    # run(given_list_file_name='2021-11-14-10-28-50-list_file_name.pkl')
     
     # run(given_list_file_name='2021-09-29-16-16-31-list_file_name.pkl')
     # run(given_list_file_name='2021-09-29-20-11-11-list_file_name.pkl')

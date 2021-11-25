@@ -1,0 +1,3 @@
+,Epoch index,age_of_view,new_age_of_view,timeliness,consistence,completeness,intel_arrival_time,queuing_time,transmitting_time,service_time,service_rate,received_data,required_data
+0,,,,,,,,,,,,,
+1,0,75.25666397595448,43.52413679780924,196.37334042697947,1930.4176732118644,0.32088851254047346,27.29666440276794,0.08538278603778508,0.19775000000000015,27.579797188805745,0.0,2544,6391

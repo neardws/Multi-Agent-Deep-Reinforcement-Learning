@@ -27,14 +27,18 @@ class Random_Agent(object):
         self.action = None
         self.done = None
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.environment.reset()
 
     def config_environment(self, environment):
@@ -68,7 +72,9 @@ class Random_Agent(object):
                         float(sensor_node_action_of_arrival_rate[data_type_index]) / \
                         self.environment.experiment_config.mean_service_time_of_types[sensor_node_index][data_type_index]
 
-        edge_nodes_bandwidth = random_np(self.environment.experiment_config.vehicle_number) * self.environment.experiment_config.bandwidth
+        # print("mean_service_time_of_types: \n", self.environment.experiment_config.mean_service_time_of_types)
+
+        edge_nodes_bandwidth = random_np(self.environment.experiment_config.vehicle_number)
 
         edge_nodes_bandwidth = edge_nodes_bandwidth[np.newaxis, :]
         self.action = {
@@ -79,23 +85,28 @@ class Random_Agent(object):
 
     def conduct_action(self):
         _, _, _, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
-        sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate = self.environment.step(self.action)
+        sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
+        sum_required_data_number, new_reward = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
+        self.new_total_episode_score_so_far += new_reward
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
         self.total_episode_consistence_so_far += sum_consistence
         self.total_episode_completeness_so_far += sum_completeness
+        self.total_episode_intel_arrival_time += sum_intel_arrival_time
         self.total_episode_queuing_time_so_far += sum_queuing_time
         self.total_episode_transmitting_time_so_far += sum_transmitting_time
         self.total_episode_service_time_so_far += sum_service_time
         self.total_episode_service_rate += sum_service_rate / self.environment.max_episode_length
+        self.total_episode_received_data_number += sum_received_data_number
+        self.total_episode_required_data_number += sum_required_data_number
 
     def run_n_episodes_as_results(self, num_episodes, result_name):
 
         try:
-            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate"], header=0)
+            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": ""},
+            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "new_age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "intel_arrival_time": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": "",  "received_data": "", "required_data": ""},
                                        index=[0])
 
         for i in range(num_episodes):
@@ -104,10 +115,12 @@ class Random_Agent(object):
             self.step()
             print("Epoch index: ", i)
             print("Total reward: ", self.total_episode_score_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
 
             self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
             self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
@@ -115,13 +128,17 @@ class Random_Agent(object):
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(i),
                 "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
                 "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
                 "queuing_time": str(self.total_episode_queuing_time_so_far),
                 "transmitting_time": str(self.total_episode_transmitting_time_so_far),
                 "service_time": str(self.total_episode_service_time_so_far),
-                "service_rate": str(self.total_episode_service_rate)
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
             }, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
             result_data.to_csv(result_name)
@@ -164,12 +181,16 @@ class Random_Agent(object):
         self.action = None
         self.environment.reset()
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
 

@@ -87,19 +87,23 @@ class IDDPG_Agent(object):
         Some parameters
         """
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.game_full_episode_scores = []
         self.rolling_results = []
         self.max_rolling_score_seen = float("-inf")  # max score in one episode
         self.max_episode_score_seen = float("-inf")  # max score in whole episodes
-        self.device = "cuda:1" if self.environment.experiment_config.use_gpu else "cpu"
+        self.device = "cuda:0" if self.environment.experiment_config.use_gpu else "cpu"
 
         """
         ______________________________________________________________________________________________________________
@@ -572,8 +576,8 @@ class IDDPG_Agent(object):
         
         # IDDPG
         # TODO
-        number_of_actor_reward_buffer = 0
-        number_of_critic_reward_buffer = 0
+        # number_of_actor_reward_buffer = 0
+        # number_of_critic_reward_buffer = 0
 
         max_buffer_number = max([number_of_actor_nodes_buffer, number_of_critic_nodes_buffer, number_of_actor_reward_buffer, number_of_critic_reward_buffer])
         
@@ -901,22 +905,27 @@ class IDDPG_Agent(object):
     def conduct_action(self):
         """Conducts an action in the environment"""
         self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_observation, \
-        self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
-        sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate = self.environment.step(self.action)
+            self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+            sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
+            sum_required_data_number, new_reward = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
+        self.new_total_episode_score_so_far += new_reward
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
         self.total_episode_consistence_so_far += sum_consistence
         self.total_episode_completeness_so_far += sum_completeness
+        self.total_episode_intel_arrival_time += sum_intel_arrival_time
         self.total_episode_queuing_time_so_far += sum_queuing_time
         self.total_episode_transmitting_time_so_far += sum_transmitting_time
         self.total_episode_service_time_so_far += sum_service_time
         self.total_episode_service_rate += sum_service_rate / self.environment.max_episode_length
+        self.total_episode_received_data_number += sum_received_data_number
+        self.total_episode_required_data_number += sum_required_data_number
 
     def reward_function_pick_action(self):
         # IDDPG
         # TODO
-        self.reward_action = torch.ones(self.environment.experiment_config.vehicle_number+1).float().to(self.device).unsqueeze(0)
+        self.reward_action = torch.rand(self.environment.experiment_config.vehicle_number+1).float().to(self.device).unsqueeze(0)
 
         self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
         self.edge_node_reward = self.reward * self.reward_action[0][-1]
@@ -1437,10 +1446,28 @@ class IDDPG_Agent(object):
             self.config_environment(environment)
 
         try:
-            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate"], header=0)
+            result_data = pd.read_csv(
+                result_name, 
+                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time",  "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
+                header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": ""},
-                                       index=[0])
+            result_data = pd.DataFrame(
+                data=None, 
+                columns={
+                    "Epoch index": "", 
+                    "age_of_view": "", 
+                    "new_age_of_view": "", 
+                    "timeliness": "", 
+                    "consistence": "", 
+                    "completeness": "",
+                    "intel_arrival_time": "", 
+                    "queuing_time": "", 
+                    "transmitting_time": "", 
+                    "service_time": "", 
+                    "service_rate": "", 
+                    "received_data": "", 
+                    "required_data": ""},
+                index=[0])
 
         for i in range(num_episodes):
             print("*" * 64)
@@ -1450,22 +1477,28 @@ class IDDPG_Agent(object):
             self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
             self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
 
             print("Epoch index: ", i)
             print("Total reward: ", self.total_episode_score_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(i),
                 "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
                 "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
                 "queuing_time": str(self.total_episode_queuing_time_so_far),
                 "transmitting_time": str(self.total_episode_transmitting_time_so_far),
                 "service_time": str(self.total_episode_service_time_so_far),
-                "service_rate": str(self.total_episode_service_rate)
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
             }, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
             result_data.to_csv(result_name)
@@ -1479,7 +1512,10 @@ class IDDPG_Agent(object):
             num_episodes = self.environment.experiment_config.episode_number
 
         try:
-            result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
+            result_data = pd.read_csv(
+                temple_result_name, 
+                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time",  "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
+                header=0)
             loss_data = pd.read_csv(temple_loss_name, names=["Epoch index",
                                                              "Actor of V1", "Actor of V2", "Actor of V3",
                                                              "Actor of V4", "Actor of V5", "Actor of V6",
@@ -1492,8 +1528,23 @@ class IDDPG_Agent(object):
                                                              "Actor of Edge", "Critic of Edge",
                                                              "Actor of Reward", "Critic of Reward"], header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "Total reward": "", "Time taken": ""},
-                                       index=[0])
+            result_data = pd.DataFrame(
+                data=None, 
+                columns={
+                    "Epoch index": "", 
+                    "age_of_view": "", 
+                    "new_age_of_view": "", 
+                    "timeliness": "", 
+                    "consistence": "", 
+                    "completeness": "",
+                    "intel_arrival_time": "", 
+                    "queuing_time": "", 
+                    "transmitting_time": "", 
+                    "service_time": "", 
+                    "service_rate": "", 
+                    "received_data": "", 
+                    "required_data": ""},
+                index=[0])
             loss_data = pd.DataFrame(data=None, columns={"Epoch index": "",
                                                          "Actor of V1": "",
                                                          "Actor of V2": "",
@@ -1531,10 +1582,31 @@ class IDDPG_Agent(object):
             time_taken = time.time() - start
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
             print("Time taken: ", time_taken)
-            new_line_in_result = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
-                                               "Total reward": str(self.total_episode_score_so_far),
-                                               "Time taken": str(time_taken)}, index=["0"])
+
+            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
+            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+            
+            new_line_in_result = pd.DataFrame({
+                "Epoch index": str(self.environment.episode_index),
+                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
+                "timeliness": str(self.total_episode_timeliness_so_far),
+                "consistence": str(self.total_episode_consistence_so_far),
+                "completeness": str(self.total_episode_completeness_so_far),
+                "queuing_time": str(self.total_episode_queuing_time_so_far),
+                "transmitting_time": str(self.total_episode_transmitting_time_so_far),
+                "service_time": str(self.total_episode_service_time_so_far),
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
+            }, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
 
             new_line_in_loss = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
@@ -1663,13 +1735,17 @@ class IDDPG_Agent(object):
         self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation = self.environment.reset()
 
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.sensor_exploration_strategy.reset()
         self.edge_exploration_strategy.reset()

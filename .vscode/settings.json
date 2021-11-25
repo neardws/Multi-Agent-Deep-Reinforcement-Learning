@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/home/neardws/anaconda3/envs/HRL/bin/python"
+    "python.pythonPath": "/home/neardws/anaconda3/envs/HRL/bin/python",
+    "jupyter.jupyterServerType": "local"
 }

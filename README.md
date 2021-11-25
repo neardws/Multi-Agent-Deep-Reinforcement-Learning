@@ -11,6 +11,14 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [ ] Unit testing
 - [ ] Add some comparison algorithm
 
+#### Analytics
+
+- [ ] Remove the noise when testing
+- [ ] The relationship between the number of received packets and the bandwidth
+- [ ] Show more details in results
+- [ ] 
+
+
 ### Done
 
 - [x] Update the readme.md 2021-07-03
@@ -42,3 +50,305 @@ Hierarchical Reinforcement Learning to solve Minimizing the Average Age of View 
 - [x] Add draw results 2021-08-11
 - [x] Remove noise in action 2021-08-11
 - [x] Test Replay Buffer 2021-08-11
+
+### Env Info
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 26
+edge_view_required_data: 19
+edge_view_required_data: 26
+edge_view_required_data: 24
+edge_view_required_data: 27
+edge_view_required_data: 33
+edge_view_required_data: 28
+edge_view_required_data: 29
+edge_view_required_data: 25
+edge_view_required_data: 18
+edge_view_required_data:  25.5
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 19.956368780622327
+second_moment_service_time_of_types: 
+ 0.0028811580669187834
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 26
+edge_view_required_data: 19
+edge_view_required_data: 26
+edge_view_required_data: 24
+edge_view_required_data: 27
+edge_view_required_data: 33
+edge_view_required_data: 28
+edge_view_required_data: 29
+edge_view_required_data: 25
+edge_view_required_data: 18
+edge_view_required_data:  25.5
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 9.978144334364275
+second_moment_service_time_of_types: 
+ 0.0007203110297611713
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 26
+edge_view_required_data: 19
+edge_view_required_data: 26
+edge_view_required_data: 24
+edge_view_required_data: 27
+edge_view_required_data: 33
+edge_view_required_data: 28
+edge_view_required_data: 29
+edge_view_required_data: 25
+edge_view_required_data: 18
+edge_view_required_data:  25.5
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 6.652092629515526
+second_moment_service_time_of_types: 
+ 0.00032013733955035025
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 26
+edge_view_required_data: 19
+edge_view_required_data: 26
+edge_view_required_data: 24
+edge_view_required_data: 27
+edge_view_required_data: 33
+edge_view_required_data: 28
+edge_view_required_data: 29
+edge_view_required_data: 25
+edge_view_required_data: 18
+edge_view_required_data:  25.5
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 4.9890690535959
+second_moment_service_time_of_types: 
+ 0.0001800954070329668
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 26
+edge_view_required_data: 19
+edge_view_required_data: 26
+edge_view_required_data: 24
+edge_view_required_data: 27
+edge_view_required_data: 33
+edge_view_required_data: 28
+edge_view_required_data: 29
+edge_view_required_data: 25
+edge_view_required_data: 18
+edge_view_required_data:  25.5
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 3.9912544248975155
+second_moment_service_time_of_types: 
+ 0.00011525671774849044
+
+
+----------------------------------------------------------------
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 21
+edge_view_required_data: 7
+edge_view_required_data: 9
+edge_view_required_data: 12
+edge_view_required_data: 12
+edge_view_required_data: 20
+edge_view_required_data: 12
+edge_view_required_data: 12
+edge_view_required_data: 15
+edge_view_required_data: 14
+edge_view_required_data:  13.4
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 6.652092629515526
+second_moment_service_time_of_types: 
+ 0.00032013733955035025
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 25
+edge_view_required_data: 12
+edge_view_required_data: 17
+edge_view_required_data: 16
+edge_view_required_data: 18
+edge_view_required_data: 24
+edge_view_required_data: 20
+edge_view_required_data: 20
+edge_view_required_data: 22
+edge_view_required_data: 20
+edge_view_required_data:  19.4
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 6.652092629515526
+second_moment_service_time_of_types: 
+ 0.00032013733955035025
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 26
+edge_view_required_data: 19
+edge_view_required_data: 26
+edge_view_required_data: 24
+edge_view_required_data: 27
+edge_view_required_data: 33
+edge_view_required_data: 28
+edge_view_required_data: 29
+edge_view_required_data: 25
+edge_view_required_data: 18
+edge_view_required_data:  25.5
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 6.652092629515526
+second_moment_service_time_of_types: 
+ 0.00032013733955035025
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 37
+edge_view_required_data: 24
+edge_view_required_data: 31
+edge_view_required_data: 29
+edge_view_required_data: 35
+edge_view_required_data: 35
+edge_view_required_data: 31
+edge_view_required_data: 31
+edge_view_required_data: 29
+edge_view_required_data: 35
+edge_view_required_data:  31.7
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 6.652092629515526
+second_moment_service_time_of_types: 
+ 0.00032013733955035025
+
+
+data_size_of_types:  4.528162913162762
+data_types_in_vehicle:  8
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+data_types_in_vehicle:  5
+data_types_in_vehicle:  6
+data_types_in_vehicle:  3
+data_types_in_vehicle:  4
+data_types_in_vehicle:  3
+data_types_in_vehicle:  6
+data_types_in_vehicle:  4
+sum_of_data_types_in_vehicles:  4.9
+edge_view_required_data: 40
+edge_view_required_data: 34
+edge_view_required_data: 36
+edge_view_required_data: 32
+edge_view_required_data: 43
+edge_view_required_data: 42
+edge_view_required_data: 38
+edge_view_required_data: 35
+edge_view_required_data: 38
+edge_view_required_data: 38
+edge_view_required_data:  37.6
+sum_edge_view_in_edge_node:  1.43
+mean_service_time_of_types: 
+ 6.652092629515526
+second_moment_service_time_of_types: 
+ 0.00032013733955035025

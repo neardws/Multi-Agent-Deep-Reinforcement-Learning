@@ -107,11 +107,11 @@ class ExperimentConfig(object):
 
         threshold_data_types_in_vehicles=0.3,
         data_size_low_bound=100,  # Bytes
-        data_size_up_bound=1 * 1024 * 1024,  # Bytes
+        data_size_up_bound=10 * 1024 * 1024,  # Bytes
 
         edge_view_required_start_time=10,
         threshold_edge_views_in_edge_node=0.15,
-        threshold_view_required_data=0.6,
+        threshold_view_required_data=0.5,
 
         arrival_rate_low_bound=0.1,
         arrival_rate_up_bound=1,

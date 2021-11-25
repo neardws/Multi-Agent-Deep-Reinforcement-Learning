@@ -87,14 +87,18 @@ class HMAIMD_Agent(object):
         Some parameters
         """
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.game_full_episode_scores = []
         self.rolling_results = []
         self.max_rolling_score_seen = float("-inf")  # max score in one episode
@@ -569,18 +573,13 @@ class HMAIMD_Agent(object):
         number_of_critic_nodes_buffer = self.agent_config.critic_experience_replay_buffer_batch_size * self.agent_config.hyperparameters["critic_nodes_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["critic_nodes_update_every_n_steps"])
         number_of_actor_reward_buffer = self.agent_config.actor_reward_replay_buffer_batch_size * self.agent_config.hyperparameters["actor_reward_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["actor_reward_update_every_n_steps"])
         number_of_critic_reward_buffer = self.agent_config.critic_reward_replay_buffer_batch_size * self.agent_config.hyperparameters["critic_reward_learning_updates_per_learning_session"] * (self.environment.max_episode_length / self.agent_config.hyperparameters["critic_reward_update_every_n_steps"])
-        
-        # IDDPG
-        # TODO
-        # number_of_actor_reward_buffer = 0
-        # number_of_critic_reward_buffer = 0
 
         max_buffer_number = max([number_of_actor_nodes_buffer, number_of_critic_nodes_buffer, number_of_actor_reward_buffer, number_of_critic_reward_buffer])
         
         # nodes_start_episode_num = max_buffer_number * 1
         # reward_start_episode_num = max_buffer_number * 1
 
-        nodes_start_episode_num = max_buffer_number * 2.0
+        nodes_start_episode_num = max_buffer_number * 1
         reward_start_episode_num = max_buffer_number * 0.5
 
         during_episode_number = 1
@@ -889,6 +888,9 @@ class HMAIMD_Agent(object):
                     arrival_rate[sensor_node_index][data_type_index] = \
                         float(sensor_node_action_of_arrival_rate[data_type_index]) / \
                         self.environment.experiment_config.mean_service_time_of_types[sensor_node_index][data_type_index]
+                else:
+                    priority[sensor_node_index][data_type_index] = 0
+                    arrival_rate[sensor_node_index][data_type_index] = 0
 
         edge_nodes_bandwidth = self.edge_node_action.cpu().data.numpy() * self.environment.experiment_config.bandwidth
 
@@ -901,17 +903,22 @@ class HMAIMD_Agent(object):
     def conduct_action(self):
         """Conducts an action in the environment"""
         self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_observation, \
-        self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
-        sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate = self.environment.step(self.action)
+            self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+            sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
+            sum_required_data_number, new_reward = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
+        self.new_total_episode_score_so_far += new_reward
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
         self.total_episode_consistence_so_far += sum_consistence
         self.total_episode_completeness_so_far += sum_completeness
+        self.total_episode_intel_arrival_time += sum_intel_arrival_time
         self.total_episode_queuing_time_so_far += sum_queuing_time
         self.total_episode_transmitting_time_so_far += sum_transmitting_time
         self.total_episode_service_time_so_far += sum_service_time
         self.total_episode_service_rate += sum_service_rate / self.environment.max_episode_length
+        self.total_episode_received_data_number += sum_received_data_number
+        self.total_episode_required_data_number += sum_required_data_number
 
     def reward_function_pick_action(self):
         reward_function_state = torch.cat((self.reward_observation.unsqueeze(0).to(
@@ -930,15 +937,6 @@ class HMAIMD_Agent(object):
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
         self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
 
-        # IDDPG
-        # TODO
-        # self.reward_action = torch.ones(self.environment.experiment_config.vehicle_number+1).float().to(self.device).unsqueeze(0)
-
-        # self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
-        # self.edge_node_reward = self.reward * self.reward_action[0][-1]
-
-        # self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
-        # self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
 
     def save_actor_experience(self):
         """
@@ -1040,10 +1038,6 @@ class HMAIMD_Agent(object):
     def time_for_actor_of_reward_function_to_learn(self, reward_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        # IDDPG
-        # TODO
-        # return False
-
         start_episode_index = reward_start_episode_num / self.environment.experiment_config.max_episode_length
         if self.environment.episode_index >= start_episode_index:
             if self.environment.episode_index >= 500:
@@ -1059,11 +1053,7 @@ class HMAIMD_Agent(object):
 
     def time_for_critic_of_reward_function_to_learn(self, reward_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
-        and it is time to learn for the actor and critic of sensor nodes and edge node"""
-        # IDDPG
-        # TODO
-        # return False
-        
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""        
         start_episode_index = reward_start_episode_num / self.environment.experiment_config.max_episode_length
         if self.environment.episode_index >= start_episode_index:
             if self.environment.episode_index >= 500:
@@ -1082,6 +1072,7 @@ class HMAIMD_Agent(object):
                                                   edge_node_observations: Tensor,
                                                   sensor_nodes_actions: list,
                                                   next_sensor_nodes_observations: list):
+        time_start = time.time()
         actor_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
 
         """Runs a learning iteration for the critic of sensor nodes"""
@@ -1189,9 +1180,11 @@ class HMAIMD_Agent(object):
             self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
                                                self.actor_target_of_sensor_nodes[sensor_node_index],
                                                self.hyperparameters["Actor_of_Sensor"]["tau"])
+        time_end = time.time()
 
+        # print("Actor of sensor nodes took: ", time_end - time_start, " seconds")
         """Runs a learning iteration for the actor of edge node"""
-
+        time_start = time.time()
         """Calculates the loss for the actor"""
         actions_predicted_of_edge_node = self.actor_local_of_edge_node(
             torch.cat((edge_node_observations, sensor_nodes_actions_tensor), dim=1))
@@ -1215,7 +1208,8 @@ class HMAIMD_Agent(object):
                                     self.hyperparameters["Actor_of_Edge"]["gradient_clipping_norm"])
         self.soft_update_of_target_network(self.actor_local_of_edge_node, self.actor_target_of_edge_node,
                                            self.hyperparameters["Actor_of_Edge"]["tau"])
-
+        time_end = time.time()
+        # print("Actor of edge node took: ", time_end - time_start, " seconds")
         return actor_loss_of_sensor_nodes, actor_loss_of_edge_node
 
     def critic_sensor_nodes_and_edge_node_to_learn(self,
@@ -1228,6 +1222,7 @@ class HMAIMD_Agent(object):
                                                    next_sensor_nodes_observations: list,
                                                    next_edge_node_observations: Tensor,
                                                    dones: Tensor):
+        time_start = time.time()
         critic_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
 
         """Runs a learning iteration for the critic of sensor nodes"""
@@ -1341,7 +1336,10 @@ class HMAIMD_Agent(object):
             self.soft_update_of_target_network(self.critic_local_of_sensor_nodes[sensor_node_index],
                                                self.critic_target_of_sensor_nodes[sensor_node_index],
                                                self.hyperparameters["Critic_of_Sensor"]["tau"])
+        time_end = time.time()
+        # print("Time taken for sensor nodes critic update: ", time_end - time_start)
 
+        time_start = time.time()
         """Runs a learning iteration for the critic of edge node"""
         """Computes the loss for the critic"""
         with torch.no_grad():
@@ -1375,7 +1373,8 @@ class HMAIMD_Agent(object):
         self.soft_update_of_target_network(
             self.critic_local_of_edge_node, self.critic_target_of_edge_node,
             self.hyperparameters["Critic_of_Edge"]["tau"])
-
+        time_end = time.time()
+        # print("Time taken for edge critic update: ", time_end - time_start)
         return critic_loss_of_sensor_nodes, critic_loss_of_edge_node
 
     def actor_reward_function_to_learn(self,
@@ -1479,10 +1478,28 @@ class HMAIMD_Agent(object):
             self.config_environment(environment)
 
         try:
-            result_data = pd.read_csv(result_name, names=["Epoch index", "age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate"], header=0)
+            result_data = pd.read_csv(
+                result_name, 
+                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time",  "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
+                header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "age_of_view": "", "timeliness": "", "consistence": "", "completeness": "", "queuing_time": "", "transmitting_time": "", "service_time": "", "service_rate": ""},
-                                       index=[0])
+            result_data = pd.DataFrame(
+                data=None, 
+                columns={
+                    "Epoch index": "", 
+                    "age_of_view": "", 
+                    "new_age_of_view": "", 
+                    "timeliness": "", 
+                    "consistence": "", 
+                    "completeness": "",
+                    "intel_arrival_time": "", 
+                    "queuing_time": "", 
+                    "transmitting_time": "", 
+                    "service_time": "", 
+                    "service_rate": "", 
+                    "received_data": "", 
+                    "required_data": ""},
+                index=[0])
 
         for i in range(num_episodes):
             print("*" * 64)
@@ -1492,22 +1509,28 @@ class HMAIMD_Agent(object):
             self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
             self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
             self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
 
             print("Epoch index: ", i)
             print("Total reward: ", self.total_episode_score_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(i),
                 "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
                 "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
                 "queuing_time": str(self.total_episode_queuing_time_so_far),
                 "transmitting_time": str(self.total_episode_transmitting_time_so_far),
                 "service_time": str(self.total_episode_service_time_so_far),
-                "service_rate": str(self.total_episode_service_rate)
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
             }, index=["0"])
             result_data = result_data.append(new_line_in_result, ignore_index=True)
             result_data.to_csv(result_name)
@@ -1521,7 +1544,10 @@ class HMAIMD_Agent(object):
             num_episodes = self.environment.experiment_config.episode_number
 
         try:
-            result_data = pd.read_csv(temple_result_name, names=["Epoch index", "Total reward", "Time taken"], header=0)
+            result_data = pd.read_csv(
+                temple_result_name, 
+                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
+                header=0)
             loss_data = pd.read_csv(temple_loss_name, names=["Epoch index",
                                                              "Actor of V1", "Actor of V2", "Actor of V3",
                                                              "Actor of V4", "Actor of V5", "Actor of V6",
@@ -1534,8 +1560,22 @@ class HMAIMD_Agent(object):
                                                              "Actor of Edge", "Critic of Edge",
                                                              "Actor of Reward", "Critic of Reward"], header=0)
         except FileNotFoundError:
-            result_data = pd.DataFrame(data=None, columns={"Epoch index": "", "Total reward": "", "Time taken": ""},
-                                       index=[0])
+            result_data = pd.DataFrame(
+                data=None, 
+                columns={
+                    "Epoch index": "", 
+                    "age_of_view": "", 
+                    "new_age_of_view": "", 
+                    "timeliness": "", 
+                    "consistence": "", 
+                    "completeness": "", 
+                    "queuing_time": "", 
+                    "transmitting_time": "", 
+                    "service_time": "", 
+                    "service_rate": "", 
+                    "received_data": "", 
+                    "required_data": ""},
+                index=[0])
             loss_data = pd.DataFrame(data=None, columns={"Epoch index": "",
                                                          "Actor of V1": "",
                                                          "Actor of V2": "",
@@ -1571,12 +1611,35 @@ class HMAIMD_Agent(object):
             average_actor_loss_of_edge_node, average_critic_loss_of_edge_node, \
             average_actor_loss_of_reward_node, average_critic_loss_of_reward_node = self.step()
             time_taken = time.time() - start
+            
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
             print("Time taken: ", time_taken)
-            new_line_in_result = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
-                                               "Total reward": str(self.total_episode_score_so_far),
-                                               "Time taken": str(time_taken)}, index=["0"])
+
+            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
+            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+            
+            new_line_in_result = pd.DataFrame({
+                "Epoch index": str(self.environment.episode_index),
+                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "new_age_of_view": str(self.new_total_episode_score_so_far),
+                "timeliness": str(self.total_episode_timeliness_so_far),
+                "consistence": str(self.total_episode_consistence_so_far),
+                "completeness": str(self.total_episode_completeness_so_far),
+                "queuing_time": str(self.total_episode_queuing_time_so_far),
+                "transmitting_time": str(self.total_episode_transmitting_time_so_far),
+                "service_time": str(self.total_episode_service_time_so_far),
+                "service_rate": str(self.total_episode_service_rate),
+                "received_data": str(self.total_episode_received_data_number),
+                "required_data": str(self.total_episode_required_data_number)
+            }, index=["0"])
+
             result_data = result_data.append(new_line_in_result, ignore_index=True)
 
             new_line_in_loss = pd.DataFrame({"Epoch index": str(self.environment.episode_index),
@@ -1732,13 +1795,17 @@ class HMAIMD_Agent(object):
         # assert self.reward_observation.shape[0] == self.environment.get_global_state_size(), "reward_observation is not same"
 
         self.total_episode_score_so_far = 0
+        self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
+        self.total_episode_intel_arrival_time = 0
         self.total_episode_queuing_time_so_far = 0
         self.total_episode_transmitting_time_so_far = 0
         self.total_episode_service_time_so_far = 0
         self.total_episode_service_rate = 0
+        self.total_episode_received_data_number = 0
+        self.total_episode_required_data_number = 0
         self.sensor_exploration_strategy.reset()
         self.edge_exploration_strategy.reset()
