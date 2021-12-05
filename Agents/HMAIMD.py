@@ -207,7 +207,7 @@ class HMAIMD_Agent(object):
         self.actor_local_of_sensor_nodes = [
             self.create_nn(
                 input_dim=self.sensor_observation_size,
-                output_dim=self.sensor_action_size,
+                output_dim=[10, 10],
                 key_to_use="Actor_of_Sensor"
             ) for _ in range(self.environment.experiment_config.vehicle_number)
         ]
@@ -215,7 +215,7 @@ class HMAIMD_Agent(object):
         self.actor_target_of_sensor_nodes = [
             self.create_nn(
                 input_dim=self.sensor_observation_size,
-                output_dim=self.sensor_action_size,
+                output_dim=[10, 10],
                 key_to_use="Actor_of_Sensor"
             ) for _ in range(self.environment.experiment_config.vehicle_number)
         ]
@@ -507,7 +507,7 @@ class HMAIMD_Agent(object):
 
         default_hyperparameter_choices = {"output_activation": None,
                                           "hidden_activations": "relu",
-                                          "dropout": 0,
+                                          "dropout": 0.5,
                                           "initialiser": "default",
                                           "batch_norm": False,
                                           "columns_of_data_to_be_embedded": [],
@@ -600,7 +600,7 @@ class HMAIMD_Agent(object):
         # reward_start_episode_num = max_buffer_number * 0.5
 
         nodes_start_episode_num = 300 * 2
-        reward_start_episode_num = 300 * 30
+        reward_start_episode_num = 300 * 2
 
         during_episode_number = 1
         update_every_n_steps = 300
@@ -804,20 +804,6 @@ class HMAIMD_Agent(object):
                     sensor_action = self.actor_local_of_sensor_nodes[sensor_node_index](sensor_node_observation)
                 self.actor_local_of_sensor_nodes[sensor_node_index].train()  # set the model to training state
 
-                sensor_action_add_noise = self.sensor_exploration_strategy.perturb_action_for_exploration_purposes(
-                    {"action": sensor_action})
-
-                # for action_index in range(self.sensor_action_size):
-                #     self.saved_sensor_nodes_action[sensor_node_index, action_index] = \
-                #         sensor_action_add_noise[0][action_index]
-
-                softmax = torch.nn.Softmax(dim=0).to(self.device)
-                sensor_action = torch.cat(
-                    (softmax(sensor_action_add_noise[0][0:self.environment.experiment_config.data_types_number]),
-                     softmax(sensor_action_add_noise[0][self.environment.experiment_config.data_types_number:
-                                                        self.environment.experiment_config.data_types_number * 2])),
-                    dim=-1).unsqueeze(0)
-
                 for action_index in range(self.sensor_action_size):
                     self.sensor_nodes_action[sensor_node_index, action_index] = \
                         sensor_action[0][action_index]
@@ -866,14 +852,6 @@ class HMAIMD_Agent(object):
         with torch.no_grad():
             edge_action = self.actor_local_of_edge_node(edge_node_state)
         self.actor_local_of_edge_node.train()
-
-        edge_action_add_noise = self.edge_exploration_strategy.perturb_action_for_exploration_purposes(
-            {"action": edge_action})
-
-        # self.saved_edge_node_action = edge_action_add_noise
-
-        softmax = torch.nn.Softmax(dim=-1).to(self.device)
-        edge_action = softmax(edge_action_add_noise)
 
         self.edge_node_action = edge_action
 
@@ -969,32 +947,13 @@ class HMAIMD_Agent(object):
             reward_function_action = self.actor_local_of_reward_function(reward_function_state)
         self.actor_local_of_reward_function.train()
         
-        reward_action_add_noise = self.reward_exploration_strategy.perturb_action_for_exploration_purposes(
-                    {"action": reward_function_action})
-
-        # self.saved_reward_action = reward_action_add_noise
-
-        softmax = torch.nn.Softmax(dim=0).to(self.device)
-        reward_action = softmax(reward_action_add_noise)
-        
-        self.reward_action = reward_action
+        self.reward_action = reward_function_action
 
         self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
         self.edge_node_reward = self.reward * self.reward_action[0][-1]
 
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
         self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
-
-
-        # self.reward_action = torch.ones(self.environment.experiment_config.vehicle_number+1).float().to(self.device).unsqueeze(0)
-
-        # self.saved_reward_action = self.reward_action
-
-        # self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
-        # self.edge_node_reward = self.reward * self.reward_action[0][-1]
-
-        # self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
-        # self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
 
 
     def save_actor_experience(self):

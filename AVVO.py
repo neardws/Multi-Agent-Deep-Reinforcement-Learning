@@ -42,11 +42,11 @@ def init(environments_file_name):
         # uses a softmax activation function
 
         "Actor_of_Sensor": {
-            "learning_rate": 1e-10,
+            "learning_rate": 1e-5,
             "linear_hidden_units": [64, 32],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": ["softmax", "softmax"],
             "batch_norm": False,
-            "tau": 1e-10,
+            "tau": 1e-5,
             "gradient_clipping_norm": 5,
             "noise_seed": 2980004788,
             "mu": 0.0,
@@ -57,20 +57,20 @@ def init(environments_file_name):
         },
 
         "Critic_of_Sensor": {
-            "learning_rate": 1e-9,
+            "learning_rate": 1e-4,
             "linear_hidden_units": [128, 64],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 1e-9,
+            "tau": 1e-4,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Edge": {
-            "learning_rate": 1e-10,
+            "learning_rate": 1e-5,
             "linear_hidden_units": [256, 128],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": "softmax",
             "batch_norm": False,
-            "tau": 1e-10,
+            "tau": 1e-5,
             "gradient_clipping_norm": 5,
             "noise_seed": 3366344317,
             "mu": 0.0,
@@ -81,20 +81,20 @@ def init(environments_file_name):
         },
 
         "Critic_of_Edge": {
-            "learning_rate": 1e-10,
+            "learning_rate": 1e-4,
             "linear_hidden_units": [256, 128], 
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 1e-10,
+            "tau": 1e-4,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 1e-7,
+            "learning_rate": 1e-5,
             "linear_hidden_units": [256, 128],
-            "final_layer_activation": "tanh",
+            "final_layer_activation": "softmax",
             "batch_norm": False,
-            "tau": 1e-7,
+            "tau": 1e-5,
             "gradient_clipping_norm": 5,
             "action_noise_std": 1,
             "action_noise_clipping_range": 1.0,
@@ -105,11 +105,11 @@ def init(environments_file_name):
         },
 
         "Critic_of_Reward": {
-            "learning_rate": 1e-6,
+            "learning_rate": 1e-4,
             "linear_hidden_units": [256, 128],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 1e-6,
+            "tau": 1e-4,
             "gradient_clipping_norm": 5
         },
 
@@ -428,7 +428,7 @@ if __name__ == '__main__':
     # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
     
     # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_3_01.pkl")
-    run(given_list_file_name='/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1205_Agents/1116/0800/bandwidth_3_datasize_3_01/2021-12-05-15-27-34-list_file_name.pkl')
+    run(given_list_file_name='/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1203_Agents/1116/0800/bandwidth_3_datasize_3_01/2021-12-05-16-57-01-list_file_name.pkl')
 
     # run(rerun=True, given_list_file_name='2021-10-25-22-33-35-list_file_name.pkl')
 
