@@ -68,9 +68,17 @@ class HMAIMD_Agent(object):
         self.global_action = None
         self.reward_action = None
 
+        self.last_last_reward_observation = None
+        self.last_last_global_action = None  # Combine the Tensor sensor nodes action and edge node action
+        self.last_last_reward_action = None
+
         self.sensor_nodes_observation = None
         self.edge_node_observation = None
 
+        # self.saved_reward_action = None
+        # self.saved_sensor_nodes_action = None
+        # self.saved_edge_node_action = None
+        
         self.sensor_nodes_action = None
         self.edge_node_action = None
 
@@ -88,6 +96,8 @@ class HMAIMD_Agent(object):
         """
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
+        self.last_total_episode_score_so_far = 0
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
@@ -170,6 +180,13 @@ class HMAIMD_Agent(object):
             size=self.edge_action_size,
             hyperparameters=self.hyperparameters,
             key_to_use="Actor_of_Edge",
+            device=self.device
+        )
+        
+        self.reward_exploration_strategy = Gaussian_Exploration(
+            size=self.reward_action_size,
+            hyperparameters=self.hyperparameters,
+            key_to_use="Actor_of_Reward",
             device=self.device
         )
 
@@ -579,8 +596,11 @@ class HMAIMD_Agent(object):
         # nodes_start_episode_num = max_buffer_number * 1
         # reward_start_episode_num = max_buffer_number * 1
 
-        nodes_start_episode_num = max_buffer_number * 1
-        reward_start_episode_num = max_buffer_number * 0.5
+        # nodes_start_episode_num = max_buffer_number * 0.01
+        # reward_start_episode_num = max_buffer_number * 0.5
+
+        nodes_start_episode_num = 300 * 2
+        reward_start_episode_num = 300 * 30
 
         during_episode_number = 1
         update_every_n_steps = 300
@@ -596,8 +616,10 @@ class HMAIMD_Agent(object):
                 self.reward_function_pick_action()
                 self.save_actor_experience()
                 self.save_critic_experience()
+
+                # if self.time_to_save_reward_experiences():
                 self.save_actor_reward_experience()
-                self.save_critic_reward_experience()
+                self.save_critic_reward_experience() 
                 
                 if self.time_for_actor_of_sensor_nodes_and_edge_node_to_learn(nodes_start_episode_num, during_episode_number, update_every_n_steps):
                     # print("time_for_actor_of_sensor_nodes_and_edge_node_to_learn")
@@ -708,9 +730,18 @@ class HMAIMD_Agent(object):
                     average_critic_loss_of_reward_node += one_time_average_critic_loss_of_reward_node
 
                 """Renew by reward function"""
+                if self.last_reward_observation is not None:
+                    self.last_last_reward_observation = self.last_reward_observation.clone().detach()
+                if self.last_global_action is not None:
+                    self.last_last_global_action = self.last_global_action.clone().detach()
+                if self.last_reward_action is not None:
+                    self.last_last_reward_action = self.last_reward_action.clone().detach()
+
                 self.last_reward_observation = self.reward_observation.clone().detach()
                 self.last_global_action = self.global_action.clone().detach()
                 self.last_reward_action = self.reward_action.clone().detach()
+
+                # self.last_reward_action = self.saved_reward_action.clone().detach()
 
                 """Renew by environment"""
                 self.sensor_nodes_observation = self.next_sensor_nodes_observation.clone().detach()
@@ -776,6 +807,10 @@ class HMAIMD_Agent(object):
                 sensor_action_add_noise = self.sensor_exploration_strategy.perturb_action_for_exploration_purposes(
                     {"action": sensor_action})
 
+                # for action_index in range(self.sensor_action_size):
+                #     self.saved_sensor_nodes_action[sensor_node_index, action_index] = \
+                #         sensor_action_add_noise[0][action_index]
+
                 softmax = torch.nn.Softmax(dim=0).to(self.device)
                 sensor_action = torch.cat(
                     (softmax(sensor_action_add_noise[0][0:self.environment.experiment_config.data_types_number]),
@@ -834,6 +869,8 @@ class HMAIMD_Agent(object):
 
         edge_action_add_noise = self.edge_exploration_strategy.perturb_action_for_exploration_purposes(
             {"action": edge_action})
+
+        # self.saved_edge_node_action = edge_action_add_noise
 
         softmax = torch.nn.Softmax(dim=-1).to(self.device)
         edge_action = softmax(edge_action_add_noise)
@@ -903,11 +940,13 @@ class HMAIMD_Agent(object):
     def conduct_action(self):
         """Conducts an action in the environment"""
         self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_observation, \
-            self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+            view_required_number, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
             sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
             sum_required_data_number, new_reward = self.environment.step(self.action)
+        
         self.total_episode_score_so_far += self.reward
         self.new_total_episode_score_so_far += new_reward
+        self.total_episode_view_required_number_so_far += view_required_number
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
         self.total_episode_consistence_so_far += sum_consistence
@@ -929,13 +968,33 @@ class HMAIMD_Agent(object):
         with torch.no_grad():
             reward_function_action = self.actor_local_of_reward_function(reward_function_state)
         self.actor_local_of_reward_function.train()
-        self.reward_action = reward_function_action
+        
+        reward_action_add_noise = self.reward_exploration_strategy.perturb_action_for_exploration_purposes(
+                    {"action": reward_function_action})
+
+        # self.saved_reward_action = reward_action_add_noise
+
+        softmax = torch.nn.Softmax(dim=0).to(self.device)
+        reward_action = softmax(reward_action_add_noise)
+        
+        self.reward_action = reward_action
 
         self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
         self.edge_node_reward = self.reward * self.reward_action[0][-1]
 
         self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
         self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
+
+
+        # self.reward_action = torch.ones(self.environment.experiment_config.vehicle_number+1).float().to(self.device).unsqueeze(0)
+
+        # self.saved_reward_action = self.reward_action
+
+        # self.sensor_nodes_reward = self.reward * self.reward_action[0][:self.environment.experiment_config.vehicle_number]
+        # self.edge_node_reward = self.reward * self.reward_action[0][-1]
+
+        # self.sensor_nodes_reward = self.sensor_nodes_reward.unsqueeze(0)
+        # self.edge_node_reward = self.edge_node_reward.unsqueeze(0).unsqueeze(0)
 
 
     def save_actor_experience(self):
@@ -951,6 +1010,7 @@ class HMAIMD_Agent(object):
         self.actor_experience_replay_buffer.add_experience(
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
             edge_node_observation=self.edge_node_observation.clone().detach(),
+            # sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
             sensor_nodes_action=self.sensor_nodes_action.clone().detach(),
             next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach())
 
@@ -968,6 +1028,8 @@ class HMAIMD_Agent(object):
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
             edge_node_observation=self.edge_node_observation.clone().detach(),
             sensor_nodes_action=self.sensor_nodes_action.clone().detach(),
+            # sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
+            # edge_node_action=self.saved_edge_node_action.clone().detach(),
             edge_node_action=self.edge_node_action.clone().detach(),
             sensor_nodes_reward=self.sensor_nodes_reward.clone().detach(),
             edge_node_reward=self.edge_node_reward.clone().detach(),
@@ -993,14 +1055,15 @@ class HMAIMD_Agent(object):
         if self.last_reward_observation is None:
             pass
         else:
-            self.critic_reward_replay_buffer.add_experience(
-                last_reward_observation=self.last_reward_observation.clone().detach(),
-                last_global_action=self.last_global_action.clone().detach(),
-                last_reward_action=self.last_reward_action.clone().detach(),
-                reward=self.reward,
-                reward_observation=self.reward_observation.clone().detach(),
-                global_action=self.global_action.clone().detach(),
-                done=self.done)
+            if self.total_episode_view_required_number_so_far != 0:
+                self.critic_reward_replay_buffer.add_experience(
+                    last_reward_observation=self.last_reward_observation.clone().detach(),
+                    last_global_action=self.last_global_action.clone().detach(),
+                    last_reward_action=self.last_reward_action.clone().detach(),
+                    reward=self.total_episode_score_so_far / self.total_episode_view_required_number_so_far,
+                    reward_observation=self.reward_observation.clone().detach(),
+                    global_action=self.global_action.clone().detach(),
+                    done=self.done)
 
     def time_for_actor_of_sensor_nodes_and_edge_node_to_learn(self, nodes_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
@@ -1035,13 +1098,18 @@ class HMAIMD_Agent(object):
         else:
             return False
 
+    def time_to_save_reward_experiences(self):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        return self.environment.episode_step % self.hyperparameters["critic_nodes_update_every_n_steps"] == 0
+
     def time_for_actor_of_reward_function_to_learn(self, reward_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
         and it is time to learn for the actor and critic of sensor nodes and edge node"""
         start_episode_index = reward_start_episode_num / self.environment.experiment_config.max_episode_length
         if self.environment.episode_index >= start_episode_index:
-            if self.environment.episode_index >= 500:
-                return False
+            # if self.environment.episode_index >= 500:
+            #     return False
             added_episode_index = self.environment.episode_index - start_episode_index
             return self.environment.episode_step % self.hyperparameters["actor_reward_update_every_n_steps"] == 0
             # if (added_episode_index / during_episode) % 1 <= 5 / 150:
@@ -1053,11 +1121,11 @@ class HMAIMD_Agent(object):
 
     def time_for_critic_of_reward_function_to_learn(self, reward_start_episode_num, during_episode, update_every_n_steps):
         """Returns boolean indicating whether there are enough experiences to learn from
-        and it is time to learn for the actor and critic of sensor nodes and edge node"""        
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""  
         start_episode_index = reward_start_episode_num / self.environment.experiment_config.max_episode_length
         if self.environment.episode_index >= start_episode_index:
-            if self.environment.episode_index >= 500:
-                return False
+            # if self.environment.episode_index >= 500:
+            #     return False
             added_episode_index = self.environment.episode_index - start_episode_index
             return self.environment.episode_step % self.hyperparameters["actor_reward_update_every_n_steps"] == 0
             # if (added_episode_index / during_episode) % 1 <= 5 / 150:
@@ -1503,23 +1571,25 @@ class HMAIMD_Agent(object):
 
         for i in range(num_episodes):
             print("*" * 64)
+            self.last_total_episode_score_so_far = self.total_episode_score_so_far
             self.reset_game()
             self.target_step()
-
-            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
-            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_score_so_far /= self.total_episode_view_required_number_so_far
+            self.new_total_episode_score_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_timeliness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_consistence_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_completeness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_intel_arrival_time /= self.total_episode_view_required_number_so_far
+            self.total_episode_queuing_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_transmitting_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_service_time_so_far /= self.total_episode_view_required_number_so_far
 
             print("Epoch index: ", i)
             print("Total reward: ", self.total_episode_score_so_far)
             print("new_age_of_view: ", self.new_total_episode_score_so_far)
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(i),
-                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "age_of_view": str(self.total_episode_score_so_far),
                 "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
@@ -1546,7 +1616,7 @@ class HMAIMD_Agent(object):
         try:
             result_data = pd.read_csv(
                 temple_result_name, 
-                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
+                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
                 header=0)
             loss_data = pd.read_csv(temple_loss_name, names=["Epoch index",
                                                              "Actor of V1", "Actor of V2", "Actor of V3",
@@ -1569,6 +1639,7 @@ class HMAIMD_Agent(object):
                     "timeliness": "", 
                     "consistence": "", 
                     "completeness": "", 
+                    "intel_arrival_time": "", 
                     "queuing_time": "", 
                     "transmitting_time": "", 
                     "service_time": "", 
@@ -1612,26 +1683,29 @@ class HMAIMD_Agent(object):
             average_actor_loss_of_reward_node, average_critic_loss_of_reward_node = self.step()
             time_taken = time.time() - start
             
+            self.total_episode_score_so_far /= self.total_episode_view_required_number_so_far
+            self.new_total_episode_score_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_timeliness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_consistence_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_completeness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_intel_arrival_time /= self.total_episode_view_required_number_so_far
+            self.total_episode_queuing_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_transmitting_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_service_time_so_far /= self.total_episode_view_required_number_so_far
+
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
             print("new_age_of_view: ", self.new_total_episode_score_so_far)
             print("Time taken: ", time_taken)
 
-            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
-            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
-            
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(self.environment.episode_index),
-                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "age_of_view": str(self.total_episode_score_so_far),
                 "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
                 "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
                 "queuing_time": str(self.total_episode_queuing_time_so_far),
                 "transmitting_time": str(self.total_episode_transmitting_time_so_far),
                 "service_time": str(self.total_episode_service_time_so_far),
@@ -1770,6 +1844,11 @@ class HMAIMD_Agent(object):
         """dict() parameters"""
         self.action = None
         """torch.Tensor parameters"""
+
+        self.last_last_reward_observation = None
+        self.last_last_global_action = None  # Combine the Tensor sensor nodes action and edge node action
+        self.last_last_reward_action = None
+
         self.last_reward_observation = None
         self.last_global_action = None  # Combine the Tensor sensor nodes action and edge node action
         self.last_reward_action = None
@@ -1777,9 +1856,13 @@ class HMAIMD_Agent(object):
         self.global_action = None
         self.reward_action = None
 
+        # self.saved_sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.experiment_config.vehicle_number,
+                                                            #         self.sensor_action_size),
+                                                            #  dtype=np.float)).float().to(self.device)
         self.sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.experiment_config.vehicle_number,
                                                                     self.sensor_action_size),
                                                              dtype=np.float)).float().to(self.device)
+        # self.saved_edge_node_action = None
         self.edge_node_action = None
         self.sensor_nodes_reward = None
         self.edge_node_reward = None
@@ -1796,6 +1879,7 @@ class HMAIMD_Agent(object):
 
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
@@ -1809,3 +1893,4 @@ class HMAIMD_Agent(object):
         self.total_episode_required_data_number = 0
         self.sensor_exploration_strategy.reset()
         self.edge_exploration_strategy.reset()
+        self.reward_exploration_strategy.reset()

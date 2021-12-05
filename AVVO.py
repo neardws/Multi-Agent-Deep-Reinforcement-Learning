@@ -42,72 +42,74 @@ def init(environments_file_name):
         # uses a softmax activation function
 
         "Actor_of_Sensor": {
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-10,
             "linear_hidden_units": [64, 32],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.0001,
+            "tau": 1e-10,
             "gradient_clipping_norm": 5,
-            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+            "noise_seed": 2980004788,
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25,
-            "action_noise_std": 0.001,
+            "action_noise_std": 1,
             "action_noise_clipping_range": 1.0
         },
 
         "Critic_of_Sensor": {
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-9,
             "linear_hidden_units": [128, 64],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.0001,
+            "tau": 1e-9,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Edge": {
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-10,
             "linear_hidden_units": [256, 128],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.0001,
+            "tau": 1e-10,
             "gradient_clipping_norm": 5,
-            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+            "noise_seed": 3366344317,
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25,
-            "action_noise_std": 0.001,
+            "action_noise_std": 1,
             "action_noise_clipping_range": 1.0
         },
 
         "Critic_of_Edge": {
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-10,
             "linear_hidden_units": [256, 128], 
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.0001,
+            "tau": 1e-10,
             "gradient_clipping_norm": 5
         },
 
         "Actor_of_Reward": {
-            "learning_rate": 1e-5,
+            "learning_rate": 1e-7,
             "linear_hidden_units": [256, 128],
-            "final_layer_activation": "softmax",
+            "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.0001,
+            "tau": 1e-7,
             "gradient_clipping_norm": 5,
-            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
+            "action_noise_std": 1,
+            "action_noise_clipping_range": 1.0,
+            "noise_seed": 3658666634,
             "mu": 0.0,
             "theta": 0.15,
             "sigma": 0.25
         },
 
         "Critic_of_Reward": {
-            "learning_rate": 1e-4,
+            "learning_rate": 1e-6,
             "linear_hidden_units": [256, 128],
             "final_layer_activation": "tanh",
             "batch_norm": False,
-            "tau": 0.0001,
+            "tau": 1e-6,
             "gradient_clipping_norm": 5
         },
 
@@ -118,8 +120,8 @@ def init(environments_file_name):
         "critic_reward_update_every_n_steps": 300,  # 20 times in one episode
         "actor_nodes_learning_updates_per_learning_session": 1,
         "critic_nodes_learning_updates_per_learning_session": 1,
-        "actor_reward_learning_updates_per_learning_session": 160,
-        "critic_reward_learning_updates_per_learning_session": 160,
+        "actor_reward_learning_updates_per_learning_session": 1,
+        "critic_reward_learning_updates_per_learning_session": 1,
         "clip_rewards": False}
 
     agent_config.config(hyperparameters=hyperparameters)
@@ -206,8 +208,7 @@ def run(first=False, rerun=False, environments_file_name=None, given_list_file_n
                                 actor_nodes_name=load_name(new_list_file_name, 'actor_nodes_name'), 
                                 actor_edge_name=load_name(new_list_file_name, 'actor_edge_name'))
         else:
-            correct_list_file_name = project_dir + data + given_list_file_name
-            list_file = load_obj(name=correct_list_file_name)
+            list_file = load_obj(name=given_list_file_name)
             temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
             temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
             temple_agent.run_n_episodes(temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
@@ -315,21 +316,21 @@ def run_again(temple_agent_config_file_name, temple_agent_file_name):
                                 agent_name=load_name(new_list_file_name, 'agent_name'))
 
 def generate_environment():
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_10.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1000_bandwidth_3_threshold_05_01.pkl"
+    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_08_processed.csv"
+    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_3_01.pkl"
     save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_12.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1200_bandwidth_3_threshold_05_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_12.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1200_bandwidth_3_threshold_05_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_18.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1800_bandwidth_3_threshold_05_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_18.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1116_1800_bandwidth_3_threshold_05_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
 
-    trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_22.csv"
-    environments_file_name = project_dir + "/Environments/Data/vehicle_1116_2200_bandwidth_3_threshold_05_01.pkl"
-    save_environment(trajectories_file_name, environments_file_name)
+    # trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_22.csv"
+    # environments_file_name = project_dir + "/Environments/Data/vehicle_1116_2200_bandwidth_3_threshold_05_01.pkl"
+    # save_environment(trajectories_file_name, environments_file_name)
 
     # environments_file_name = project_dir + "/Environments/Data/vehicle_1117_0800_bandwidth_3_threshold_015_02.pkl"
     # save_environment(trajectories_file_name, environments_file_name)
@@ -426,7 +427,8 @@ if __name__ == '__main__':
     
     # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
     
-    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_3_01.pkl")
+    run(given_list_file_name='/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1205_Agents/1116/0800/bandwidth_3_datasize_3_01/2021-12-05-15-27-34-list_file_name.pkl')
 
     # run(rerun=True, given_list_file_name='2021-10-25-22-33-35-list_file_name.pkl')
 

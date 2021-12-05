@@ -862,12 +862,12 @@ if __name__ == '__main__':
     # run_ddpg_algorithms(given_list_file_name='2021-10-19-16-54-31-list_file_name.pkl')
 
     # data = '/Data/Data1110_Agents/1116/0800/ddpg/bandwidth_3_threshold_05_01/'
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_4_threshold_05_01.pkl"
-    # data = '/Data/Data1110_Agents/1116/0800/bandwidth_4_threshold_05_01/'
-    # ddpg_result_name = project_dir + data + "ddpg_result_10.csv"
-    # ddpg_agent_name = project_dir + data + "ddpg_10.pkl"
-    # num_episodes = 2500
-    # run_ddpg_algorithms(environment_file_name, ddpg_result_name, ddpg_agent_name, num_episodes)
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_3_01.pkl"
+    data = '/Data'
+    ddpg_result_name = project_dir + data + "ddpg_result_1.csv"
+    ddpg_agent_name = project_dir + data + "ddpg_1.pkl"
+    num_episodes = 2500
+    run_ddpg_algorithms(environment_file_name, ddpg_result_name, ddpg_agent_name, num_episodes)
     
     # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_threshold_05_01.pkl"
     # data = '/Data/Data1110_Agents/1116/0800/bandwidth_5_threshold_05_01/'

@@ -32,6 +32,7 @@ class DDPG_Agent(object):
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0
         self.total_episode_completeness_so_far = 0
@@ -50,7 +51,7 @@ class DDPG_Agent(object):
         self.hyperparameters = {
 
             "Actor_of_DDPG": {
-                "learning_rate": 1e-5,
+                "learning_rate": 1e-4,
                 "linear_hidden_units":
                     [512,
                     256
@@ -72,7 +73,7 @@ class DDPG_Agent(object):
             },
 
             "Critic_of_DDPG": {
-                "learning_rate": 1e-4,
+                "learning_rate": 1e-3,
                 "linear_hidden_units":
                     [512,
                     256],
@@ -189,7 +190,7 @@ class DDPG_Agent(object):
                 self.conduct_action()
                 self.save_experience()
                 if self.time_for_learn():
-                    for i in range(1):
+                    for i in range(32):
                         observations, actions, rewards, next_observations, dones = self.replay_buffer.sample()
                         self.actor_and_critic_to_learn(observations, actions, rewards, next_observations, dones)
                 my_bar.update(n=1)
@@ -242,11 +243,14 @@ class DDPG_Agent(object):
             "arrival_rate": arrival_rate,
             "bandwidth": edge_nodes_bandwidth
         }
-        _, _, self.next_observation, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+        
+        _, _, self.next_observation, view_required_number, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
         sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
         sum_required_data_number, new_reward = self.environment.step(dict_action)
+        
         self.total_episode_score_so_far += self.reward
         self.new_total_episode_score_so_far += new_reward
+        self.total_episode_view_required_number_so_far += view_required_number
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
         self.total_episode_consistence_so_far += sum_consistence
@@ -273,14 +277,14 @@ class DDPG_Agent(object):
 
     def time_for_learn(self):
         return len(self.replay_buffer) > (
-                256 * 10) and \
+                256) and \
                self.environment.episode_step % 300 == 0
 
     def actor_and_critic_to_learn(self, observations, actions, rewards, next_observations, dones):
         with torch.no_grad():
             actions_next = self.actor_target_of_ddpg(next_observations)
             critic_targets_next = self.critic_target_of_ddpg(torch.cat((next_observations, actions_next), 1))
-            critic_targets = rewards + (0.996 * critic_targets_next * (1.0 - dones))
+            critic_targets = rewards + (0.95 * critic_targets_next * (1.0 - dones))
 
         critic_expected = self.critic_local_of_ddpg(torch.cat((observations, actions), 1))
         critic_loss = functional.mse_loss(critic_expected, critic_targets)
@@ -363,22 +367,25 @@ class DDPG_Agent(object):
             self.reset_game()
             self.step()
             time_taken = time.time() - start
+            
+            self.total_episode_score_so_far /= self.total_episode_view_required_number_so_far
+            self.new_total_episode_score_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_timeliness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_consistence_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_completeness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_intel_arrival_time /= self.total_episode_view_required_number_so_far
+            self.total_episode_queuing_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_transmitting_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_service_time_so_far /= self.total_episode_view_required_number_so_far
+
             print("Epoch index: ", self.environment.episode_index)
             print("Total reward: ", self.total_episode_score_so_far)
             print("new_age_of_view: ", self.new_total_episode_score_so_far)
             print("Time taken: ", time_taken)
-            
-            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
-            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
 
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(self.environment.episode_index),
-                "age_of_view": str(self.total_episode_age_of_view_so_far),
+                "age_of_view": str(self.total_episode_score_so_far),
                 "new_age_of_view": str(self.new_total_episode_score_so_far),
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
@@ -436,6 +443,7 @@ class DDPG_Agent(object):
         self.action = None
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_age_of_view_so_far = 0
         self.total_episode_timeliness_so_far = 0
         self.total_episode_consistence_so_far = 0

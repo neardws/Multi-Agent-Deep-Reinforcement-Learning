@@ -78,6 +78,7 @@ class ExperimentConfig(object):
 
         self.noise_uncertainty_low_bound = None
         self.noise_uncertainty_up_bound = None
+        self.noise_uncertainty_seed = None
 
         self.trajectories_predicted_time = None
 
@@ -98,19 +99,26 @@ class ExperimentConfig(object):
 
         time_start=1479031200,
 
-        episode_number=5000,
+        episode_number=50000,
         max_episode_length=300,
 
         vehicle_number=10,
         data_types_number=10,
         edge_views_number=10,
 
+        seed_data_types_in_vehicles=989785492,
         threshold_data_types_in_vehicles=0.3,
+
+        seed_data_size_of_types=4181331204,
         data_size_low_bound=100,  # Bytes
-        data_size_up_bound=10 * 1024 * 1024,  # Bytes
+        data_size_up_bound=1 * 1024 * 1024,  # Bytes
 
         edge_view_required_start_time=10,
+
+        seed_edge_views_in_edge_node=1053198634,
         threshold_edge_views_in_edge_node=0.15,
+
+        seed_view_required_data=752478356,
         threshold_view_required_data=0.5,
 
         arrival_rate_low_bound=0.1,
@@ -127,8 +135,10 @@ class ExperimentConfig(object):
         second_moment_channel_fading_gain=0.4,
         path_loss_exponent=3,
 
+        noise_uncertainty_seed=1412334759,
         noise_uncertainty_low_bound=1,  # dB
         noise_uncertainty_up_bound=3,  # dB
+        
         trajectories_predicted_time=10,
         rolling_score_window=100,
 
@@ -157,18 +167,18 @@ class ExperimentConfig(object):
         self.time_slots_number = max_episode_length  # equal to max_episode_length
         self.edge_views_number = edge_views_number
 
-        self.seed_data_types_in_vehicles = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_data_types_in_vehicles = seed_data_types_in_vehicles
         self.threshold_data_types_in_vehicles = threshold_data_types_in_vehicles
 
-        self.seed_data_size_of_types = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_data_size_of_types = seed_data_size_of_types
         self.data_size_low_bound = data_size_low_bound
         self.data_size_up_bound = data_size_up_bound
 
-        self.seed_edge_views_in_edge_node = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_edge_views_in_edge_node = seed_edge_views_in_edge_node
         self.edge_view_required_start_time = edge_view_required_start_time
         self.threshold_edge_views_in_edge_node = threshold_edge_views_in_edge_node
 
-        self.seed_view_required_data = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_view_required_data = seed_view_required_data
         self.threshold_view_required_data = threshold_view_required_data
 
         """The parameters related with transmission queue"""
@@ -189,6 +199,7 @@ class ExperimentConfig(object):
 
         self.noise_uncertainty_low_bound = noise_uncertainty_low_bound
         self.noise_uncertainty_up_bound = noise_uncertainty_up_bound
+        self.noise_uncertainty_seed = noise_uncertainty_seed
 
         self.trajectories_predicted_time = trajectories_predicted_time
         self.rolling_score_window = rolling_score_window
@@ -197,3 +208,9 @@ class ExperimentConfig(object):
         self.edge_node_y = edge_node_y
 
         self.use_gpu = use_gpu
+
+
+if __name__ == '__main__':
+    print(np.random.randint(0, 2 ** 32 - 2))
+    print(np.random.randint(0, 2 ** 32 - 2))
+    print(np.random.randint(0, 2 ** 32 - 2))
