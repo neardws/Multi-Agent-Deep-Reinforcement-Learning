@@ -86,6 +86,7 @@ class HMAIMD_Agent(object):
         """
         Some parameters
         """
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
@@ -903,10 +904,11 @@ class HMAIMD_Agent(object):
     def conduct_action(self):
         """Conducts an action in the environment"""
         self.next_sensor_nodes_observation, self.next_edge_node_observation, self.next_reward_observation, \
-            self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+            self.reward, view_required_number, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
             sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
             sum_required_data_number, new_reward = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
+        self.total_episode_view_required_number_so_far += view_required_number
         self.new_total_episode_score_so_far += new_reward
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
@@ -1546,7 +1548,7 @@ class HMAIMD_Agent(object):
         try:
             result_data = pd.read_csv(
                 temple_result_name, 
-                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
+                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time", "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
                 header=0)
             loss_data = pd.read_csv(temple_loss_name, names=["Epoch index",
                                                              "Actor of V1", "Actor of V2", "Actor of V3",
@@ -1569,6 +1571,7 @@ class HMAIMD_Agent(object):
                     "timeliness": "", 
                     "consistence": "", 
                     "completeness": "", 
+                    "intel_arrival_time": "",
                     "queuing_time": "", 
                     "transmitting_time": "", 
                     "service_time": "", 
@@ -1612,18 +1615,20 @@ class HMAIMD_Agent(object):
             average_actor_loss_of_reward_node, average_critic_loss_of_reward_node = self.step()
             time_taken = time.time() - start
             
+            self.new_total_episode_score_so_far = self.total_episode_age_of_view_so_far
+            self.total_episode_age_of_view_so_far /= self.total_episode_view_required_number_so_far
             print("Epoch index: ", self.environment.episode_index)
-            print("Total reward: ", self.total_episode_score_so_far)
+            print("age_of_view: ", self.total_episode_age_of_view_so_far)
             print("new_age_of_view: ", self.new_total_episode_score_so_far)
             print("Time taken: ", time_taken)
 
-            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
-            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.total_episode_timeliness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_consistence_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_completeness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_intel_arrival_time /= self.total_episode_view_required_number_so_far
+            self.total_episode_queuing_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_transmitting_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_service_time_so_far /= self.total_episode_view_required_number_so_far
             
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(self.environment.episode_index),
@@ -1632,6 +1637,7 @@ class HMAIMD_Agent(object):
                 "timeliness": str(self.total_episode_timeliness_so_far),
                 "consistence": str(self.total_episode_consistence_so_far),
                 "completeness": str(self.total_episode_completeness_so_far),
+                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
                 "queuing_time": str(self.total_episode_queuing_time_so_far),
                 "transmitting_time": str(self.total_episode_transmitting_time_so_far),
                 "service_time": str(self.total_episode_service_time_so_far),
@@ -1745,7 +1751,7 @@ class HMAIMD_Agent(object):
             #     # save_obj(obj=new_agent, name=agent_name)
             #     # print("save objectives successful")
 
-            if self.environment.episode_index <= 800 and self.environment.episode_index % 100 == 0:
+            if self.environment.episode_index <= 2000 and self.environment.episode_index % 100 == 0:
                 save_obj(obj=self.agent_config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
                 print("save agent objective successful")
@@ -1793,7 +1799,7 @@ class HMAIMD_Agent(object):
         #     and self.sensor_nodes_observation.shape[1] == self.environment.get_sensor_observation_size(), "sensor_nodes_observation is not same"
         # assert self.edge_node_observation.shape[0] == self.environment.get_edge_observation_size(), "edge_node_observation is not same"
         # assert self.reward_observation.shape[0] == self.environment.get_global_state_size(), "reward_observation is not same"
-
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0

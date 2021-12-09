@@ -26,6 +26,7 @@ class Random_Agent(object):
         self.reward = None
         self.action = None
         self.done = None
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0
@@ -84,10 +85,11 @@ class Random_Agent(object):
         }
 
     def conduct_action(self):
-        _, _, _, self.reward, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+        _, _, _, self.reward, view_required_number, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
         sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
         sum_required_data_number, new_reward = self.environment.step(self.action)
         self.total_episode_score_so_far += self.reward
+        self.total_episode_view_required_number_so_far += view_required_number
         self.new_total_episode_score_so_far += new_reward
         self.total_episode_age_of_view_so_far += sum_age_of_view
         self.total_episode_timeliness_so_far += sum_timeliness
@@ -113,17 +115,20 @@ class Random_Agent(object):
             print("*" * 64)
             self.reset_game()
             self.step()
-            print("Epoch index: ", i)
-            print("Total reward: ", self.total_episode_score_so_far)
-            print("new_age_of_view: ", self.new_total_episode_score_so_far)
 
-            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
-            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
+            self.new_total_episode_score_so_far = self.total_episode_age_of_view_so_far
+            self.total_episode_age_of_view_so_far /= self.total_episode_view_required_number_so_far
+            print("Epoch index: ", i)
+            print("age_of_view: ", self.total_episode_age_of_view_so_far)
+            print("new_age_of_view: ", self.new_total_episode_score_so_far)
+            
+            self.total_episode_timeliness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_consistence_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_completeness_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_intel_arrival_time /= self.total_episode_view_required_number_so_far
+            self.total_episode_queuing_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_transmitting_time_so_far /= self.total_episode_view_required_number_so_far
+            self.total_episode_service_time_so_far /= self.total_episode_view_required_number_so_far
 
             new_line_in_result = pd.DataFrame({
                 "Epoch index": str(i),
@@ -180,6 +185,7 @@ class Random_Agent(object):
         self.done = None  # 1 or 0 indicate is episode finished
         self.action = None
         self.environment.reset()
+        self.total_episode_view_required_number_so_far = 0
         self.total_episode_score_so_far = 0
         self.new_total_episode_score_so_far = 0
         self.total_episode_age_of_view_so_far = 0

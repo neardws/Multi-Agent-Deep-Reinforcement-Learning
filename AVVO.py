@@ -5,6 +5,7 @@
 @Author  ：Neardws
 @Date    ：7/11/21 3:25 下午 
 """
+import json
 import numpy as np
 from File_Name import project_dir, data
 from Utilities.FileOperator import load_obj, save_obj
@@ -17,6 +18,13 @@ from Environments.VehicularNetworkEnv.envs import VehicularNetworkEnv
 from Config.AgentConfig import AgentConfig
 from Config.ExperimentConfig import ExperimentConfig
 
+def show_environment(environments_file_name):
+    vehicularNetworkEnv = load_obj(name=environments_file_name)
+    print(vehicularNetworkEnv.__dict__)
+
+def show_environment_config(file_name):
+    vehicularNetworkEnv_config = load_obj(name=file_name)
+    print(vehicularNetworkEnv_config.__dict__)
 
 def save_environment(trajectories_file_name, environments_file_name):
     experiment_config = ExperimentConfig()
@@ -116,8 +124,8 @@ def init(environments_file_name):
         "critic_nodes_update_every_n_steps": 300,  # 15 times in one episode
         "actor_reward_update_every_n_steps": 300,  # 20 times in one episode
         "critic_reward_update_every_n_steps": 300,  # 20 times in one episode
-        "actor_nodes_learning_updates_per_learning_session": 1,
-        "critic_nodes_learning_updates_per_learning_session": 1,
+        "actor_nodes_learning_updates_per_learning_session": 40,
+        "critic_nodes_learning_updates_per_learning_session": 40,
         "actor_reward_learning_updates_per_learning_session": 160,
         "critic_reward_learning_updates_per_learning_session": 160,
         "clip_rewards": False}
@@ -160,7 +168,7 @@ def run_iddpg(first=False, rerun=False, environments_file_name=None, given_list_
             list_file = load_obj(name=given_list_file_name)
             temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
             temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
-            temple_agent.run_n_episodes(num_episodes=2500,
+            temple_agent.run_n_episodes(num_episodes=5000,
                                         temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
                                         temple_agent_name=load_name(list_file, 'temple_agent_name'),
                                         temple_result_name=load_name(list_file, 'temple_result_name'),
@@ -206,11 +214,12 @@ def run(first=False, rerun=False, environments_file_name=None, given_list_file_n
                                 actor_nodes_name=load_name(new_list_file_name, 'actor_nodes_name'), 
                                 actor_edge_name=load_name(new_list_file_name, 'actor_edge_name'))
         else:
-            correct_list_file_name = project_dir + data + given_list_file_name
+            correct_list_file_name = given_list_file_name
             list_file = load_obj(name=correct_list_file_name)
             temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
             temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
-            temple_agent.run_n_episodes(temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
+            temple_agent.run_n_episodes(num_episodes=2000,
+                                        temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
                                         temple_agent_name=load_name(list_file, 'temple_agent_name'),
                                         temple_result_name=load_name(list_file, 'temple_result_name'),
                                         temple_loss_name=load_name(list_file, 'temple_loss_name'),
@@ -421,12 +430,15 @@ def change_environment():
 
 if __name__ == '__main__':
 
+    # show_environment_config("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1209_Agents/bandwidth_3_datasize_1024_01/2021-12-07-19-11-36/init_experiment_config_8f3e0dd35b3f41e2bbc0e06896ada216.pkl")
+    # show_environment("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1209_Agents/bandwidth_3_datasize_1024_01/2021-12-07-19-11-36/init_environment_8f3e0dd35b3f41e2bbc0e06896ada216.pkl")
     # generate_environment()
     # change_environment()
     
     # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
     
-    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_05_01.pkl")
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_1024_01.pkl")
+    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1209_Agents/bandwidth_3_datasize_1024_01/2021-12-08-22-47-26-list_file_name.pkl")
 
     # run(rerun=True, given_list_file_name='2021-10-25-22-33-35-list_file_name.pkl')
 
@@ -468,7 +480,7 @@ if __name__ == '__main__':
     # random threshold = 0.7
     # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_07_01/2021-11-15-22-54-05-list_file_name.pkl")
 
-    # run(given_list_file_name='2021-11-14-10-28-50-list_file_name.pkl')
+
     
     # run(given_list_file_name='2021-09-29-16-16-31-list_file_name.pkl')
     # run(given_list_file_name='2021-09-29-20-11-11-list_file_name.pkl')
