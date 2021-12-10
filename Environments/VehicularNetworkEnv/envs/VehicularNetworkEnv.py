@@ -983,8 +983,9 @@ class VehicularNetworkEnv(gym.Env):
     def compute_SNR_by_distance(self, distance):
         white_gaussian_noise = VehicularNetworkEnv.cover_dBm_to_W(self.experiment_config.additive_white_gaussian_noise)
         channel_fading_gain = self.experiment_config.mean_channel_fading_gain
-        # channel_fading_gain = np.random.normal(loc=self.experiment_config.mean_channel_fading_gain,
-        #                                        scale=self.experiment_config.second_moment_channel_fading_gain)
+        channel_fading_gain = np.random.normal(
+            loc=self.experiment_config.mean_channel_fading_gain,
+            scale=self.experiment_config.second_moment_channel_fading_gain)
         SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
             1 / (np.power(distance, self.experiment_config.path_loss_exponent)) * \
             VehicularNetworkEnv.cover_mW_to_W(self.experiment_config.transmission_power)
@@ -1076,42 +1077,6 @@ class VehicularNetworkEnv(gym.Env):
                     mean_service_time_of_types[vehicle_index][data_type_index] = 0
                     second_moment_service_time_of_types[vehicle_index][data_type_index] = 0
                 
-        # for data_size in self.data_size_of_types:
-        #     spend_time = []
-        #     vehicle_index = 0
-        #     print(len(self.global_trajectories))
-        #     print(self.global_trajectories.shape)
-        #     for vehicle_distance in self.global_trajectories:
-        #         print("*" * 64)
-        #         if self.episode_step <= self.max_episode_length - 10:
-        #             for distance in vehicle_distance[self.episode_step: self.episode_step + 10]:
-        #                 print("distance: ", distance)
-        #                 channel_fading_gain = np.random.normal(
-        #                     loc=self.experiment_config.mean_channel_fading_gain,
-        #                     scale=self.experiment_config.second_moment_channel_fading_gain)
-        #                 SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
-        #                     np.power(distance, -self.experiment_config.path_loss_exponent) * \
-        #                     VehicularNetworkEnv.cover_mW_to_W(self.experiment_config.transmission_power)
-        #                 bandwidth = self.bandwidth * (1 / 10)
-        #                 spend_time.append(data_size / self.compute_transmission_rate(SNR, bandwidth))
-        #         else:
-        #             for distance in vehicle_distance[self.max_episode_length - 11: ]:
-        #                 print("distance: ", distance)
-        #                 channel_fading_gain = np.random.normal(
-        #                     loc=self.experiment_config.mean_channel_fading_gain,
-        #                     scale=self.experiment_config.second_moment_channel_fading_gain)
-        #                 SNR = (1 / white_gaussian_noise) * np.power(np.abs(channel_fading_gain), 2) * \
-        #                     np.power(distance, -self.experiment_config.path_loss_exponent) * \
-        #                     VehicularNetworkEnv.cover_mW_to_W(self.experiment_config.transmission_power)
-        #                 bandwidth = self.bandwidth * (1 / 10)
-        #                 spend_time.append(data_size / self.compute_transmission_rate(SNR, bandwidth))
-        #         array_spend_time = np.array(spend_time)
-        #         mean_service_time = array_spend_time.mean()
-        #         second_moment_service_time = array_spend_time.var()
-        #         mean_service_time_of_types[vehicle_index][data_type_index] = mean_service_time
-        #         second_moment_service_time_of_types[vehicle_index][data_type_index] = second_moment_service_time
-        #         vehicle_index += 1
-        #     data_type_index += 1
 
         self.experiment_config.config(
             mean_service_time_of_types=mean_service_time_of_types,

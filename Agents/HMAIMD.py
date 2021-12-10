@@ -71,6 +71,8 @@ class HMAIMD_Agent(object):
         self.sensor_nodes_observation = None
         self.edge_node_observation = None
 
+        self.saved_sensor_nodes_action = None
+        self.saved_edge_node_action = None
         self.sensor_nodes_action = None
         self.edge_node_action = None
 
@@ -577,11 +579,11 @@ class HMAIMD_Agent(object):
 
         max_buffer_number = max([number_of_actor_nodes_buffer, number_of_critic_nodes_buffer, number_of_actor_reward_buffer, number_of_critic_reward_buffer])
         
-        # nodes_start_episode_num = max_buffer_number * 1
-        # reward_start_episode_num = max_buffer_number * 1
+        nodes_start_episode_num = 300 * 15
+        reward_start_episode_num = 300 * 15
 
-        nodes_start_episode_num = max_buffer_number * 1
-        reward_start_episode_num = max_buffer_number * 0.5
+        # nodes_start_episode_num = max_buffer_number * 1
+        # reward_start_episode_num = max_buffer_number * 0.5
 
         during_episode_number = 1
         update_every_n_steps = 300
@@ -777,6 +779,10 @@ class HMAIMD_Agent(object):
                 sensor_action_add_noise = self.sensor_exploration_strategy.perturb_action_for_exploration_purposes(
                     {"action": sensor_action})
 
+                for action_index in range(self.sensor_action_size):
+                    self.saved_sensor_nodes_action[sensor_node_index, action_index] = \
+                        sensor_action_add_noise[0][action_index]
+
                 softmax = torch.nn.Softmax(dim=0).to(self.device)
                 sensor_action = torch.cat(
                     (softmax(sensor_action_add_noise[0][0:self.environment.experiment_config.data_types_number]),
@@ -835,6 +841,7 @@ class HMAIMD_Agent(object):
 
         edge_action_add_noise = self.edge_exploration_strategy.perturb_action_for_exploration_purposes(
             {"action": edge_action})
+        self.saved_edge_node_action = edge_action_add_noise
 
         softmax = torch.nn.Softmax(dim=-1).to(self.device)
         edge_action = softmax(edge_action_add_noise)
@@ -953,7 +960,7 @@ class HMAIMD_Agent(object):
         self.actor_experience_replay_buffer.add_experience(
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
             edge_node_observation=self.edge_node_observation.clone().detach(),
-            sensor_nodes_action=self.sensor_nodes_action.clone().detach(),
+            sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
             next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach())
 
     def save_critic_experience(self):
@@ -969,8 +976,8 @@ class HMAIMD_Agent(object):
         self.critic_experience_replay_buffer.add_experience(
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
             edge_node_observation=self.edge_node_observation.clone().detach(),
-            sensor_nodes_action=self.sensor_nodes_action.clone().detach(),
-            edge_node_action=self.edge_node_action.clone().detach(),
+            sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
+            edge_node_action=self.saved_edge_node_action.clone().detach(),
             sensor_nodes_reward=self.sensor_nodes_reward.clone().detach(),
             edge_node_reward=self.edge_node_reward.clone().detach(),
             next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach(),
@@ -1730,36 +1737,10 @@ class HMAIMD_Agent(object):
                     save_obj(obj=self.actor_local_of_edge_node, name=actor_edge_name)
                     print("save actor targets objectives successful")
 
-
-            # if self.environment.episode_index <= 300 and self.environment.episode_index % 10 == 0:
-            #     actor_nodes_name = actor_nodes_name[:-15] + "_episode_" + str(self.environment.episode_index) + actor_nodes_name[-4:]
-            #     actor_edge_name = actor_edge_name[:-15] + "_episode_" + str(self.environment.episode_index) + actor_edge_name[-4:]
-            #     save_obj(obj=self.actor_target_of_sensor_nodes, name=actor_nodes_name)
-            #     save_obj(obj=self.actor_target_of_edge_node, name=actor_edge_name)
-            #     print("save actor targets objectives successful")
-            #     # new_agent = HMAIMD_Agent(agent_config=self.agent_config, environment=self.environment)
-            #     # new_agent.agent_config = self.agent_config
-            #     # new_agent.environment = self.environment
-            #     # for vehicle_index in range(self.environment.experiment_config.vehicle_number):
-            #     #     HMAIMD_Agent.copy_model_over(
-            #     #         from_model=self.actor_target_of_sensor_nodes[vehicle_index],
-            #     #         to_model=new_agent.actor_target_of_sensor_nodes[vehicle_index]
-            #     #     )
-            #     # HMAIMD_Agent.copy_model_over(
-            #     #     from_model=self.actor_target_of_edge_node,
-            #     #     to_model=new_agent.actor_target_of_edge_node)
-            #     # save_obj(obj=new_agent, name=agent_name)
-            #     # print("save objectives successful")
-
             if self.environment.episode_index <= 2000 and self.environment.episode_index % 100 == 0:
                 save_obj(obj=self.agent_config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
                 print("save agent objective successful")
-
-            # if self.environment.episode_index >= 500 and self.environment.episode_index % 50 == 0:
-            #     save_obj(obj=self.agent_config, name=temple_agent_config_name)
-            #     save_obj(obj=self, name=temple_agent_name)
-            #     print("save objectives successful")
 
             if self.environment.episode_index % 10 == 0:
                 result_data.to_csv(temple_result_name)
@@ -1786,7 +1767,11 @@ class HMAIMD_Agent(object):
         self.sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.experiment_config.vehicle_number,
                                                                     self.sensor_action_size),
                                                              dtype=np.float)).float().to(self.device)
+        self.saved_sensor_nodes_action = torch.from_numpy(np.zeros(shape=(self.environment.experiment_config.vehicle_number,
+                                                                    self.sensor_action_size),
+                                                             dtype=np.float)).float().to(self.device)
         self.edge_node_action = None
+        self.saved_edge_action = None
         self.sensor_nodes_reward = None
         self.edge_node_reward = None
         self.next_sensor_nodes_observation = None
