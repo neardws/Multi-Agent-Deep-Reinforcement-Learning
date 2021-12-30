@@ -140,6 +140,13 @@ class VehicularNetworkEnv(gym.Env):
         self.bandwidth = new_bandwidth
         self.get_mean_and_second_moment_service_time_of_types()
 
+    def config_datasize_of_types(self, new_data_size_of_types):
+        np.random.seed(self.experiment_config.seed_data_size_of_types)
+        self.data_size_of_types = np.random.uniform(low=self.experiment_config.data_size_low_bound,
+                                                    high=new_data_size_of_types,
+                                                    size=self.experiment_config.data_types_number)
+        self.get_mean_and_second_moment_service_time_of_types()
+
     def config_threshold_view_required_data(self, new_threshold_view_required_data):
         self.threshold_view_required_data = new_threshold_view_required_data
         np.random.seed(self.experiment_config.seed_view_required_data)
@@ -247,6 +254,23 @@ class VehicularNetworkEnv(gym.Env):
                                          self.episode_step + self.experiment_config.trajectories_predicted_time):
                 self.trajectories[vehicle_index][time_slot_index] = self.global_trajectories[vehicle_index][
                     time_slot_index]
+    
+    def get_distances_of_sensor_nodes(self):
+        distances_of_sensor_nodes = []
+        for sensor_node_index in range(self.experiment_config.vehicle_number):
+            distance = self.global_trajectories[sensor_node_index][self.episode_step]
+            distances_of_sensor_nodes.append(distance)
+        return distances_of_sensor_nodes
+
+    def get_required_data_size_of_sensor_nodes(self):
+        required_data_size_of_sensor_nodes = np.zeros(shape=self.experiment_config.vehicle_number)
+        for edge_view_index in range(self.experiment_config.edge_views_number):
+            if self.edge_views_in_edge_node[edge_view_index][self.episode_step] == 1:
+                for vehicle_index in range(self.experiment_config.vehicle_number):
+                    for data_type_index in range(self.experiment_config.data_types_number):
+                        view_required_data_size = self.view_required_data[edge_view_index][vehicle_index][data_type_index] * self.data_size_of_types[data_type_index]
+                        required_data_size_of_sensor_nodes[vehicle_index] += view_required_data_size
+        return required_data_size_of_sensor_nodes
 
     def update_trajectories(self):
         if self.episode_step <= 290:
@@ -257,7 +281,7 @@ class VehicularNetworkEnv(gym.Env):
                     self.trajectories[vehicle_index][index] = self.global_trajectories[vehicle_index][
                         time_slot_index]
                     index += 1
-
+    
     """
        /*________________________________________________________________
        NN Input and Output Dimensions
@@ -556,6 +580,389 @@ class VehicularNetworkEnv(gym.Env):
     —————————————————————————————————————————————————————————————--*/
     """
 
+    def step_with_difference_rewards(self, action: dict):
+        """
+        Execute one time step within the environment
+        :param action:
+        :return: self.next_reward_observation, self.next_sensor_nodes_observation,
+                 self.next_edge_node_observation, self.reward, self.done
+        """
+        self.action = action
+
+        if self.episode_step == (self.experiment_config.max_episode_length - 1):
+            self.episode_index = self.episode_index + 1
+            self.done = True
+        else:
+            self.done = False
+
+        sum_age_of_view = 0
+        sum_new_age_of_view = 0
+        sum_timeliness = 0
+        sum_consistence = 0
+        sum_completeness = 0
+
+        sum_intel_arrival_time = 0
+        sum_queuing_time = 0
+        sum_transmitting_time = 0
+        sum_service_time = 0
+        sum_service_rate = 0
+
+        """
+        When the sensor node conduct the action, update the action time
+        and the average waiting time in the queue in stable system
+        """
+
+        max_average_waiting_time = 0
+        for vehicle_index in range(self.experiment_config.vehicle_number):
+            """When the action time equal to now time"""
+            if self.next_action_time_of_sensor_nodes[vehicle_index] == self.episode_step:
+
+                for data_type_index in range(self.experiment_config.data_types_number):
+                    self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] = \
+                        self.data_size_of_types[data_type_index]
+
+                vehicle_action = []
+                for data_type_index in range(self.experiment_config.data_types_number):
+                    if self.data_types_in_vehicles[vehicle_index][data_type_index] == 1:
+                        priority = self.action['priority'][vehicle_index][data_type_index]
+                        arrival_rate = self.action['arrival_rate'][vehicle_index][data_type_index]
+                        vehicle_action.append({
+                            'priority': priority, 
+                            'arrival_rate': arrival_rate, 
+                            'data_type': data_type_index})
+
+                vehicle_action.sort(key=lambda value: value['priority'], reverse=True)
+
+                sum_average_waiting_time = 0
+                sum_average_intel_arrival_time = 0
+                for index, values in enumerate(vehicle_action):
+                    data_type_index = values['data_type']
+                    priority = values['priority']
+                    arrival_rate = values['arrival_rate']
+                    work_load_before_type = 0
+                    mu_before_type = 0
+                    if index != 0:
+                        for i in range(index):
+                            work_load_before_type += vehicle_action[i]['arrival_rate'] * \
+                                self.experiment_config.mean_service_time_of_types[vehicle_index][vehicle_action[i]['data_type']]
+                            mu_before_type += vehicle_action[i]['arrival_rate'] * \
+                                self.experiment_config.second_moment_service_time_of_types[vehicle_index][
+                                vehicle_action[i]['data_type']]
+
+                    if index != 0:
+                        average_sojourn_time = 1 / (1 - work_load_before_type) * \
+                                                (self.experiment_config.mean_service_time_of_types[vehicle_index][data_type_index] + 
+                                                ((mu_before_type + arrival_rate * self.experiment_config.second_moment_service_time_of_types[vehicle_index][data_type_index]) 
+                                                / (2 * (1 - work_load_before_type - arrival_rate *
+                                                self.experiment_config.mean_service_time_of_types[vehicle_index][data_type_index]))))
+                    else:
+                        average_sojourn_time = 1 / 1 * \
+                                                self.experiment_config.mean_service_time_of_types[vehicle_index][data_type_index]
+                    
+                    average_waiting_time = average_sojourn_time - self.experiment_config.mean_service_time_of_types[vehicle_index][
+                        data_type_index]
+                    sum_average_waiting_time += average_waiting_time
+                    sum_average_intel_arrival_time += 1 / arrival_rate
+                    """Update the waiting time in queue"""
+                    try:
+                        self.waiting_time_in_queue[vehicle_index][data_type_index] = average_waiting_time
+                    except ValueError:
+                        print(vehicle_index)
+                        print(data_type_index)
+                        print(self.waiting_time_in_queue[vehicle_index][data_type_index])
+                        print(average_waiting_time)
+                        print(average_sojourn_time)
+                        print(self.experiment_config.mean_service_time_of_types[vehicle_index][data_type_index])
+                    
+                    if average_waiting_time > max_average_waiting_time:
+                        max_average_waiting_time = average_waiting_time
+                        
+                if len(vehicle_action) != 0:
+                    sum_queuing_time += (sum_average_waiting_time / len(vehicle_action))
+                    sum_intel_arrival_time += (sum_average_intel_arrival_time / len(vehicle_action))
+                """Update the action time"""
+                self.last_action_time_of_sensor_nodes[vehicle_index] = self.action_time_of_sensor_nodes[vehicle_index]
+                self.action_time_of_sensor_nodes[vehicle_index] = self.next_action_time_of_sensor_nodes[vehicle_index]
+                """may raise OverflowError: cannot convert float infinity to integer"""
+                try:
+                    self.next_action_time_of_sensor_nodes[vehicle_index] += np.ceil(max_average_waiting_time)
+                except OverflowError:
+                    self.next_action_time_of_sensor_nodes[vehicle_index] += 1
+        
+        """
+        Update data_in_edge_node
+        """
+        for vehicle_index in range(self.experiment_config.vehicle_number):
+            transmitting_time = 0
+            data_type_number = 0
+            for data_type_index in range(self.experiment_config.data_types_number):
+
+                if self.data_types_in_vehicles[vehicle_index][data_type_index] == 1 and \
+                    self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] > 0:
+                    data_type_number += 1
+                    transmission_start_time = self.last_action_time_of_sensor_nodes[vehicle_index] + \
+                                                self.waiting_time_in_queue[vehicle_index][data_type_index]
+                    if self.episode_step >= transmission_start_time:
+                        self.data_in_edge_node[vehicle_index][data_type_index] = 0
+                        SNR = self.compute_SNR(vehicle_index, self.episode_step)
+                        SNR_wall = self.computer_SNR_wall_by_noise_uncertainty(
+                            noise_uncertainty=np.random.uniform(low=self.experiment_config.noise_uncertainty_low_bound,
+                                                                high=self.experiment_config.noise_uncertainty_up_bound))
+                        if SNR <= SNR_wall:
+                            self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] = 0
+                            self.data_in_edge_node[vehicle_index][data_type_index] = 0
+                        else:
+                            transmitting_time += 1
+
+                            bandwidth = self.action['bandwidth'][vehicle_index] * self.bandwidth
+            
+                            transmission_bytes = self.compute_transmission_rate(SNR, bandwidth) * 1
+                            self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][
+                                data_type_index] -= transmission_bytes
+                            if self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] <= 0:
+                                self.required_to_transmit_data_size_of_sensor_nodes[vehicle_index][data_type_index] = 0
+                                self.data_in_edge_node[vehicle_index][data_type_index] = self.episode_step
+            if transmitting_time != 0:
+                transmitting_time /= data_type_number
+
+            sum_transmitting_time += transmitting_time
+        sum_intel_arrival_time /= self.experiment_config.vehicle_number
+        sum_queuing_time /= self.experiment_config.vehicle_number
+        sum_transmitting_time /= self.experiment_config.vehicle_number
+
+        sum_service_time += sum_intel_arrival_time + sum_queuing_time + sum_transmitting_time
+
+        """Computes the reward"""
+        view_required_number = 0
+        view_serviced_number = 0
+        sum_received_data_number = 0
+        sum_required_data_number = 0
+
+        for edge_view_index in range(self.experiment_config.edge_views_number):
+            if self.edge_views_in_edge_node[edge_view_index][self.episode_step] == 1:
+                view_required_number += 1
+                received_data_number = 0
+                required_data_number = 0
+                average_generation_time = 0
+                timeliness = 0
+                new_age_timeliness = 0
+                new_timeliness = 0
+                new_age_consistence = 0
+                consistence = 0
+                new_consistence = 0
+                for vehicle_index in range(self.experiment_config.vehicle_number):
+                    for data_type_index in range(self.experiment_config.data_types_number):
+                        if self.view_required_data[edge_view_index][vehicle_index][data_type_index] == 1:
+                            required_data_number += 1
+                            sum_required_data_number += 1
+                            if self.data_in_edge_node[vehicle_index][data_type_index] > 0:
+                                received_data_number += 1
+                                sum_received_data_number += 1
+                                if self.action["arrival_rate"][vehicle_index][data_type_index] == 0:
+                                    print("arrival_rate is zeros")
+                                try:
+                                    intel_arrival_time = 1 / self.action["arrival_rate"][vehicle_index][data_type_index]
+                                except ZeroDivisionError:
+                                    intel_arrival_time = 0
+
+                                new_age_timeliness += (intel_arrival_time + self.data_in_edge_node[vehicle_index][data_type_index] - self.last_action_time_of_sensor_nodes[vehicle_index])
+                                timeliness += (intel_arrival_time + self.data_in_edge_node[vehicle_index][data_type_index] - self.last_action_time_of_sensor_nodes[vehicle_index])
+                                new_timeliness += (intel_arrival_time + self.data_in_edge_node[vehicle_index][data_type_index] - self.last_action_time_of_sensor_nodes[vehicle_index])
+                                average_generation_time += self.last_action_time_of_sensor_nodes[vehicle_index]
+
+                            else:
+                                new_age_timeliness += 300
+                                timeliness += 100
+                new_age_timeliness /= required_data_number
+                timeliness /= required_data_number
+                try:
+                    average_generation_time /= received_data_number
+                    new_timeliness /= received_data_number
+                except ZeroDivisionError:
+                    average_generation_time = 0
+                    new_timeliness = 0
+
+                consistence_number = 0
+                new_consistence_number = 0
+                for vehicle_index in range(self.experiment_config.vehicle_number):
+                    for data_type_index in range(self.experiment_config.data_types_number):
+                        if self.view_required_data[edge_view_index][vehicle_index][data_type_index] == 1:
+                            consistence_number += 1
+                            if self.data_in_edge_node[vehicle_index][data_type_index] > 0:
+                                new_consistence_number += 1
+                                new_age_consistence += np.abs(
+                                        self.last_action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
+                                consistence += np.abs(
+                                        self.last_action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
+                                new_consistence += np.abs(
+                                        self.last_action_time_of_sensor_nodes[vehicle_index] - average_generation_time) ** 2
+                            else:
+                                new_age_consistence += 3000
+                                consistence += 500
+
+                if consistence_number != 0:
+                    new_age_consistence /= consistence_number
+                    consistence /= consistence_number
+                if new_consistence_number != 0:
+                    new_consistence /= new_consistence_number
+                
+                if required_data_number == 0 or received_data_number == 0:
+                    completeness = 0
+                else:
+                    completeness = received_data_number / required_data_number  # the number of successfully received data divided required data
+                    # print(completeness)
+                if completeness > 0.8:
+                    view_serviced_number += 1
+                
+                # timeliness and consistence should be min as they can
+                # however, completeness should be max as it can
+                new_age_of_view = 3 / 10 * (1 - np.tanh(new_age_timeliness / 100)) + 3 / 10 * (1 - np.tanh(new_age_consistence / 1000)) + 4 / 10 * completeness
+
+                age_of_view = 3 / 10 * (1 - np.tanh(new_age_timeliness / 100)) + 1 / 10 * (1 - np.tanh(new_age_consistence / 1000)) + 6 / 10 * completeness
+
+                sum_timeliness += new_age_timeliness
+                sum_consistence += new_age_consistence
+                sum_completeness += completeness
+                sum_age_of_view += age_of_view
+                sum_new_age_of_view += new_age_of_view
+
+        if view_required_number == 0 or sum_new_age_of_view == 0:
+            self.new_reward = 0
+        else:
+            self.new_reward = sum_new_age_of_view / view_required_number
+
+        if view_required_number == 0 or sum_age_of_view == 0:
+            self.reward = 0
+        else:
+            self.reward = sum_age_of_view / view_required_number
+
+        """Computes the difference rewards"""
+        sensor_nodes_reward = np.zeros(self.experiment_config.vehicle_number)
+
+        for difference_rewards_vehicle_index in range(self.experiment_config.vehicle_number):
+
+            difference_rewards_sum_age_of_view = 0
+            difference_rewards_view_required_number = 0
+            difference_rewards_view_serviced_number = 0
+
+            for edge_view_index in range(self.experiment_config.edge_views_number):
+                if self.edge_views_in_edge_node[edge_view_index][self.episode_step] == 1:
+                    difference_rewards_view_required_number += 1
+                    difference_rewards_received_data_number = 0
+                    difference_rewards_required_data_number = 0
+                    difference_rewards_average_generation_time = 0
+                    difference_rewards_timeliness = 0
+                    difference_rewards_new_age_timeliness = 0
+                    difference_rewards_new_timeliness = 0
+                    difference_rewards_new_age_consistence = 0
+                    difference_rewards_consistence = 0
+                    difference_rewards_new_consistence = 0
+                    for vehicle_index in range(self.experiment_config.vehicle_number):
+                        for data_type_index in range(self.experiment_config.data_types_number):
+                            if self.view_required_data[edge_view_index][vehicle_index][data_type_index] == 1:
+                                difference_rewards_required_data_number += 1
+                                if self.data_in_edge_node[vehicle_index][data_type_index] > 0:
+                                    if vehicle_index != difference_rewards_vehicle_index:
+                                        difference_rewards_received_data_number += 1
+                                    if self.action["arrival_rate"][vehicle_index][data_type_index] == 0:
+                                        print("arrival_rate is zeros")
+                                    try:
+                                        difference_rewards_intel_arrival_time = 1 / self.action["arrival_rate"][vehicle_index][data_type_index]
+                                    except ZeroDivisionError:
+                                        difference_rewards_intel_arrival_time = 0
+                                    if vehicle_index != difference_rewards_vehicle_index:
+                                        difference_rewards_new_age_timeliness += (difference_rewards_intel_arrival_time + self.data_in_edge_node[vehicle_index][data_type_index] - self.last_action_time_of_sensor_nodes[vehicle_index])
+                                        difference_rewards_timeliness += (difference_rewards_intel_arrival_time + self.data_in_edge_node[vehicle_index][data_type_index] - self.last_action_time_of_sensor_nodes[vehicle_index])
+                                    else:
+                                        difference_rewards_new_age_timeliness += 300
+                                        difference_rewards_timeliness += 100
+                                    difference_rewards_new_timeliness += (difference_rewards_intel_arrival_time + self.data_in_edge_node[vehicle_index][data_type_index] - self.last_action_time_of_sensor_nodes[vehicle_index])
+                                    difference_rewards_average_generation_time += self.last_action_time_of_sensor_nodes[vehicle_index]
+
+                                else:
+                                    difference_rewards_new_age_timeliness += 300
+                                    difference_rewards_timeliness += 100
+                    difference_rewards_new_age_timeliness /= difference_rewards_required_data_number
+                    difference_rewards_timeliness /= difference_rewards_required_data_number
+
+                    if difference_rewards_received_data_number == 0:
+                        difference_rewards_average_generation_time = 0
+                        difference_rewards_new_timeliness = 0
+                    else:
+                        difference_rewards_average_generation_time /= difference_rewards_received_data_number
+                        difference_rewards_new_timeliness /= difference_rewards_received_data_number                        
+
+                    difference_rewards_consistence_number = 0
+                    difference_rewards_new_consistence_number = 0
+                    for vehicle_index in range(self.experiment_config.vehicle_number):
+                        for data_type_index in range(self.experiment_config.data_types_number):
+                            if self.view_required_data[edge_view_index][vehicle_index][data_type_index] == 1:
+                                difference_rewards_consistence_number += 1
+                                if self.data_in_edge_node[vehicle_index][data_type_index] > 0:
+                                    difference_rewards_new_consistence_number += 1
+                                    if vehicle_index != difference_rewards_vehicle_index:
+                                        difference_rewards_new_age_consistence += np.abs(
+                                            self.last_action_time_of_sensor_nodes[vehicle_index] - difference_rewards_average_generation_time) ** 2
+                                        difference_rewards_consistence += np.abs(
+                                            self.last_action_time_of_sensor_nodes[vehicle_index] - difference_rewards_average_generation_time) ** 2
+                                    else:
+                                        difference_rewards_new_age_consistence += 3000
+                                        difference_rewards_consistence += 500
+                                    difference_rewards_new_consistence += np.abs(
+                                            self.last_action_time_of_sensor_nodes[vehicle_index] - difference_rewards_average_generation_time) ** 2
+                                else:
+                                    difference_rewards_new_age_consistence += 3000
+                                    difference_rewards_consistence += 500
+
+                    if difference_rewards_consistence_number != 0:
+                        difference_rewards_new_age_consistence /= difference_rewards_consistence_number
+                        difference_rewards_consistence /= difference_rewards_consistence_number
+                    if difference_rewards_new_consistence_number != 0:
+                        difference_rewards_new_consistence /= difference_rewards_new_consistence_number
+                    
+                    if difference_rewards_required_data_number == 0 or difference_rewards_received_data_number == 0:
+                        difference_rewards_completeness = 0
+                    else:
+                        difference_rewards_completeness = difference_rewards_received_data_number / difference_rewards_required_data_number  # the number of successfully received data divided required data
+                        # print(completeness)
+                    if difference_rewards_completeness > 0.8:
+                        difference_rewards_view_serviced_number += 1
+                    
+                    # timeliness and consistence should be min as they can
+                    # however, completeness should be max as it can
+                    difference_rewards_new_age_of_view = 3 / 10 * (1 - np.tanh(difference_rewards_new_age_timeliness / 100)) + 3 / 10 * (1 - np.tanh(difference_rewards_new_age_consistence / 1000)) + 4 / 10 * difference_rewards_completeness
+
+                    difference_rewards_age_of_view = 3 / 10 * (1 - np.tanh(difference_rewards_new_age_timeliness / 100)) + 1 / 10 * (1 - np.tanh(difference_rewards_new_age_consistence / 1000)) + 6 / 10 * difference_rewards_completeness
+
+                    difference_rewards_sum_age_of_view += difference_rewards_age_of_view
+            
+            if view_required_number == 0 or sum_age_of_view == 0:
+                sensor_nodes_reward[difference_rewards_vehicle_index] = 0
+            else:
+                sensor_nodes_reward[difference_rewards_vehicle_index] = self.reward - difference_rewards_sum_age_of_view / difference_rewards_view_required_number
+        
+
+        """Update state and other observations"""
+
+        self.update_trajectories()
+
+        self.state["time"] = self.episode_step
+        self.state["trajectories"] = self.trajectories
+        self.state["action_time"] = self.action_time_of_sensor_nodes
+        self.state["data_in_edge"] = self.data_in_edge_node
+
+        self.update_sensor_observation()
+        self.update_edge_observation()
+        self.update_reward_observation()
+
+        self.episode_step += 1
+        
+        return self.sensor_nodes_observation, self.edge_node_observation, self.reward_observation, sensor_nodes_reward, \
+            self.reward, view_required_number, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+            sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
+            sum_required_data_number, self.new_reward
+
+
     def step(self, action: dict):
         """
         Execute one time step within the environment
@@ -610,7 +1017,7 @@ class VehicularNetworkEnv(gym.Env):
                             'arrival_rate': arrival_rate, 
                             'data_type': data_type_index})
 
-                vehicle_action.sort(key=lambda value: value['priority'])
+                vehicle_action.sort(key=lambda value: value['priority'], reverse=True)
                 # print("*" * 64, "/n", "vehicle_action: /n")
                 # print(vehicle_action)
 

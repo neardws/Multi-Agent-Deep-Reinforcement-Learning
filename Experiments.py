@@ -486,7 +486,7 @@ def show_all_environments():
 
     print("-" * 64)
 
-    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_128_01.pkl"
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_256_01.pkl"
     show_env(environment_file_name)
 
     environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_512_01.pkl"
@@ -896,79 +896,64 @@ if __name__ == '__main__':
     # show_all_environments()
 
     p = Pool(processes=5)
-    test_name = "test_1209_1049" + "_"
+    test_name = "1230_1738" + "_"
 
     list_environment_file_name = []
     list_result_name = []
 
-    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_1024_01.pkl"
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_1_datasize_1024_01.pkl"
     ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
     list_environment_file_name.append(environment_file_name)
     list_result_name.append(ra_result_name)
     # run_ra_algorithms_for_results(100, environment_file_name, ra_result_name)
 
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_2_datasize_1024_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_1024_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(2000, environment_file_name, ra_result_name)
-    
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_4_datasize_1024_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_datasize_1024_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_2_datasize_1024_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
     # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
 
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_03_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_04_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_06_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-    # # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_threshold_015_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
-
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_5_threshold_015_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_256_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    # run_ra_algorithms_for_results(2000, environment_file_name, ra_result_name)
     
-    # environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_6_threshold_015_01.pkl"
-    # ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
-    # list_environment_file_name.append(environment_file_name)
-    # list_result_name.append(ra_result_name)
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_512_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
+
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_1024_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
+
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_2048_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
+
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_4096_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
+
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_4_datasize_1024_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
+
+    environment_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_datasize_1024_01.pkl"
+    ra_result_name = project_dir + "/Results/" + test_name + "ra_results" + environment_file_name[-43:-4] + ".csv"
+    list_environment_file_name.append(environment_file_name)
+    list_result_name.append(ra_result_name)
+    # run_ra_algorithms_for_results(1, environment_file_name, ra_result_name)
 
     list_num_episodes = [100 for _ in range(len(list_environment_file_name))]
 

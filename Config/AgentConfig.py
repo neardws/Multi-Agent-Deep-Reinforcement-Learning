@@ -75,7 +75,8 @@ class AgentConfig(object):
         # critic_reward_replay_buffer_seed=np.random.randint(0, 2 ** 32 - 2),
         critic_reward_replay_buffer_dropout=0,
         # nn_seed=3523186978,
-        nn_seed=np.random.randint(0, 2 ** 32 - 2),
+        nn_seed=197538830,
+        # nn_seed=np.random.randint(0, 2 ** 32 - 2),
         hyperparameters=None,
         file_to_save_data_results="Results/HMAIMD_RESULTS.pkl"):
 
