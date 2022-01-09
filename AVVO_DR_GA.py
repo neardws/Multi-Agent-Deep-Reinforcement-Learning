@@ -13,7 +13,6 @@ from Utilities.FileOperator import init_file_name
 from Utilities.FileOperator import save_init_files
 from Utilities.FileOperator import load_name
 from Agents.DR_GA import DR_GA_Agent
-from Agents.IDDPG import IDDPG_Agent
 from Environments.VehicularNetworkEnv.envs import VehicularNetworkEnv
 from Config.AgentConfig import AgentConfig
 from Config.ExperimentConfig import ExperimentConfig
@@ -444,6 +443,9 @@ if __name__ == '__main__':
     
     # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_datasize_1024_01.pkl")
     
+
+    # DR_GA
+
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_1_datasize_1024_01/2021-12-16-19-35-03-list_file_name.pkl")
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_2_datasize_1024_01/2021-12-16-19-35-30-list_file_name.pkl")
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_4_datasize_1024_01/2021-12-16-19-35-58-list_file_name.pkl")
@@ -451,9 +453,9 @@ if __name__ == '__main__':
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_5_datasize_1024_01/2021-12-16-19-36-41-list_file_name.pkl")
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_256_01/2021-12-16-19-34-19-list_file_name.pkl")
     
-    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_512_01/2021-12-16-19-33-44-list_file_name.pkl")
-    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_2048_01/2021-12-16-19-31-15-list_file_name.pkl")
-    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_4096_01/2021-12-16-19-32-59-list_file_name.pkl")
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_512_01/2021-12-16-19-33-44-list_file_name.pkl")
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_2048_01/2021-12-16-19-31-15-list_file_name.pkl")
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_4096_01/2021-12-16-19-32-59-list_file_name.pkl")
 
     # run(rerun=True, given_list_file_name='2021-10-25-22-33-35-list_file_name.pkl')
 

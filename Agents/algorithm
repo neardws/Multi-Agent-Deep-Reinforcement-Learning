@@ -1,0 +1,5 @@
+RA: random allocation
+C-DDPG: one centralized ddpg agent
+IAC-GA: vehicles as n agents, one edge with greedy
+MADR-GA: vehicles as n agents with difference rewards, one edge with greedy
+HDR-MADRL: vehicles and one edge node as n+1 agents, with different Time-Scales difference rewards 

@@ -341,9 +341,6 @@ class VehicularNetworkEnv(gym.Env):
             + 1  # action_time_of_vehicle, changeable with action of vehicle
             + int(self.experiment_config.data_types_number)  # data_in_edge, changeable with action of vehicle
             + int(self.experiment_config.data_types_number)  # required data of the vehicle according to edge view in edge
-            # + int(self.experiment_config.edge_views_number)  # edge_view_in_edge_node
-            # + int(self.experiment_config.data_types_number)  # data_types_in_vehicle, unchangeable
-            # + int(self.experiment_config.data_types_number * self.experiment_config.edge_views_number)  # view_required_data, unchangeable
         )
 
     def get_sensor_action_size(self):
@@ -381,9 +378,6 @@ class VehicularNetworkEnv(gym.Env):
             + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number)  # owned data types of all vehicles in edge node
             + int(self.experiment_config.vehicle_number * self.experiment_config.trajectories_predicted_time)  # predicted trajectories of all vehicles
             + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number)  # required data in all vehicles according to edge view
-            # + int(self.experiment_config.edge_views_number)  # required edge view in edge node
-            # + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number)  # data types of all vehicles
-            # + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number * self.experiment_config.edge_views_number)   # view required data
         )
 
     def get_actor_input_size_for_edge(self):
@@ -428,9 +422,6 @@ class VehicularNetworkEnv(gym.Env):
             + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number)  # owned data types of all vehicles in edge node
             + int(self.experiment_config.vehicle_number * self.experiment_config.trajectories_predicted_time)  # predicted trajectories of all vehicles
             + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number)   # required data in all vehicles according to edge view
-            # + int(self.experiment_config.edge_views_number)  # required edge view in edge node
-            # + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number)  # data types of all vehicles
-            # + int(self.experiment_config.vehicle_number * self.experiment_config.data_types_number * self.experiment_config.edge_views_number)   # view required data
         )
 
     def get_global_action_size(self):

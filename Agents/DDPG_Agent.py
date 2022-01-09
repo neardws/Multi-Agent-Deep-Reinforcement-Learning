@@ -136,7 +136,7 @@ class DDPG_Agent(object):
         )
 
         self.critic_local_of_ddpg = self.create_nn(
-            input_dim=self.environment.get_global_state_size() + self.action_size,
+            input_dim=self.environment.get_global_state_size() + self.f,
             output_dim=1,
             key_to_use="Critic_of_DDPG"
         )
