@@ -7,6 +7,6 @@
 """
 import os
 
-data = '/Data/Data1231_IAC_GA/bandwidth_3_datasize_4096_01/'
+data = '/Data/Data0109_DDPG/bandwidth_3_datasize_4096/'
 project_dir = os.path.dirname(os.path.abspath(__file__))
 print(project_dir)
