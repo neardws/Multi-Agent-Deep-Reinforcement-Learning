@@ -135,8 +135,8 @@ def init(environments_file_name):
         "critic_nodes_update_every_n_steps": 300,  # 15 times in one episode
         "actor_reward_update_every_n_steps": 300,  # 20 times in one episode
         "critic_reward_update_every_n_steps": 300,  # 20 times in one episode
-        "actor_nodes_learning_updates_per_learning_session": 16,
-        "critic_nodes_learning_updates_per_learning_session": 16,
+        "actor_nodes_learning_updates_per_learning_session": 1,
+        "critic_nodes_learning_updates_per_learning_session": 1,
         "actor_reward_learning_updates_per_learning_session": 160,
         "critic_reward_learning_updates_per_learning_session": 160,
         "clip_rewards": False}
@@ -184,7 +184,7 @@ def run(first=False, rerun=False, environments_file_name=None, given_list_file_n
             list_file = load_obj(name=correct_list_file_name)
             temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
             temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
-            temple_agent.run_n_episodes(num_episodes=5000,
+            temple_agent.run_n_episodes(num_episodes=10000,
                                         temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
                                         temple_agent_name=load_name(list_file, 'temple_agent_name'),
                                         temple_result_name=load_name(list_file, 'temple_result_name'),

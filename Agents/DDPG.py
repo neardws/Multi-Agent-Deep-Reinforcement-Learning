@@ -631,7 +631,7 @@ class DDPG_Agent(object):
                     save_obj(obj=self.actor_local, name=actor_nodes_name)
                     print("save actor targets objectives successful")
 
-            if self.environment.episode_index <= 2000 and self.environment.episode_index % 100 == 0:
+            if self.environment.episode_index <= 10000 and self.environment.episode_index % 100 == 0:
                 save_obj(obj=self.agent_config, name=temple_agent_config_name)
                 save_obj(obj=self, name=temple_agent_name)
                 print("save agent objective successful")

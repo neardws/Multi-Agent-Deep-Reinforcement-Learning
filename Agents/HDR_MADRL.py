@@ -17,8 +17,10 @@ import pandas as pd
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
 from Exploration_strategies.Gaussian_Exploration import Gaussian_Exploration
 from Config.AgentConfig import AgentConfig
-from Utilities.Data_structures.SensorCriticReplayBuffer import SensorCriticReplayBuffer
-from Utilities.Data_structures.SensorActorReplayBuffer import SensorActorReplayBuffer
+from Utilities.Data_structures.HDRSensorCriticReplayBuffer import HDRSensorCriticReplayBuffer
+from Utilities.Data_structures.HDRSensorActorReplayBuffer import HDRSensorActorReplayBuffer
+from Utilities.Data_structures.HDREdgeCriticReplayBuffer import HDREdgeCriticReplayBuffer
+from Utilities.Data_structures.HDREdgeActorReplayBuffer import HDREdgeActorReplayBuffer
 from Utilities.FileOperator import save_obj, load_obj
 
 np.set_printoptions(threshold=np.inf)
@@ -44,8 +46,6 @@ class HDR_MADRL_Agent(object):
         self.action = None
 
         """torch.Tensor parameters, save to replay buffer"""
-        
-        self.global_action = None
 
         self.sensor_nodes_observation = None
         self.edge_node_observation = None
@@ -56,6 +56,7 @@ class HDR_MADRL_Agent(object):
         self.edge_node_action = None
 
         self.sensor_nodes_reward = None
+        self.edge_node_reward = None
 
         self.next_sensor_nodes_observation = None
         self.next_edge_node_observation = None
@@ -92,7 +93,7 @@ class HDR_MADRL_Agent(object):
         """
 
         """Experience Replay Buffer"""
-        self.actor_experience_replay_buffer = SensorActorReplayBuffer(
+        self.sensor_actor_experience_replay_buffer = HDRSensorActorReplayBuffer(
             buffer_size=self.agent_config.actor_experience_replay_buffer_buffer_size,
             batch_size=self.agent_config.actor_experience_replay_buffer_batch_size,
             seed=self.agent_config.actor_experience_replay_buffer_seed,
@@ -100,7 +101,23 @@ class HDR_MADRL_Agent(object):
             device=self.device
         )
 
-        self.critic_experience_replay_buffer = SensorCriticReplayBuffer(
+        self.sensor_critic_experience_replay_buffer = HDRSensorCriticReplayBuffer(
+            buffer_size=self.agent_config.critic_experience_replay_buffer_buffer_size,
+            batch_size=self.agent_config.critic_experience_replay_buffer_batch_size,
+            seed=self.agent_config.critic_experience_replay_buffer_seed,
+            dropout=self.agent_config.critic_experience_replay_buffer_dropout,
+            device=self.device
+        )
+
+        self.edge_actor_experience_replay_buffer = HDREdgeActorReplayBuffer(
+            buffer_size=self.agent_config.actor_experience_replay_buffer_buffer_size,
+            batch_size=self.agent_config.actor_experience_replay_buffer_batch_size,
+            seed=self.agent_config.actor_experience_replay_buffer_seed,
+            dropout=self.agent_config.actor_experience_replay_buffer_dropout,
+            device=self.device
+        )
+
+        self.edge_critic_experience_replay_buffer = HDREdgeCriticReplayBuffer(
             buffer_size=self.agent_config.critic_experience_replay_buffer_buffer_size,
             batch_size=self.agent_config.critic_experience_replay_buffer_batch_size,
             seed=self.agent_config.critic_experience_replay_buffer_seed,
@@ -117,15 +134,19 @@ class HDR_MADRL_Agent(object):
         self.edge_action_size = self.environment.get_edge_action_size()
         self.critic_size_for_edge = self.environment.get_critic_size_for_edge()
 
-        self.reward_state_size = self.environment.get_actor_input_size_for_reward()
-        self.reward_action_size = self.environment.get_reward_action_size()
-        self.critic_size_for_reward = self.environment.get_critic_size_for_reward()
 
         """Exploration Strategy"""
         self.sensor_exploration_strategy = Gaussian_Exploration(
             size=self.sensor_action_size,
             hyperparameters=self.hyperparameters,
             key_to_use="Actor_of_Sensor",
+            device=self.device
+        )
+
+        self.edge_exploration_strategy = Gaussian_Exploration(
+            size=self.edge_action_size,
+            hyperparameters=self.hyperparameters,
+            key_to_use="Actor_of_Edge",
             device=self.device
         )
 
@@ -221,11 +242,90 @@ class HDR_MADRL_Agent(object):
 
         for vehicle_index in range(self.environment.experiment_config.vehicle_number):
             optim.lr_scheduler.ReduceLROnPlateau(
-                self.critic_optimizer_of_sensor_nodes[vehicle_index], mode='min',
-                factor=0.1, patience=10, verbose=False, threshold=0.0001,
-                threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
+                self.critic_optimizer_of_sensor_nodes[vehicle_index], 
+                mode='min',
+                factor=0.1, 
+                patience=10, 
+                verbose=False, 
+                threshold=0.0001,
+                threshold_mode='rel', 
+                cooldown=0, 
+                min_lr=0, 
+                eps=1e-08
+            )
         
-        
+        self.actor_local_of_edge_node = self.create_nn(
+            input_dim=self.edge_observation_size,
+            output_dim=self.edge_action_size,
+            key_to_use="Actor_of_Edge"
+        )
+
+        self.actor_traget_of_edge_node = self.create_nn(
+            input_dim=self.edge_observation_size,
+            output_dim=self.edge_action_size,
+            key_to_use="Actor_of_Edge"
+        )
+
+        HDR_MADRL_Agent.copy_model_over(
+            from_model=self.actor_local_of_edge_node,
+            to_model=self.actor_traget_of_edge_node
+        )
+
+        self.actor_optimizer_of_edge_node = optim.Adam(
+            params=self.actor_local_of_edge_node.parameters(),
+            lr=self.hyperparameters["Actor_of_Edge"]["learning_rate"],
+            eps=1e-8
+        )
+
+        optim.lr_scheduler.ReduceLROnPlateau(
+                self.actor_optimizer_of_edge_node, 
+                mode='min',
+                factor=0.1, 
+                patience=10, 
+                verbose=False, 
+                threshold=0.0001,
+                threshold_mode='rel', 
+                cooldown=0, 
+                min_lr=0, 
+                eps=1e-08
+            )
+
+        self.critic_local_of_edge_node = self.create_nn(
+            input_dim=self.critic_size_for_edge,
+            output_dim=1,
+            key_to_use="Critic_of_Edge"
+        )
+
+        self.critic_target_of_edge_node = self.create_nn(
+            input_dim=self.critic_size_for_edge,
+            output_dim=1,
+            key_to_use="Critic_of_Edge"
+        )
+
+        HDR_MADRL_Agent.copy_model_over(
+            from_model=self.critic_local_of_edge_node,
+            to_model=self.critic_target_of_edge_node
+        )
+
+        self.critic_optimizer_of_edge_node = optim.Adam(
+            params=self.critic_local_of_edge_node.parameters(),
+            lr=self.hyperparameters["Critic_of_Edge"]["learning_rate"],
+            eps=1e-8
+        )
+
+        optim.lr_scheduler.ReduceLROnPlateau(
+            self.critic_optimizer_of_edge_node, 
+            mode='min',
+            factor=0.1, 
+            patience=10, 
+            verbose=False, 
+            threshold=0.0001,
+            threshold_mode='rel', 
+            cooldown=0, 
+            min_lr=0, 
+            eps=1e-08
+        )
+
         """
         ______________________________________________________________________________________________________________
         Actor network and Critic network End
@@ -316,23 +416,24 @@ class HDR_MADRL_Agent(object):
 
             while not self.done:  # when the episode is not over
                 self.sensor_nodes_pick_actions()
-                self.edge_node_pick_action_with_greedy_allocation()
+                self.edge_node_pick_actions()
                 self.combined_action()
                 self.conduct_action()
-                self.save_actor_experience()
-                self.save_critic_experience()
+                self.save_sensor_actor_experience()
+                self.save_sensor_critic_experience()
+                self.save_edge_actor_experience()
+                self.save_edge_critic_experience()
                 
                 if self.time_for_actor_of_sensor_nodes_to_learn(nodes_start_episode_num):
                     one_time_average_actor_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
 
                     for _ in range(self.hyperparameters["actor_nodes_learning_updates_per_learning_session"]):
-                        sensor_nodes_observations, sensor_nodes_actions, next_sensor_nodes_observations = self.actor_experience_replay_buffer.sample()
+                        sensor_nodes_observations, sensor_nodes_actions = self.sensor_actor_experience_replay_buffer.sample()
 
                         actor_loss_of_sensor_nodes \
                             = self.actor_sensor_nodes_to_learn(
                             sensor_nodes_observations=sensor_nodes_observations,
-                            sensor_nodes_actions=sensor_nodes_actions,
-                            next_sensor_nodes_observations=next_sensor_nodes_observations)
+                            sensor_nodes_actions=sensor_nodes_actions)
 
                         for index in range(self.environment.experiment_config.vehicle_number):
                             one_time_average_actor_loss_of_sensor_nodes[index] += actor_loss_of_sensor_nodes[index]
@@ -352,7 +453,7 @@ class HDR_MADRL_Agent(object):
                     for _ in range(self.hyperparameters["critic_nodes_learning_updates_per_learning_session"]):
                         sensor_nodes_observations, sensor_nodes_actions, \
                         sensor_nodes_rewards, next_sensor_nodes_observations, \
-                        dones = self.critic_experience_replay_buffer.sample()
+                        dones = self.sensor_critic_experience_replay_buffer.sample()
 
                         critic_loss_of_sensor_nodes \
                             = self.critic_sensor_nodes_to_learn(
@@ -372,6 +473,50 @@ class HDR_MADRL_Agent(object):
                         average_critic_loss_of_sensor_nodes[index] += one_time_average_critic_loss_of_sensor_nodes[
                             index]
 
+                if self.time_for_actor_of_edge_node_to_learn(nodes_start_episode_num):
+                    one_time_average_actor_loss_of_edge_node = 0
+
+                    for _ in range(self.hyperparameters["actor_edge_learning_updates_per_learning_session"]):
+                        edge_node_observations, sensor_nodes_actions, edge_node_actions = self.edge_actor_experience_replay_buffer.sample()
+
+                        actor_loss_of_edge_node \
+                            = self.actor_edge_node_to_learn(
+                            edge_node_observations=edge_node_observations,
+                            sensor_nodes_actions=sensor_nodes_actions)
+
+                        one_time_average_actor_loss_of_edge_node += actor_loss_of_edge_node
+
+
+                    one_time_average_actor_loss_of_edge_node /= self.hyperparameters[
+                            "actor_edge_learning_updates_per_learning_session"]
+
+                    average_actor_loss_of_edge_node += one_time_average_actor_loss_of_edge_node
+
+                if self.time_for_critic_of_edge_node_to_learn(nodes_start_episode_num):
+                    one_time_average_critic_loss_of_edge_node = 0
+
+                    for _ in range(self.hyperparameters["critic_edge_learning_updates_per_learning_session"]):
+                        edge_node_observations, sensor_nodes_actions, edge_node_actions, \
+                            edge_node_rewards, next_sensor_nodes_observations, next_edge_node_observations, \
+                            dones = self.edge_critic_experience_replay_buffer.sample()
+
+                        critic_loss_of_edge_node \
+                            = self.critic_edge_node_to_learn(
+                            edge_node_observations=edge_node_observations,
+                            sensor_nodes_actions=sensor_nodes_actions,
+                            edge_node_actions=edge_node_actions,
+                            edge_node_rewards=edge_node_rewards,
+                            next_sensor_nodes_observations=next_sensor_nodes_observations,
+                            next_edge_node_observations=next_edge_node_observations,
+                            dones=dones)
+
+                        one_time_average_critic_loss_of_edge_node += critic_loss_of_edge_node
+
+                    one_time_average_critic_loss_of_edge_node /= self.hyperparameters[
+                            "critic_edge_learning_updates_per_learning_session"]
+
+                    average_critic_loss_of_edge_node[index] += one_time_average_critic_loss_of_edge_node
+
                 """Renew by environment"""
                 self.sensor_nodes_observation = self.next_sensor_nodes_observation.clone().detach()
                 self.edge_node_observation = self.next_edge_node_observation.clone().detach()
@@ -384,27 +529,15 @@ class HDR_MADRL_Agent(object):
             average_critic_loss_of_sensor_nodes[index] /= \
                 (self.environment.max_episode_length / self.hyperparameters["critic_nodes_update_every_n_steps"])
 
+        average_actor_loss_of_edge_node /= \
+                (self.environment.max_episode_length / self.hyperparameters["actor_edge_update_every_n_steps"])
+        average_critic_loss_of_edge_node /= \
+            (self.environment.max_episode_length / self.hyperparameters["critic_edge_update_every_n_steps"])
+
         return average_actor_loss_of_sensor_nodes, average_critic_loss_of_sensor_nodes, \
             average_actor_loss_of_edge_node, average_critic_loss_of_edge_node, \
             average_actor_loss_of_reward_node, average_critic_loss_of_reward_node
     
-
-    def target_step(self):
-        """Runs a step in the game"""
-
-        with tqdm(total=self.environment.max_episode_length) as my_bar:
-
-            while not self.done:  # when the episode is not over
-                self.sensor_nodes_target_pick_actions()
-                self.edge_node_pick_action_with_greedy_allocation()
-                self.combined_action()
-                self.conduct_action()
-            
-                """Renew by environment"""
-                self.sensor_nodes_observation = self.next_sensor_nodes_observation.clone().detach()
-                self.edge_node_observation = self.next_edge_node_observation.clone().detach()
-
-                my_bar.update(n=1)
 
     """
     Sensor nodes local and target network to pick actions
@@ -442,43 +575,38 @@ class HDR_MADRL_Agent(object):
                     self.sensor_nodes_action[sensor_node_index, action_index] = \
                         sensor_action[0][action_index]
     
-    def sensor_nodes_target_pick_actions(self):
-        pass
-    
-    
-    def edge_node_pick_action_with_greedy_allocation(self):
-        # caculate the bandwidth allocation of each sensor node considering data size and distance
-        edge_action = np.zeros(self.edge_action_size)
-        info_of_sensor_nodes = []
-        distances_of_sensor_nodes = self.environment.get_distances_of_sensor_nodes()
-        required_data_size_of_sensor_nodes = self.environment.get_required_data_size_of_sensor_nodes()
-        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
-            info_of_sensor_nodes.append({
-                "index": sensor_node_index,
-                "distance": distances_of_sensor_nodes[sensor_node_index],
-                "required_data_size": required_data_size_of_sensor_nodes[sensor_node_index]})
-        info_of_sensor_nodes.sort(key=lambda x: x["distance"] / 1500 + x["required_data_size"] / (1024 * 1024), reverse=True)
-        m = 6.3
-        for info_of_sensor_node in info_of_sensor_nodes:
-            sensor_node_index = info_of_sensor_node["index"]
-            edge_action[sensor_node_index] = 1 / m
-            m += 1
-        self.edge_node_action = torch.from_numpy(edge_action).float().to(self.device)
+    def edge_node_pick_actions(self):
+        """
+        pick actions via local network
+        """
+        edge_node_state = torch.cat(
+            (self.edge_node_observation.unsqueeze(0).to(self.device),
+            torch.flatten(self.sensor_nodes_action).unsqueeze(0).to(self.device)),
+         dim=1).float().to(self.device)
 
-    def edge_node_target_pick_action(self):
-        pass
+        self.actor_local_of_edge_node.eval()
+        with torch.no_grad():
+            edge_action = self.actor_local_of_edge_node(edge_node_state)
+        self.actor_local_of_edge_node.train()
+
+        edge_action_add_noise = self.edge_exploration_strategy.perturb_action_for_exploration_purposes(
+            {"action": edge_action})
+        self.saved_edge_node_action = edge_action_add_noise
+
+        softmax = torch.nn.Softmax(dim=-1).to(self.device)
+        edge_action = softmax(edge_action_add_noise)
+
+        for action_index in range(self.edge_action_size):
+            self.edge_node_action[action_index] = edge_action[0][action_index]
+    
 
     def combined_action(self):
-        
-        self.global_action = torch.cat(
-            (torch.flatten(self.sensor_nodes_action).unsqueeze(0), self.edge_node_action.unsqueeze(0)),
-            dim=1).to(self.device)
-
 
         priority = np.zeros(shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number),
                             dtype=np.float)
         arrival_rate = np.zeros(
-            shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number), dtype=np.float)
+            shape=(self.environment.experiment_config.vehicle_number, self.environment.experiment_config.data_types_number), 
+            dtype=np.float)
 
         for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
 
@@ -500,7 +628,7 @@ class HDR_MADRL_Agent(object):
                     priority[sensor_node_index][data_type_index] = 0
                     arrival_rate[sensor_node_index][data_type_index] = 0
 
-        edge_nodes_bandwidth = self.edge_node_action
+        edge_nodes_bandwidth = self.edge_node_action.cpu().data.numpy()
 
         self.action = {
             "priority": priority,
@@ -510,7 +638,7 @@ class HDR_MADRL_Agent(object):
 
     def conduct_action(self):
         """Conducts an action in the environment"""
-        self.next_sensor_nodes_observation, self.next_edge_node_observation, _, sensor_nodes_reward, \
+        self.next_sensor_nodes_observation, self.next_edge_node_observation, _, sensor_nodes_reward, edge_node_reward,\
             self.reward, view_required_number, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
             sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
             sum_required_data_number, new_reward = self.environment.step_with_difference_rewards(self.action)
@@ -530,37 +658,58 @@ class HDR_MADRL_Agent(object):
         self.total_episode_required_data_number += sum_required_data_number
 
         self.sensor_nodes_reward = torch.from_numpy(sensor_nodes_reward).float().to(self.device).unsqueeze(0)
+        self.edge_node_reward= edge_node_reward
 
-    def save_actor_experience(self):
+    def save_sensor_actor_experience(self):
         """
         sensor_nodes_observations=torch.empty(), sensor_actions=torch.empty(),
         sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty()
         Saves the recent experience to the experience replay buffer
         :return: None
         """
-        if self.actor_experience_replay_buffer is None:
-            raise Exception("experience_replay_buffer is None, function save_experience at HMAIMD.py")
+        if self.sensor_actor_experience_replay_buffer is None:
+            raise Exception("experience_replay_buffer is None, function save_experience at HDR_MADRL.py")
         """Save as torch.Tensor"""
-        self.actor_experience_replay_buffer.add_experience(
+        self.sensor_actor_experience_replay_buffer.add_experience(
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
-            sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
-            next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach())
+            sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach())
 
-    def save_critic_experience(self):
+    def save_sensor_critic_experience(self):
         """
         sensor_nodes_observations=torch.empty(), sensor_actions=torch.empty(),
         sensor_nodes_rewards=torch.empty(), next_sensor_nodes_observations=torch.empty()
         Saves the recent experience to the experience replay buffer
         :return: None
         """
-        if self.critic_experience_replay_buffer is None:
-            raise Exception("experience_replay_buffer is None, function save_experience at HMAIMD.py")
+        if self.sensor_critic_experience_replay_buffer is None:
+            raise Exception("experience_replay_buffer is None, function save_experience at HDR_MADRL.py")
         """Save as torch.Tensor"""
-        self.critic_experience_replay_buffer.add_experience(
+        self.sensor_critic_experience_replay_buffer.add_experience(
             sensor_nodes_observation=self.sensor_nodes_observation.clone().detach(),
             sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
             sensor_nodes_reward=self.sensor_nodes_reward.clone().detach(),
             next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach(),
+            done=self.done)
+
+    def save_edge_actor_experience(self):
+        if self.edge_actor_experience_replay_buffer is None:
+            raise Exception("experience_replay_buffer is None, function save_experience at HDR_MADRL.py")
+        """Save as torch.Tensor"""
+        self.edge_actor_experience_replay_buffer.add_experience(
+            edge_node_observation=self.edge_node_observation.clone().detach(),
+            sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach())
+
+    def save_edge_critic_experience(self):
+        if self.edge_critic_experience_replay_buffer is None:
+            raise Exception("experience_replay_buffer is None, function save_experience at HDR_MADRL.py")
+        """Save as torch.Tensor"""
+        self.edge_critic_experience_replay_buffer.add_experience(
+            edge_node_observation=self.edge_node_observation.clone().detach(),
+            sensor_nodes_action=self.saved_sensor_nodes_action.clone().detach(),
+            edge_node_action=self.saved_edge_node_action.clone().detach(),
+            edge_node_reward=self.edge_node_reward,
+            next_sensor_nodes_observation=self.next_sensor_nodes_observation.clone().detach(),
+            next_edge_node_observation=self.next_edge_node_observation.clone().detach(),
             done=self.done)
 
 
@@ -582,64 +731,32 @@ class HDR_MADRL_Agent(object):
         else:
             return False
 
+    def time_for_actor_of_edge_node_to_learn(self, nodes_start_episode_num):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        start_episode_index = nodes_start_episode_num / self.environment.experiment_config.max_episode_length
+        if (self.environment.episode_index) >= start_episode_index:
+            return self.environment.episode_step % self.hyperparameters["actor_edge_update_every_n_steps"] == 0
+        else:
+            return False
+
+    def time_for_critic_of_edge_node_to_learn(self, nodes_start_episode_num):
+        """Returns boolean indicating whether there are enough experiences to learn from
+        and it is time to learn for the actor and critic of sensor nodes and edge node"""
+        start_episode_index = nodes_start_episode_num / self.environment.experiment_config.max_episode_length
+        if self.environment.episode_index >= start_episode_index:
+            return self.environment.episode_step % self.hyperparameters["critic_edge_update_every_n_steps"] == 0
+        else:
+            return False
+
     def actor_sensor_nodes_to_learn(
         self,
         sensor_nodes_observations: list,
         sensor_nodes_actions: list,
-        next_sensor_nodes_observations: list
     ):
         actor_loss_of_sensor_nodes = np.zeros(self.environment.experiment_config.vehicle_number)
 
         """Runs a learning iteration for the critic of sensor nodes"""
-        sensor_nodes_actions_next_list = []  # next action of sensor nodes according to next_sensor_nodes_observations
-        next_sensor_node_observations_list = []  # next observation of single sensor node, Reorganized by next_sensor_nodes_observations
-
-        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
-            next_sensor_node_observations_tensor = torch.cat(
-                (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
-                 next_sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
-            for index, values in enumerate(next_sensor_nodes_observations):
-                if index > 1:
-                    next_sensor_node_observations_tensor = torch.cat(
-                        (next_sensor_node_observations_tensor, values[sensor_node_index, :].unsqueeze(0)), dim=0)
-
-            next_sensor_node_observations_list.append(next_sensor_node_observations_tensor)
-            sensor_node_action_next = self.actor_target_of_sensor_nodes[sensor_node_index](
-                next_sensor_node_observations_tensor.float().to(self.device))
-            sensor_nodes_actions_next_list.append(sensor_node_action_next)
-
-        new_sensor_nodes_actions_next_list = []  # next action of sensor nodes at each batch
-        for tensor_index in range(sensor_nodes_actions_next_list[0].shape[0]):  # need 256 batch number
-            new_sensor_nodes_actions_next_tensor = torch.cat(
-                (sensor_nodes_actions_next_list[0][tensor_index, :].unsqueeze(0),
-                 sensor_nodes_actions_next_list[1][tensor_index, :].unsqueeze(0)),
-                dim=1
-            )
-            for index, sensor_nodes_actions_next in enumerate(sensor_nodes_actions_next_list):
-                if index > 1:
-                    new_sensor_nodes_actions_next_tensor = torch.cat(
-                        (new_sensor_nodes_actions_next_tensor, sensor_nodes_actions_next[tensor_index].unsqueeze(0)),
-                        dim=1
-                    )
-            new_sensor_nodes_actions_next_list.append(new_sensor_nodes_actions_next_tensor)
-        sensor_nodes_actions_next_tensor = torch.cat(
-            (new_sensor_nodes_actions_next_list[0], new_sensor_nodes_actions_next_list[1]), dim=0)
-        for index, sensor_nodes_actions_next in enumerate(new_sensor_nodes_actions_next_list):
-            if index > 1:
-                sensor_nodes_actions_next_tensor = torch.cat(
-                    (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=0)
-
-        sensor_nodes_actions_tensor = torch.cat(
-            (torch.flatten(sensor_nodes_actions[0]).unsqueeze(0), torch.flatten(sensor_nodes_actions[1]).unsqueeze(0)),
-            dim=0
-        )
-        for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
-            if index > 1:
-                sensor_nodes_actions_tensor = torch.cat(
-                    (sensor_nodes_actions_tensor, torch.flatten(sensor_nodes_action).unsqueeze(0)), dim=0
-                )
-        sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
-
         for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
 
             sensor_node_observations = torch.cat(
@@ -688,13 +805,17 @@ class HDR_MADRL_Agent(object):
 
             actor_loss_of_sensor_nodes[sensor_node_index] = actor_loss_of_sensor_node.item()
 
-            self.take_optimisation_step(self.actor_optimizer_of_sensor_nodes[sensor_node_index],
-                                        self.actor_local_of_sensor_nodes[sensor_node_index],
-                                        actor_loss_of_sensor_node,
-                                        self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"])
-            self.soft_update_of_target_network(self.actor_local_of_sensor_nodes[sensor_node_index],
-                                               self.actor_target_of_sensor_nodes[sensor_node_index],
-                                               self.hyperparameters["Actor_of_Sensor"]["tau"])
+            self.take_optimisation_step(
+                self.actor_optimizer_of_sensor_nodes[sensor_node_index],
+                self.actor_local_of_sensor_nodes[sensor_node_index],
+                actor_loss_of_sensor_node,
+                self.hyperparameters["Actor_of_Sensor"]["gradient_clipping_norm"]
+            )
+            self.soft_update_of_target_network(
+                self.actor_local_of_sensor_nodes[sensor_node_index],
+                self.actor_target_of_sensor_nodes[sensor_node_index],
+                self.hyperparameters["Actor_of_Sensor"]["tau"]
+            )
 
         return actor_loss_of_sensor_nodes
 
@@ -819,6 +940,148 @@ class HDR_MADRL_Agent(object):
 
         return critic_loss_of_sensor_nodes
 
+    def actor_edge_node_to_learn(
+        self,
+        edge_node_observations: list,
+        sensor_nodes_actions: list
+    ):
+        sensor_nodes_actions_tensor = torch.cat(
+            (torch.flatten(sensor_nodes_actions[0]).unsqueeze(0), torch.flatten(sensor_nodes_actions[1]).unsqueeze(0)),
+            dim=0
+        )
+        for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
+            if index > 1:
+                sensor_nodes_actions_tensor = torch.cat(
+                    (sensor_nodes_actions_tensor, torch.flatten(sensor_nodes_action).unsqueeze(0)), dim=0
+                )
+        sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
+
+        actions_predicted_of_edge_node = self.actor_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_nodes_actions_tensor), dim=1))
+
+        """
+        ________________________________________________________________
+
+        Calculates the actor loss of edge node
+        ________________________________________________________________
+        """
+
+        loss_of_edge_node = -self.critic_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_nodes_actions_tensor, actions_predicted_of_edge_node),
+                      dim=1)).mean()
+
+        actor_loss_of_edge_node = loss_of_edge_node.item()
+
+        self.take_optimisation_step(
+            self.actor_optimizer_of_edge_node,
+            self.actor_local_of_edge_node,
+            loss_of_edge_node,
+            self.hyperparameters["Actor_of_Edge"]["gradient_clipping_norm"]
+        )
+        self.soft_update_of_target_network(
+            self.actor_local_of_edge_node, 
+            self.actor_target_of_edge_node,
+            self.hyperparameters["Actor_of_Edge"]["tau"]
+        )
+
+        return actor_loss_of_edge_node
+
+    def critic_edge_node_to_learn(
+        self,
+        edge_node_observations: list,
+        sensor_nodes_actions: list,
+        edge_node_actions: list,
+        edge_node_rewards: list,
+        next_sensor_nodes_observations: list,
+        next_edge_node_observations: list,
+        dones: Tensor
+    ):
+        sensor_nodes_actions_next_list = []  # next action of sensor nodes according to next_sensor_nodes_observations
+        next_sensor_node_observations_list = []  # next observation of single sensor node, Reorganized by next_sensor_nodes_observations
+
+        for sensor_node_index in range(self.environment.experiment_config.vehicle_number):
+            next_sensor_node_observations_tensor = torch.cat(
+                (next_sensor_nodes_observations[0][sensor_node_index, :].unsqueeze(0),
+                 next_sensor_nodes_observations[1][sensor_node_index, :].unsqueeze(0)), dim=0)
+            for index, values in enumerate(next_sensor_nodes_observations):
+                if index > 1:
+                    next_sensor_node_observations_tensor = torch.cat(
+                        (next_sensor_node_observations_tensor, values[sensor_node_index, :].unsqueeze(0)), dim=0)
+
+            next_sensor_node_observations_list.append(next_sensor_node_observations_tensor)
+            sensor_node_action_next = self.actor_target_of_sensor_nodes[sensor_node_index](
+                next_sensor_node_observations_tensor.float().to(self.device))
+            sensor_nodes_actions_next_list.append(sensor_node_action_next)
+
+        new_sensor_nodes_actions_next_list = []  # next action of sensor nodes at each batch
+        for tensor_index in range(sensor_nodes_actions_next_list[0].shape[0]):  # need 256 batch number
+            new_sensor_nodes_actions_next_tensor = torch.cat(
+                (sensor_nodes_actions_next_list[0][tensor_index, :].unsqueeze(0),
+                 sensor_nodes_actions_next_list[1][tensor_index, :].unsqueeze(0)),
+                dim=1
+            )
+            for index, sensor_nodes_actions_next in enumerate(sensor_nodes_actions_next_list):
+                if index > 1:
+                    new_sensor_nodes_actions_next_tensor = torch.cat(
+                        (new_sensor_nodes_actions_next_tensor, sensor_nodes_actions_next[tensor_index].unsqueeze(0)),
+                        dim=1
+                    )
+            new_sensor_nodes_actions_next_list.append(new_sensor_nodes_actions_next_tensor)
+
+        sensor_nodes_actions_next_tensor = torch.cat(
+            (new_sensor_nodes_actions_next_list[0], new_sensor_nodes_actions_next_list[1]), dim=0)
+        for index, sensor_nodes_actions_next in enumerate(new_sensor_nodes_actions_next_list):
+            if index > 1:
+                sensor_nodes_actions_next_tensor = torch.cat(
+                    (sensor_nodes_actions_next_tensor, sensor_nodes_actions_next), dim=0)
+
+        sensor_nodes_actions_tensor = torch.cat(
+            (torch.flatten(sensor_nodes_actions[0]).unsqueeze(0), torch.flatten(sensor_nodes_actions[1]).unsqueeze(0)),
+            dim=0
+        )
+        for index, sensor_nodes_action in enumerate(sensor_nodes_actions):
+            if index > 1:
+                sensor_nodes_actions_tensor = torch.cat(
+                    (sensor_nodes_actions_tensor, torch.flatten(sensor_nodes_action).unsqueeze(0)), dim=0
+                )
+        sensor_nodes_actions_tensor = sensor_nodes_actions_tensor.to(self.device)
+
+        """Runs a learning iteration for the critic of edge node"""
+        """Computes the loss for the critic"""
+        with torch.no_grad():
+            """Computes the critic target values to be used in the loss for the critic"""
+            actions_next_of_edge_node = self.actor_target_of_edge_node(
+                torch.cat((next_edge_node_observations, sensor_nodes_actions_next_tensor), dim=1))
+            critic_targets_next_of_edge_node = self.critic_target_of_edge_node(
+                torch.cat((next_edge_node_observations, sensor_nodes_actions_next_tensor, actions_next_of_edge_node),
+                          dim=1))
+            critic_targets_of_edge_node = edge_node_rewards + (
+                    self.hyperparameters["discount_rate"] * critic_targets_next_of_edge_node * (1.0 - dones))
+
+        critic_expected_of_edge_node = self.critic_local_of_edge_node(
+            torch.cat((edge_node_observations, sensor_nodes_actions_tensor, edge_node_actions), dim=1))
+
+        """
+        ________________________________________________________________
+
+        Calculates the critic loss of edge node
+        ________________________________________________________________
+        """
+
+        loss_of_edge_node = functional.mse_loss(critic_expected_of_edge_node, critic_targets_of_edge_node)
+        critic_loss_of_edge_node = loss_of_edge_node.item()
+
+        self.take_optimisation_step(self.critic_optimizer_of_edge_node,
+                                    self.critic_local_of_edge_node,
+                                    loss_of_edge_node,
+                                    self.hyperparameters["Critic_of_Edge"]["gradient_clipping_norm"])
+
+        self.soft_update_of_target_network(
+            self.critic_local_of_edge_node, self.critic_target_of_edge_node,
+            self.hyperparameters["Critic_of_Edge"]["tau"])
+
+        return critic_loss_of_edge_node
+
 
     @staticmethod
     def take_optimisation_step(optimizer, network, loss, clipping_norm=None, retain_graph=False):
@@ -848,73 +1111,6 @@ class HDR_MADRL_Agent(object):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
     
-    def run_n_episodes_as_results(self, num_episodes, result_name, environment, actor_nodes_name, actor_edge_name):
-        
-        self.config_actor_target_of_sensor_nodes(load_obj(name=actor_nodes_name))
-        self.config_actor_target_of_edge_node(load_obj(name=actor_edge_name))
-
-        if environment is not None:
-            self.config_environment(environment)
-
-        try:
-            result_data = pd.read_csv(
-                result_name, 
-                names=["Epoch index", "age_of_view", "new_age_of_view", "timeliness", "consistence", "completeness", "intel_arrival_time",  "queuing_time", "transmitting_time", "service_time", "service_rate", "received_data", "required_data"], 
-                header=0)
-        except FileNotFoundError:
-            result_data = pd.DataFrame(
-                data=None, 
-                columns={
-                    "Epoch index": "", 
-                    "age_of_view": "", 
-                    "new_age_of_view": "", 
-                    "timeliness": "", 
-                    "consistence": "", 
-                    "completeness": "",
-                    "intel_arrival_time": "", 
-                    "queuing_time": "", 
-                    "transmitting_time": "", 
-                    "service_time": "", 
-                    "service_rate": "", 
-                    "received_data": "", 
-                    "required_data": ""},
-                index=[0])
-
-        for i in range(num_episodes):
-            print("*" * 64)
-            self.reset_game()
-            self.target_step()
-
-            self.total_episode_timeliness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_consistence_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_completeness_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_intel_arrival_time /= self.environment.experiment_config.max_episode_length
-            self.total_episode_queuing_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_transmitting_time_so_far /= self.environment.experiment_config.max_episode_length
-            self.total_episode_service_time_so_far /= self.environment.experiment_config.max_episode_length
-
-            print("Epoch index: ", i)
-            print("Total reward: ", self.total_episode_score_so_far)
-            print("new_age_of_view: ", self.new_total_episode_score_so_far)
-            new_line_in_result = pd.DataFrame({
-                "Epoch index": str(i),
-                "age_of_view": str(self.total_episode_age_of_view_so_far),
-                "new_age_of_view": str(self.new_total_episode_score_so_far),
-                "timeliness": str(self.total_episode_timeliness_so_far),
-                "consistence": str(self.total_episode_consistence_so_far),
-                "completeness": str(self.total_episode_completeness_so_far),
-                "intel_arrival_time": str(self.total_episode_intel_arrival_time),
-                "queuing_time": str(self.total_episode_queuing_time_so_far),
-                "transmitting_time": str(self.total_episode_transmitting_time_so_far),
-                "service_time": str(self.total_episode_service_time_so_far),
-                "service_rate": str(self.total_episode_service_rate),
-                "received_data": str(self.total_episode_received_data_number),
-                "required_data": str(self.total_episode_required_data_number)
-            }, index=["0"])
-            result_data = result_data.append(new_line_in_result, ignore_index=True)
-            result_data.to_csv(result_name)
-            print("save result data successful")
-
 
     def run_n_episodes(self, num_episodes=None, temple_agent_config_name=None, temple_agent_name=None, 
         temple_result_name=None, temple_loss_name=None, actor_nodes_name=None, actor_edge_name=None):
@@ -1121,8 +1317,6 @@ class HDR_MADRL_Agent(object):
         """dict() parameters"""
         self.action = None
 
-        self.global_action = None
-
         self.sensor_nodes_action = torch.from_numpy(np.zeros(
             shape=(
                 self.environment.experiment_config.vehicle_number,
@@ -1133,9 +1327,16 @@ class HDR_MADRL_Agent(object):
                 self.environment.experiment_config.vehicle_number,
                 self.sensor_action_size),
             dtype=np.float)).float().to(self.device)
-        self.edge_node_action = None
-        self.saved_edge_action = None
+        self.edge_node_action = torch.from_numpy(np.zeros(
+            shape=(
+                self.environment.experiment_config.vehicle_number,),
+            dtype=np.float)).float().to(self.device)
+        self.saved_edge_node_action = torch.from_numpy(np.zeros(
+            shape=(
+                self.environment.experiment_config.vehicle_number,),
+            dtype=np.float)).float().to(self.device)
         self.sensor_nodes_reward = None
+        self.edge_node_reward = None
         self.next_sensor_nodes_observation = None
         self.next_edge_node_observation = None
 
@@ -1157,4 +1358,5 @@ class HDR_MADRL_Agent(object):
         self.total_episode_received_data_number = 0
         self.total_episode_required_data_number = 0
         self.sensor_exploration_strategy.reset()
+        self.edge_exploration_strategy.reset()
 
