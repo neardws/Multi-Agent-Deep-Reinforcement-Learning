@@ -137,48 +137,6 @@ def init(environments_file_name):
     return vehicularNetworkEnv.experiment_config, agent_config, vehicularNetworkEnv
 
 
-def run_iddpg(first=False, rerun=False, environments_file_name=None, given_list_file_name=None):
-    if first:  # run in the first time
-        experiment_config, agent_config, vehicularNetworkEnv = init(environments_file_name)
-        list_file_name = init_file_name()
-        save_init_files(list_file_name, experiment_config, agent_config, vehicularNetworkEnv)
-        agent = IDDPG_Agent(agent_config=agent_config, environment=vehicularNetworkEnv)
-        agent.run_n_episodes(temple_agent_config_name=load_name(list_file_name, 'temple_agent_config_name'),
-                            temple_agent_name=load_name(list_file_name, 'temple_agent_name'),
-                            temple_result_name=load_name(list_file_name, 'temple_result_name'),
-                            temple_loss_name=load_name(list_file_name, 'temple_loss_name'),
-                            actor_nodes_name=load_name(list_file_name, 'actor_nodes_name'), 
-                            actor_edge_name=load_name(list_file_name, 'actor_edge_name'))
-
-    else:
-        if rerun:
-            correct_list_file_name = project_dir + data + given_list_file_name
-            list_file = load_obj(name=correct_list_file_name)
-            # init_experiment_config = load_obj(load_name(list_file, 'init_experiment_config_name'))
-            # init_agent_config = load_obj(load_name(list_file, 'init_agent_config_name'))
-            init_vehicularNetworkEnv = load_obj(load_name(list_file, 'init_environment_name'))
-            experiment_config, agent_config, _ = init(load_name(list_file, 'init_environment_name'))
-            new_list_file_name = init_file_name()
-            save_init_files(new_list_file_name, experiment_config, agent_config, init_vehicularNetworkEnv)
-            agent = HMAIMD_Agent(agent_config=agent_config, environment=init_vehicularNetworkEnv)
-            agent.run_n_episodes(temple_agent_config_name=load_name(new_list_file_name, 'temple_agent_config_name'),
-                                temple_agent_name=load_name(new_list_file_name, 'temple_agent_name'),
-                                temple_result_name=load_name(new_list_file_name, 'temple_result_name'),
-                                temple_loss_name=load_name(new_list_file_name, 'temple_loss_name'),
-                                actor_nodes_name=load_name(new_list_file_name, 'actor_nodes_name'), 
-                                actor_edge_name=load_name(new_list_file_name, 'actor_edge_name'))
-        else:
-            list_file = load_obj(name=given_list_file_name)
-            temple_agent_config = load_obj(name=load_name(list_file, 'temple_agent_config_name'))
-            temple_agent = load_obj(name=load_name(list_file, 'temple_agent_name'))
-            temple_agent.run_n_episodes(num_episodes=5000,
-                                        temple_agent_config_name=load_name(list_file, 'temple_agent_config_name'),
-                                        temple_agent_name=load_name(list_file, 'temple_agent_name'),
-                                        temple_result_name=load_name(list_file, 'temple_result_name'),
-                                        temple_loss_name=load_name(list_file, 'temple_loss_name'),
-                                        actor_nodes_name=load_name(list_file, 'actor_nodes_name'), 
-                                        actor_edge_name=load_name(list_file, 'actor_edge_name'))
-
 
 def run(first=False, rerun=False, environments_file_name=None, given_list_file_name=None):
     if first:  # run in the first time
@@ -437,7 +395,7 @@ if __name__ == '__main__':
     # show_environment("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1209_Agents/bandwidth_3_datasize_1024_01/2021-12-07-19-11-36/init_environment_8f3e0dd35b3f41e2bbc0e06896ada216.pkl")
     # generate_environment()
     # change_environment()
-    
+    show_agent_config("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1213_Agents/bandwidth_3_datasize_1024_01/2021-12-13-15-45-10/init_agent_config_777591997d204dc2bc98f329347a7263.pkl")
     # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
     # show_agent_config("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1213_Agents/bandwidth_3_datasize_1024_01/2021-12-13-09-44-46/init_agent_config_6304b8bfb4bf4295a4f289cfefa89e3c.pkl")
     

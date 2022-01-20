@@ -17,7 +17,7 @@ class HDREdgeActorReplayBuffer(object):
     experience = namedtuple("Experience", field_names=[
         "edge_node_observation",
         "sensor_nodes_action"])
-    experience.__qualname__ = 'HDRSensorActorReplayBuffer.experience'
+    experience.__qualname__ = 'HDREdgeActorReplayBuffer.experience'
 
     def __init__(self, buffer_size, batch_size, seed, dropout, device=None):
         """
@@ -77,7 +77,8 @@ class HDREdgeActorReplayBuffer(object):
         :param experiences:
         :return:
         """
-        edge_node_observations = [e.edge_node_observation.cpu().data for e in experiences if e is not None]
+        edge_node_observations = torch.from_numpy(
+            np.vstack([e.edge_node_observation.cpu().data for e in experiences if e is not None])).float().to(self.device)
 
         sensor_nodes_actions = [e.sensor_nodes_action.cpu().data for e in experiences if e is not None]
 

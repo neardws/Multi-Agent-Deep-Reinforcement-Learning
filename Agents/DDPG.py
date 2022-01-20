@@ -15,6 +15,7 @@ from torch import Tensor
 from torch import optim
 import pandas as pd
 from Environments.VehicularNetworkEnv.envs.VehicularNetworkEnv import VehicularNetworkEnv
+from Exploration_strategies.Gaussian_Exploration import Gaussian_Exploration
 from Config.AgentConfig import AgentConfig
 from Utilities.Data_structures.DDPG_ReplayBuffer import DDPG_ReplayBuffer
 from Utilities.FileOperator import save_obj, load_obj
@@ -39,7 +40,14 @@ class DDPG_Agent(object):
         self.reward = None
         """dict() parameters"""
         self.action = None
+        self.action_size = self.environment.get_sensor_action_size() * self.environment.experiment_config.vehicle_number + self.environment.get_edge_action_size()
+        self.device = "cuda:1" if self.environment.experiment_config.use_gpu else "cpu"
+
+        self.saved_action = torch.from_numpy(np.zeros(
+            self.action_size,
+            dtype=np.float)).float().to(self.device)
         self.next_observation = None
+
 
         _, _, self.observation = self.environment.reset()
 
@@ -64,7 +72,6 @@ class DDPG_Agent(object):
         self.rolling_results = []
         self.max_rolling_score_seen = float("-inf")  # max score in one episode
         self.max_episode_score_seen = float("-inf")  # max score in whole episodes
-        self.device = "cuda:1" if self.environment.experiment_config.use_gpu else "cpu"
 
         """
         ______________________________________________________________________________________________________________
@@ -80,6 +87,14 @@ class DDPG_Agent(object):
             device=self.device
         )
 
+        """Exploration Strategy"""
+        self.exploration_strategy = Gaussian_Exploration(
+            size=self.action_size,
+            hyperparameters=self.hyperparameters,
+            key_to_use="Actor_of_DDPG",
+            device=self.device
+        )
+
         """
         ______________________________________________________________________________________________________________
         Replay Buffer and Exploration Strategy End
@@ -92,25 +107,17 @@ class DDPG_Agent(object):
         ______________________________________________________________________________________________________________
         """
 
-        self.action_size = self.environment.get_sensor_action_size() * self.environment.experiment_config.vehicle_number + self.environment.get_edge_action_size()
-
         """Actor Network"""
 
         self.actor_local = self.create_nn(
             input_dim=self.environment.get_global_state_size(),
-            output_dim=[
-                10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-                10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
-            ],
+            output_dim=self.action_size,
             key_to_use="Actor_of_DDPG"
         )
 
         self.actor_target = self.create_nn(
             input_dim=self.environment.get_global_state_size(),
-            output_dim=[
-                10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-                10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
-            ],
+            output_dim=self.action_size,
             key_to_use="Actor_of_DDPG"
         )
 
@@ -294,7 +301,40 @@ class DDPG_Agent(object):
 
         self.actor_local.eval()  # set the model to evaluation state
         with torch.no_grad():  # do not compute the gradient
-            self.action = self.actor_local(observation)
+            action = self.actor_local(observation)
+
+        action_add_noise = self.exploration_strategy.perturb_action_for_exploration_purposes(
+                    {"action": action})
+        
+        for action_index in range(self.action_size):
+            self.saved_action[action_index] = action_add_noise[0][action_index]
+
+        softmax = torch.nn.Softmax(dim=0).to(self.device)
+        soft_action = torch.cat(
+                        (softmax(action_add_noise[0][0:10]),
+                        softmax(action_add_noise[0][10:20]),
+                        softmax(action_add_noise[0][20:30]),
+                        softmax(action_add_noise[0][30:40]),
+                        softmax(action_add_noise[0][40:50]),
+                        softmax(action_add_noise[0][50:60]),
+                        softmax(action_add_noise[0][60:70]),
+                        softmax(action_add_noise[0][70:80]),
+                        softmax(action_add_noise[0][80:90]),
+                        softmax(action_add_noise[0][90:100]),
+                        softmax(action_add_noise[0][100:110]),
+                        softmax(action_add_noise[0][110:120]),
+                        softmax(action_add_noise[0][120:130]),
+                        softmax(action_add_noise[0][130:140]),
+                        softmax(action_add_noise[0][140:150]),
+                        softmax(action_add_noise[0][150:160]),
+                        softmax(action_add_noise[0][160:170]),
+                        softmax(action_add_noise[0][170:180]),
+                        softmax(action_add_noise[0][180:190]),
+                        softmax(action_add_noise[0][190:200]),
+                        softmax(action_add_noise[0][200:210])),
+                        dim=-1).unsqueeze(0)
+
+        self.action = soft_action
         self.actor_local.train()  # set the model to training state
 
 
@@ -354,7 +394,7 @@ class DDPG_Agent(object):
         """Save as torch.Tensor"""
         self.experience_replay_buffer.add_experience(
             observation=self.observation.clone().detach(),
-            action=self.action.clone().detach(),
+            action=self.saved_action.clone().detach(),
             reward=self.reward,
             next_observation=self.next_observation.clone().detach(),
             done=self.done)
@@ -653,6 +693,9 @@ class DDPG_Agent(object):
         self.action = None
         self.next_observation = None
 
+        self.saved_action = torch.from_numpy(np.zeros(
+            self.action_size,
+            dtype=np.float)).float().to(self.device)
 
         """Resets the game information so we are ready to play a new episode"""
         _, _, self.observation = self.environment.reset()
@@ -671,3 +714,5 @@ class DDPG_Agent(object):
         self.total_episode_service_rate = 0
         self.total_episode_received_data_number = 0
         self.total_episode_required_data_number = 0
+
+        self.exploration_strategy.reset()
