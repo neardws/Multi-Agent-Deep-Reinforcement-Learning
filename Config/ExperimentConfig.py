@@ -107,7 +107,7 @@ class ExperimentConfig(object):
 
         threshold_data_types_in_vehicles=0.3,
         data_size_low_bound=100,  # Bytes
-        data_size_up_bound=10 * 1024 * 1024,  # Bytes
+        data_size_up_bound=1 * 1024 * 1024,  # Bytes
 
         edge_view_required_start_time=10,
         threshold_edge_views_in_edge_node=0.15,
@@ -157,18 +157,18 @@ class ExperimentConfig(object):
         self.time_slots_number = max_episode_length  # equal to max_episode_length
         self.edge_views_number = edge_views_number
 
-        self.seed_data_types_in_vehicles = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_data_types_in_vehicles = 989785492
         self.threshold_data_types_in_vehicles = threshold_data_types_in_vehicles
 
-        self.seed_data_size_of_types = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_data_size_of_types = 4181331204
         self.data_size_low_bound = data_size_low_bound
         self.data_size_up_bound = data_size_up_bound
 
-        self.seed_edge_views_in_edge_node = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_edge_views_in_edge_node = 1053198634
         self.edge_view_required_start_time = edge_view_required_start_time
         self.threshold_edge_views_in_edge_node = threshold_edge_views_in_edge_node
 
-        self.seed_view_required_data = np.random.randint(0, 2 ** 32 - 2)
+        self.seed_view_required_data = 752478356
         self.threshold_view_required_data = threshold_view_required_data
 
         """The parameters related with transmission queue"""

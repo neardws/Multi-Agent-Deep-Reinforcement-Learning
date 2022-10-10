@@ -283,39 +283,80 @@ def get_distance(lng1, lat1, lng2, lat2):
     return distance * 1000
 
 
-# Scenario 1
-# Longitude_min = 104.04565967220308  
-# Longitude_max = 104.07650822204591  
+# Scenario 1  左下角
+# Longitude_min = 104.04565967220308 
+# Longitude_max = 104.05611567220308  
 # Latitude_min = 30.654605745741608  
-# Latitude_max = 30.68394513007631  
+# Latitude_max = 30.66360513007631  
 
+# Scenario 2 右下角
+# Longitude_min = 104.05611567220308  
+# Longitude_max = 104.06657467220308  
+# Latitude_min = 30.654605745741608  
+# Latitude_max = 30.66360513007631  
+
+# Scenario 3  左上角
+# Longitude_min = 104.04565967220308  
+# Longitude_max = 104.05611567220308  
+# Latitude_min = 30.66360513007631  
+# Latitude_max = 30.67260513007631  
+
+# Scenario 4  右上角
+# Longitude_min = 104.05611567220308  
+# Longitude_max = 104.06657467220308  
+# Latitude_min = 30.66360513007631  
+# Latitude_max = 30.67260513007631  
 
 
 if __name__ == "__main__":
-    Longitude_min = 104.04565967220308  # 104.05089219802858
-    Longitude_max = 104.07650822204591  # 104.082306230011
-    Latitude_min = 30.654605745741608  # 30.64253859556557
-    Latitude_max = 30.68394513007631  # 30.6684641634594
+
     time_style = "%Y-%m-%d %H:%M:%S"
-    time_start_array = time.strptime("2016-11-17 22:00:00", time_style)
-    time_end_array = time.strptime("2016-11-17 22:05:00", time_style)
+    time_start_array = time.strptime("2016-11-16 08:00:00", time_style)
+    time_end_array = time.strptime("2016-11-16 08:05:00", time_style)
     time_start = int(time.mktime(time_start_array))
     time_end = int(time.mktime(time_end_array))
-    # print(int(time.mktime(time_start_array)))
-    # print(time.strftime(time_style, time.localtime(time_start)))
-    input_file_name = project_dir + "/CSV/gps_20161117"
-    step1_file_name = project_dir + "/CSV/step1_gps_20161117.csv"
-    step2_file_name = project_dir + "/CSV/step2_gps_20161117.csv"
-    step3_file_name = project_dir + "/CSV/step3_gps_20161117.csv"
-    output_file_name = project_dir + "/CSV/vehicle_1117_22.csv"
 
+    input_file_name = project_dir + "/CSV/gps_20161116"
+    step1_file_name = project_dir + "/CSV/step1_gps_20161116.csv"
+    step2_file_name = project_dir + "/CSV/step2_gps_20161116.csv"
+    step3_file_name = project_dir + "/CSV/step3_gps_20161116.csv"
+
+    # Scenario 1  左下角
+    Longitude_min = 104.04565967220308 
+    Longitude_max = 104.05611567220308  
+    Latitude_min = 30.654605745741608  
+    Latitude_max = 30.66360513007631
+    output_file_name = project_dir + "/CSV/vehicle_1116_08_scen_01.csv"
     main(input_file_name, Longitude_min, Longitude_max, Latitude_min, Latitude_max, time_start, time_end,
          output_file_name)
-    # print("Extract finished")
-    # file2 = tran(file, step2_file_name, time_start, Longitude_min, Latitude_min)
-    # print("Tran finished")
-    # file3 = fill(file2, step3_file_name, time_end - time_start)
-    # print("Fill finished")
-    # x=geodistance(108.9345752,34.214946,108.9345752,34.241936)
-    # coordinate_transformation(step3_file_name, Longitude_min, Latitude_min, output_file_name, time_start)
+    print("Finial finished")
+    
+    # Scenario 2。 右下角
+    Longitude_min = 104.05611567220308  
+    Longitude_max = 104.06657467220308  
+    Latitude_min = 30.654605745741608  
+    Latitude_max = 30.66360513007631
+    output_file_name = project_dir + "/CSV/vehicle_1116_08_scen_02.csv"
+    main(input_file_name, Longitude_min, Longitude_max, Latitude_min, Latitude_max, time_start, time_end,
+         output_file_name)
+    print("Finial finished")
+        
+    # Scenario 3。  左上角
+    Longitude_min = 104.04565967220308  
+    Longitude_max = 104.05611567220308  
+    Latitude_min = 30.66360513007631  
+    Latitude_max = 30.67260513007631
+    output_file_name = project_dir + "/CSV/vehicle_1116_08_scen_03.csv"
+    main(input_file_name, Longitude_min, Longitude_max, Latitude_min, Latitude_max, time_start, time_end,
+         output_file_name)
+    print("Finial finished")
+
+    # Scenario 4  右上角
+    Longitude_min = 104.05611567220308  
+    Longitude_max = 104.06657467220308  
+    Latitude_min = 30.66360513007631  
+    Latitude_max = 30.67260513007631
+    output_file_name = project_dir + "/CSV/vehicle_1116_08_scen_04.csv" 
+    main(input_file_name, Longitude_min, Longitude_max, Latitude_min, Latitude_max, time_start, time_end,
+         output_file_name)
     print("Finial finished")

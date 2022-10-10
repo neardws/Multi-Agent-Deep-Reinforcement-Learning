@@ -1,0 +1,7 @@
+import pickle
+
+env_name = "/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_1024_01.pkl"
+
+with open(env_name, 'rb') as f:
+    vehicularNetworkEnv = pickle.load(f)
+    print(vehicularNetworkEnv.__dict__)

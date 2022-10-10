@@ -138,6 +138,9 @@ if __name__ == '__main__':
     # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_2048_01.pkl")
     # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_datasize_4096_01.pkl")
 
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1127_0800_bandwidth_3_dataszie_1024_02.pkl")
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_2350_bandwidth_3_dataszie_1024_02.pkl")
+
 
     # C-DDPG
 
@@ -150,6 +153,8 @@ if __name__ == '__main__':
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/bandwidth_3_datasize_2048/2022-01-12-10-17-30-list_file_name.pkl")
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/bandwidth_3_datasize_4096/2022-01-12-10-18-05-list_file_name.pkl")
     
-    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/bandwidth_4_datasize_1024/2022-01-12-10-15-31-list_file_name.pkl")
-    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/bandwidth_5_datasize_1024/2022-01-12-10-15-58-list_file_name.pkl")
-
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/bandwidth_4_datasize_1024/2022-01-12-10-15-31-list_file_name.pkl")
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/bandwidth_5_datasize_1024/2022-01-12-10-15-58-list_file_name.pkl")
+    
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/2022-05-06-09-13-18-list_file_name.pkl")
+    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0111_DDPG/2022-05-06-09-13-56-list_file_name.pkl")

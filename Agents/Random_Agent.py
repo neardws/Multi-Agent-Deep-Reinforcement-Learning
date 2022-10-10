@@ -81,13 +81,13 @@ class Random_Agent(object):
         self.action = {
             "priority": priority,
             "arrival_rate": arrival_rate,
-            "bandwidth": edge_nodes_bandwidth
+            "bandwidth": edge_nodes_bandwidth[0]
         }
 
     def conduct_action(self):
-        _, _, _, self.reward, view_required_number, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
+        _, _, _, _, self.reward, view_required_number, self.done, sum_age_of_view, sum_timeliness, sum_consistence, sum_completeness, \
         sum_intel_arrival_time, sum_queuing_time, sum_transmitting_time, sum_service_time, sum_service_rate, sum_received_data_number, \
-        sum_required_data_number, new_reward = self.environment.step(self.action)
+        sum_required_data_number, new_reward = self.environment.step_with_difference_rewards(self.action)
         self.total_episode_score_so_far += self.reward
         self.total_episode_view_required_number_so_far += view_required_number
         self.new_total_episode_score_so_far += new_reward

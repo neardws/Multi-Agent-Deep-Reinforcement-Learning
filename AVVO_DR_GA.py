@@ -187,102 +187,6 @@ def run(first=False, rerun=False, environments_file_name=None, given_list_file_n
                                         actor_nodes_name=load_name(list_file, 'actor_nodes_name'), 
                                         actor_edge_name=load_name(list_file, 'actor_edge_name'))
 
-def run_again(temple_agent_config_file_name, temple_agent_file_name):
-    new_list_file_name = init_file_name()
-    temple_agent_config = load_obj(temple_agent_config_file_name)
-    hyperparameters = {
-        "Actor_of_Sensor": {
-            "learning_rate": 1e-2,
-            "linear_hidden_units": [64, 32],
-            "final_layer_activation": "tanh",
-            "batch_norm": False,
-            "tau": 0.0001,
-            "gradient_clipping_norm": 5,
-            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
-            "mu": 0.0,
-            "theta": 0.15,
-            "sigma": 0.25,
-            "action_noise_std": 0.001,
-            "action_noise_clipping_range": 1.0
-        },
-
-        "Critic_of_Sensor": {
-            "learning_rate": 1e-1,
-            "linear_hidden_units": [128, 64],
-            "final_layer_activation": "tanh",
-            "batch_norm": False,
-            "tau": 0.0001,
-            "gradient_clipping_norm": 5
-        },
-
-        "Actor_of_Edge": {
-            "learning_rate": 1e-2,
-            "linear_hidden_units": [256, 128],
-            "final_layer_activation": "tanh",
-            "batch_norm": False,
-            "tau": 0.0001,
-            "gradient_clipping_norm": 5,
-            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
-            "mu": 0.0,
-            "theta": 0.15,
-            "sigma": 0.25,
-            "action_noise_std": 0.001,
-            "action_noise_clipping_range": 1.0
-        },
-
-        "Critic_of_Edge": {
-            "learning_rate": 1e-1,
-            "linear_hidden_units": [256, 128], 
-            "final_layer_activation": "tanh",
-            "batch_norm": False,
-            "tau": 0.0001,
-            "gradient_clipping_norm": 5
-        },
-
-        "Actor_of_Reward": {
-            "learning_rate": 1e-4,
-            "linear_hidden_units": [256, 128],
-            "final_layer_activation": "softmax",
-            "batch_norm": False,
-            "tau": 0.0001,
-            "gradient_clipping_norm": 5,
-            "noise_seed": np.random.randint(0, 2 ** 32 - 2),
-            "mu": 0.0,
-            "theta": 0.15,
-            "sigma": 0.25
-        },
-
-        "Critic_of_Reward": {
-            "learning_rate": 1e-3,
-            "linear_hidden_units": [256, 128],
-            "final_layer_activation": "tanh",
-            "batch_norm": False,
-            "tau": 0.0001,
-            "gradient_clipping_norm": 5
-        },
-
-        "discount_rate": 0.996,
-        "actor_nodes_update_every_n_steps": 300,  # 10 times in one episode
-        "critic_nodes_update_every_n_steps": 300,  # 15 times in one episode
-        "actor_reward_update_every_n_steps": 300,  # 20 times in one episode
-        "critic_reward_update_every_n_steps": 300,  # 20 times in one episode
-        "actor_nodes_learning_updates_per_learning_session": 1,
-        "critic_nodes_learning_updates_per_learning_session": 1,
-        "actor_reward_learning_updates_per_learning_session": 160,
-        "critic_reward_learning_updates_per_learning_session": 160,
-        "clip_rewards": False}
-
-    temple_agent_config.config(hyperparameters=hyperparameters)
-
-    temple_agent = load_obj(temple_agent_file_name)
-    temple_agent.config_hyperparameters(hyperparameters=hyperparameters)
-
-    trainer = Trainer(temple_agent_config, temple_agent)
-    trainer.run_games_for_agent(temple_agent_config_name=load_name(new_list_file_name, 'temple_agent_config_name'),
-                                temple_agent_name=load_name(new_list_file_name, 'temple_agent_name'),
-                                temple_result_name=load_name(new_list_file_name, 'temple_result_name'),
-                                temple_loss_name=load_name(new_list_file_name, 'temple_loss_name'),
-                                agent_name=load_name(new_list_file_name, 'agent_name'))
 
 def generate_environment():
     trajectories_file_name = "/home/neardws/Hierarchical-Reinforcement-Learning/CSV/vehicle_1116_10.csv"
@@ -395,16 +299,27 @@ if __name__ == '__main__':
     # show_environment("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1209_Agents/bandwidth_3_datasize_1024_01/2021-12-07-19-11-36/init_environment_8f3e0dd35b3f41e2bbc0e06896ada216.pkl")
     # generate_environment()
     # change_environment()
-    show_agent_config("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1213_Agents/bandwidth_3_datasize_1024_01/2021-12-13-15-45-10/init_agent_config_777591997d204dc2bc98f329347a7263.pkl")
+    # show_agent_config("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1213_Agents/bandwidth_3_datasize_1024_01/2021-12-13-15-45-10/init_agent_config_777591997d204dc2bc98f329347a7263.pkl")
     # run_iddpg(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_3_threshold_07_01.pkl")
     # show_agent_config("/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1213_Agents/bandwidth_3_datasize_1024_01/2021-12-13-09-44-46/init_agent_config_6304b8bfb4bf4295a4f289cfefa89e3c.pkl")
     
-    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_0800_bandwidth_5_datasize_1024_01.pkl")
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/Scenario1/vehicle_1116_0800_bandwidth_3_threshold_15.pkl")
     
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1127_0800_bandwidth_3_dataszie_1024_02.pkl")
+    # run(first=True, environments_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Environments/Data/vehicle_1116_2350_bandwidth_3_dataszie_1024_02.pkl")
 
     # DR_GA
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0205_MDR_GBA/bandwidth_3_threshold_15/2022-05-05-21-26-26-list_file_name.pkl")
 
-    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_1_datasize_1024_01/2021-12-16-19-35-03-list_file_name.pkl")
+    run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0205_MDR_GBA/bandwidth_3_threshold_15/2022-05-05-21-28-32-list_file_name.pkl")
+    
+    
+    
+    
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0205_MDR_GBA/bandwidth_3_threshold_15/2022-02-05-11-24-21-list_file_name.pkl")
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0205_MDR_GBA/bandwidth_3_threshold_15/2022-02-05-15-53-16-list_file_name.pkl")
+    # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data0205_MDR_GBA/bandwidth_3_threshold_15/2022-02-05-16-16-57-list_file_name.pkl")
+    
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_2_datasize_1024_01/2021-12-16-19-35-30-list_file_name.pkl")
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_4_datasize_1024_01/2021-12-16-19-35-58-list_file_name.pkl")
     
@@ -415,63 +330,5 @@ if __name__ == '__main__':
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_2048_01/2021-12-16-19-31-15-list_file_name.pkl")
     # run(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1216_Agents/bandwidth_3_datasize_4096_01/2021-12-16-19-32-59-list_file_name.pkl")
 
-    # run(rerun=True, given_list_file_name='2021-10-25-22-33-35-list_file_name.pkl')
-
-    # run_iddpg(given_list_file_name="2021-11-15-16-08-37-list_file_name.pkl")
-
-    # nomal bandwidth = 1
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_1_threshold_05_01/2021-11-15-22-24-33-list_file_name.pkl")
-    # nomal bandwidth = 2
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_2_threshold_05_01/2021-11-15-22-31-59-list_file_name.pkl")
-    # nomal bandwidth = 4
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_4_threshold_05_01/2021-11-15-22-33-35-list_file_name.pkl")
-    # nomal bandwidth = 5
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_5_threshold_05_01/2021-11-15-22-35-59-list_file_name.pkl")
-
-    # nomal threshold = 0.3
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_03_01/2021-11-15-22-38-16-list_file_name.pkl")
-    # nomal threshold = 0.4
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_04_01/2021-11-15-22-38-45-list_file_name.pkl")
-    # nomal threshold = 0.6
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_06_01/2021-11-15-22-39-05-list_file_name.pkl")
-    # nomal threshold = 0.7
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_07_01/2021-11-15-22-39-27-list_file_name.pkl")
-
-    # random bandwidth = 1
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_1_threshold_05_01/2021-11-15-22-47-48-list_file_name.pkl")
-    # random bandwidth = 2
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_2_threshold_05_01/2021-11-15-22-48-30-list_file_name.pkl")
-    # random bandwidth = 4
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_4_threshold_05_01/2021-11-15-22-49-02-list_file_name.pkl")
-    # random bandwidth = 5
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_5_threshold_05_01/2021-11-15-22-49-31-list_file_name.pkl")
-
-    # random threshold = 0.3
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_03_01/2021-11-15-22-52-48-list_file_name.pkl")
-    # random threshold = 0.4
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_04_01/2021-11-15-22-53-17-list_file_name.pkl")
-    # random threshold = 0.6
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_06_01/2021-11-15-22-53-41-list_file_name.pkl")
-    # random threshold = 0.7
-    # run_iddpg(given_list_file_name="/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1110_Agents/1116/0800/iddpg/bandwidth_3_threshold_07_01/2021-11-15-22-54-05-list_file_name.pkl")
-
-
     
-    # run(given_list_file_name='2021-09-29-16-16-31-list_file_name.pkl')
-    # run(given_list_file_name='2021-09-29-20-11-11-list_file_name.pkl')
-
-    # run(given_list_file_name='2021-10-01-14-54-33-list_file_name.pkl')
-    # run(given_list_file_name='2021-10-02-11-34-43-list_file_name.pkl')
-    # run(given_list_file_name='2021-10-08-12-53-05-list_file_name.pkl')
-    
-    # run(given_list_file_name='2021-10-19-16-54-31-list_file_name.pkl')
-    
-    # IDDPG
-    # run(given_list_file_name='2021-10-10-15-40-29-list_file_name.pkl')
-
-    # run_again(
-    #     temple_agent_config_file_name='/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1021/2021-10-21-15-05-30/temple_agent_config_d8b2a3ad18cf457c854f792ffd109a87.pkl',
-    #     temple_agent_file_name='/home/neardws/Hierarchical-Reinforcement-Learning/Data/Data1021/2021-10-21-15-05-30/temple_agent_7ff8d462fac44731ae264ed69a1421df.pkl'
-    #     )
-
     
