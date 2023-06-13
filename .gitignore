@@ -12,3 +12,5 @@ Data/
 Data/*
 Results/
 Results/*
+*.pdf
+*.ipynb
