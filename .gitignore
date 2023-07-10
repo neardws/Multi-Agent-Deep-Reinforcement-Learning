@@ -15,3 +15,9 @@ Results/*
 *.pdf
 *.ipynb
 *.png
+*.csv
+*.tar.gz
+Tests/
+Tests/*
+Image/
+Image/*
